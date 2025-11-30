@@ -47,6 +47,24 @@
       "description": "Profile picture of a young man in his 20s, looking thoughtful.",
       "imageUrl": "https://images.unsplash.com/photo-1613419441661-6a5af1751d30?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw0fHx5b3VuZyUyMG1hbnxlbnwwfHx8fDE3NjQ0MjU4MjZ8MA&ixlib=rb-4.1.0&q=80&w=1080",
       "imageHint": "young man"
+    },
+    {
+      "id": "prabhupada-1",
+      "description": "Black and white portrait of Srila Prabhupada.",
+      "imageUrl": "https://images.unsplash.com/photo-1740457281684-269402359dd8?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxMHx8c3Bpcml0dWFsJTIwbGVhZGVyfGVufDB8fHx8MTc2NDUxODQyN3ww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "spiritual leader"
+    },
+    {
+      "id": "prabhupada-2",
+      "description": "Srila Prabhupada smiling.",
+      "imageUrl": "https://images.unsplash.com/photo-1764176267954-6828ee7e7e6c?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw0fHxlbGRlcmx5JTIwbW9ua3xlbnwwfHx8fDE3NjQ1MTg0Mjd8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "elderly monk"
+    },
+    {
+      "id": "prabhupada-3",
+      "description": "Srila Prabhupada writing at his desk.",
+      "imageUrl": "https://images.unsplash.com/photo-1629637980312-17ca9ed52f29?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw2fHxzcGlyaXR1YWwlMjBhdXRob3J8ZW58MHx8fHwxNzY0NTE4NDI3fDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "spiritual author"
     }
   ]
 }
