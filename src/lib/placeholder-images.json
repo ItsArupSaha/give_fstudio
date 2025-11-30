@@ -1,3 +1,52 @@
 {
-  "placeholderImages": []
+  "placeholderImages": [
+    {
+      "id": "hero-1",
+      "description": "A serene, beautiful landscape with a path leading towards a sunrise, symbolizing a spiritual journey.",
+      "imageUrl": "https://images.unsplash.com/photo-1737209099386-a4a4ae7503f1?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw2fHxzcGlyaXR1YWwlMjBsYW5kc2NhcGV8ZW58MHx8fHwxNzY0NTE3Mzg5fDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "spiritual landscape"
+    },
+    {
+      "id": "about-1",
+      "description": "A wise, elderly teacher in traditional attire, smiling warmly while speaking to a group of attentive students in a peaceful outdoor setting.",
+      "imageUrl": "https://images.unsplash.com/photo-1669092982937-294045bcc0f1?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw4fHx0ZWFjaGVyJTIwc3R1ZGVudHN8ZW58MHx8fHwxNzY0NTE3Mzg5fDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "teacher students"
+    },
+    {
+      "id": "course-1",
+      "description": "An ancient, beautifully illustrated manuscript of the Bhagavad-gita, open on a wooden table.",
+      "imageUrl": "https://images.unsplash.com/photo-1616405160919-c209d0062a4a?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxfHxhbmNpZW50JTIwYm9va3xlbnwwfHx8fDE3NjQ1MTczODl8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "ancient book"
+    },
+    {
+      "id": "course-2",
+      "description": "A person meditating peacefully at dawn, with soft light illuminating their face.",
+      "imageUrl": "https://images.unsplash.com/photo-1631963137006-7c6d5f103ba2?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw2fHxwZWFjZWZ1bCUyMG1lZGl0YXRpb258ZW58MHx8fHwxNzY0NTE3Mzg5fDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "peaceful meditation"
+    },
+    {
+      "id": "course-3",
+      "description": "A group of people sitting in a circle, engaged in a deep and friendly discussion.",
+      "imageUrl": "https://images.unsplash.com/photo-1515187029135-18ee286d815b?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw0fHxncm91cCUyMGRpc2N1c3Npb258ZW58MHx8fHwxNzY0NTE3Mzg5fDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "group discussion"
+    },
+    {
+      "id": "avatar-1",
+      "description": "Profile picture of a smiling man in his 30s.",
+      "imageUrl": "https://images.unsplash.com/photo-1534614971-6be99a7a3ffd?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxMHx8bWFuJTIwc21pbGluZ3xlbnwwfHx8fDE3NjQ1MTY1ODd8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "man smiling"
+    },
+    {
+      "id": "avatar-2",
+      "description": "Profile picture of a smiling woman in her 40s.",
+      "imageUrl": "https://images.unsplash.com/photo-1594744803329-e58b31de8bf5?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw1fHx3b21hbiUyMHNtaWxpbmd8ZW58MHx8fHwxNzY0NDQ1NDk2fDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "woman smiling"
+    },
+    {
+      "id": "avatar-3",
+      "description": "Profile picture of a young man in his 20s, looking thoughtful.",
+      "imageUrl": "https://images.unsplash.com/photo-1613419441661-6a5af1751d30?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw0fHx5b3VuZyUyMG1hbnxlbnwwfHx8fDE3NjQ0MjU4MjZ8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "young man"
+    }
+  ]
 }
