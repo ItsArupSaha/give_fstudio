@@ -22,11 +22,11 @@ export default function GivePage() {
           </div>
           <div className="md:col-span-2 relative aspect-[3/4] rounded-lg overflow-hidden shadow-lg transition-transform duration-300 hover:scale-105">
             <Image
-              src="https://picsum.photos/seed/give-1/600/800"
-              alt="HG Mani Gopal Das giving a lecture."
-              fill
+              src="/hg_Mani_Gopal_Dasa.png"
+              alt="HG Mani Gopal Das"
+              width={600}
+              height={800}
               className="object-cover"
-              data-ai-hint="spiritual teacher"
             />
           </div>
         </div>
