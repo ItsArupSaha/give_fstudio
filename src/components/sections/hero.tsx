@@ -1,6 +1,7 @@
 import { Button } from "@/components/ui/button";
 import Image from "next/image";
 import Link from "next/link";
+import Marquee from "react-fast-marquee";
 
 export function Hero() {
   return (
@@ -14,7 +15,17 @@ export function Hero() {
         data-ai-hint="spiritual landscape"
       />
       <div className="absolute inset-0 bg-black/50" />
-      <div className="relative z-10 max-w-4xl mx-auto px-4 space-y-6">
+      <div className="relative z-10 max-w-4xl mx-auto px-4 py-4 space-y-6">
+        <div className="overflow-hidden rounded-full bg-muted/90 border border-border mb-4">
+          <Marquee
+            gradient={false}
+            speed={25}
+            pauseOnHover
+            className="px-6 py-1 text-xs md:text-sm font-medium text-primary"
+          >
+            Hare Krishna Hare Krishna Krishna Krishna Hare Hare, Hare Rama Hare Rama Rama Rama Hare Hare.
+          </Marquee>
+        </div>
         <h1 className="text-4xl md:text-6xl lg:text-7xl font-headline font-bold tracking-tight text-shadow-lg">
           Gaura-vāṇī Institute for Vaiṣṇava Education
         </h1>

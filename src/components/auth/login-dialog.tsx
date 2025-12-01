@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { auth, googleProvider } from "@/lib/firebase";
 import { signInWithEmailAndPassword, signInWithPopup } from "firebase/auth";
 import { useState } from "react";
+import Marquee from "react-fast-marquee";
 
 export function LoginDialog() {
   const [open, setOpen] = useState(false);
@@ -54,14 +55,16 @@ export function LoginDialog() {
       </DialogTrigger>
       <DialogContent className="max-w-md border border-border bg-muted sm:rounded-xl shadow-xl">
         <div className="mb-3 overflow-hidden rounded-full bg-background/60 border border-border">
-          <div className="flex w-max animate-[marquee_18s_linear_infinite] px-4 py-1 text-xs md:text-sm font-medium text-primary gap-8">
-            <span>
+          <Marquee
+            gradient={false}
+            speed={25}
+            pauseOnHover
+            className="px-4 py-1 text-xs md:text-sm font-medium text-primary"
+          >
+            <span className="mx-4">
               Hare Krishna Hare Krishna Krishna Krishna Hare Hare, Hare Rama Hare Rama Rama Rama Hare Hare.
             </span>
-            <span aria-hidden="true">
-              Hare Krishna Hare Krishna Krishna Krishna Hare Hare, Hare Rama Hare Rama Rama Rama Hare Hare.
-            </span>
-          </div>
+          </Marquee>
         </div>
         <DialogHeader>
           <DialogTitle className="font-headline text-xl">Login to GIVE</DialogTitle>
