@@ -26,11 +26,11 @@ const courses = [
 
 export function Courses() {
   return (
-    <section id="courses" className="py-16 md:py-24 bg-background">
+    <section id="courses" className="py-16 md:py-24 bg-secondary">
       <div className="container max-w-screen-2xl">
         <div className="text-center max-w-2xl mx-auto mb-12">
-          <h2 className="text-3xl md:text-4xl font-headline font-bold">Our Courses</h2>
-          <p className="mt-4 text-lg text-muted-foreground">
+          <h2 className="text-3xl md:text-4xl font-headline font-bold text-secondary-foreground">Our Courses</h2>
+          <p className="mt-4 text-lg text-secondary-foreground/80">
             Deepen your understanding of Vaiṣṇava philosophy and practice with our structured courses.
           </p>
         </div>
