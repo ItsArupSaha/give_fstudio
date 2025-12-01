@@ -1,6 +1,6 @@
-import Link from 'next/link';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Video, Mic, BookOpen } from 'lucide-react';
+import { BookOpen, Mic, Video } from 'lucide-react';
+import Link from 'next/link';
 
 const resources = [
   {
@@ -25,8 +25,11 @@ const resources = [
 
 export function Multimedia() {
   return (
-    <section id="resources" className="py-16 md:py-24 bg-secondary">
-      <div className="container max-w-screen-2xl">
+    <section
+      id="resources"
+      className="relative py-16 md:py-24 bg-gradient-to-b from-secondary via-secondary/95 to-background overflow-hidden"
+    >
+      <div className="relative container max-w-screen-2xl">
         <div className="text-center max-w-2xl mx-auto mb-12">
           <h2 className="text-3xl md:text-4xl font-headline font-bold text-secondary-foreground">Explore Our Resources</h2>
           <p className="mt-4 text-lg text-secondary-foreground/80">

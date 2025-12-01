@@ -1,13 +1,16 @@
-import Link from "next/link";
-import { Linkedin, Mail, MapPin, Phone, Globe } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Globe, Linkedin, Mail, MapPin, Phone } from "lucide-react";
+import Link from "next/link";
 
 export default function Footer() {
   return (
-    <footer id="contact" className="w-full bg-secondary text-secondary-foreground py-12 md:py-16">
+    <footer
+      id="contact"
+      className="w-full bg-gradient-to-b from-muted/95 via-muted to-background border-t border-border/40 text-secondary-foreground py-12 md:py-16"
+    >
       <div className="container max-w-screen-2xl grid grid-cols-1 md:grid-cols-3 gap-8 md:gap-12">
         <div className="space-y-4">
           <h3 className="text-2xl font-headline font-bold">Gaura-vāṇī Institute</h3>

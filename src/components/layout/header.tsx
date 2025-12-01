@@ -14,7 +14,8 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
-import { BookOpenText, ChevronDown, Menu } from "lucide-react";
+import { ChevronDown, Menu } from "lucide-react";
+import Image from "next/image";
 import Link from "next/link";
 import * as React from "react";
 
@@ -39,7 +40,14 @@ export default function Header() {
     <header className="sticky top-0 z-50 w-full border-b border-border/60 bg-secondary/90 backdrop-blur supports-[backdrop-filter]:bg-secondary/80">
       <div className="container flex h-14 max-w-screen-2xl items-center justify-between">
         <Link href="/" className="flex items-center space-x-2">
-          <BookOpenText className="h-6 w-6 text-primary" />
+          <Image
+            src="/GIVE_logo.png"
+            alt="GIVE logo"
+            width={32}
+            height={32}
+            className="h-8 w-8"
+            priority
+          />
           <span className="font-bold font-headline sm:inline-block">
             GIVE
           </span>
@@ -81,7 +89,14 @@ export default function Header() {
               <div className="flex flex-col h-full">
                 <div className="flex items-center border-b pb-4">
                   <Link href="/" className="flex items-center space-x-2" onClick={() => setIsMobileMenuOpen(false)}>
-                    <BookOpenText className="h-6 w-6 text-primary" />
+                  <Image
+                    src="/GIVE_logo.png"
+                    alt="GIVE logo"
+                    width={32}
+                    height={32}
+                    className="h-8 w-8"
+                    priority
+                  />
                     <span className="font-bold font-headline">GIVE</span>
                   </Link>
                 </div>
