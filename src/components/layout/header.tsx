@@ -17,7 +17,6 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
-import { cn } from "@/lib/utils";
 
 const mainNavItems = [
   { name: "Courses", href: "#courses" },
@@ -37,16 +36,14 @@ export default function Header() {
   return (
     <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container flex h-14 max-w-screen-2xl items-center justify-between">
-        <div className="flex">
-          <Link href="/" className="flex items-center space-x-2">
-            <BookOpenText className="h-6 w-6 text-primary" />
-            <span className="font-bold font-headline sm:inline-block">
-              GIVE
-            </span>
-          </Link>
-        </div>
+        <Link href="/" className="flex items-center space-x-2">
+          <BookOpenText className="h-6 w-6 text-primary" />
+          <span className="font-bold font-headline sm:inline-block">
+            GIVE
+          </span>
+        </Link>
 
-        <nav className="hidden gap-6 text-sm md:flex items-center">
+        <div className="hidden md:flex items-center gap-6 text-sm">
           <DropdownMenu>
             <DropdownMenuTrigger className="flex items-center gap-1 font-medium text-foreground/60 transition-colors hover:text-foreground/80 focus:outline-none">
               About <ChevronDown className="h-4 w-4" />
@@ -68,7 +65,7 @@ export default function Header() {
               {item.name}
             </Link>
           ))}
-        </nav>
+        </div>
 
         <div className="flex items-center md:hidden">
           <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
