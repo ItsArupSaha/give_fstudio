@@ -17,7 +17,13 @@ import {
   DropdownMenuSubTrigger,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet";
 import { ChevronDown, Menu } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
@@ -110,24 +116,27 @@ export default function Header() {
               </Button>
             </SheetTrigger>
             <SheetContent side="left">
+              <SheetHeader className="sr-only">
+                <SheetTitle>Site navigation</SheetTitle>
+              </SheetHeader>
               <div className="flex flex-col h-full">
                 <div className="flex items-center border-b pb-4">
                   <Link href="/" className="flex items-center space-x-2" onClick={() => setIsMobileMenuOpen(false)}>
-                  <Image
-                    src="/GIVE_logo.png"
-                    alt="GIVE logo"
-                    width={32}
-                    height={32}
-                    className="h-8 w-8"
-                    priority
-                  />
+                    <Image
+                      src="/GIVE_logo.png"
+                      alt="GIVE logo"
+                      width={32}
+                      height={32}
+                      className="h-8 w-8"
+                      priority
+                    />
                     <span className="font-bold font-headline">GIVE</span>
                   </Link>
                 </div>
                 <nav className="flex flex-col gap-1 mt-4">
-                  <Accordion type="single" collapsible className="w-full">
-                  <AccordionItem value="about" className="border-b-0">
-                      <AccordionTrigger className="text-lg font-medium text-foreground/90 transition-colors hover:text-foreground hover:no-underline py-2">
+                  <Accordion type="single" collapsible className="w-full border-none">
+                    <AccordionItem value="about" className="border-b-0">
+                      <AccordionTrigger className="px-4 text-left text-lg font-medium text-foreground/90 transition-colors hover:text-foreground hover:no-underline py-2">
                         About
                       </AccordionTrigger>
                       <AccordionContent className="pl-4">
