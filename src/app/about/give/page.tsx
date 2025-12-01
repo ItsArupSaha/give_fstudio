@@ -23,14 +23,17 @@ export default function GivePage() {
           </div>
           <div className="md:col-span-2 flex justify-center md:justify-end">
             <AnimatedSection direction="right" delay={150}>
-              <div className="relative rounded-lg shadow-lg transition-transform duration-300 hover:scale-105">
-                <Image
-                  src="/hg_Mani_Gopal_Dasa.jpg"
-                  alt="HG Mani Gopal Das"
-                  width={600}
-                  height={800}
-                  className="h-auto w-auto max-w-full"
-                />
+              <div className="relative">
+                <div className="pointer-events-none absolute -inset-4 rounded-[2rem] bg-gradient-to-tr from-primary/35 via-primary/5 to-transparent opacity-70 blur-2xl" />
+                <div className="relative rounded-3xl shadow-xl transition-transform duration-300 hover:scale-105">
+                  <Image
+                    src="/hg_Mani_Gopal_Dasa.jpg"
+                    alt="HG Mani Gopal Das"
+                    width={600}
+                    height={800}
+                    className="h-auto w-auto max-w-full rounded-xl"
+                  />
+                </div>
               </div>
             </AnimatedSection>
           </div>
