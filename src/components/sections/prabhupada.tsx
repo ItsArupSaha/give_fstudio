@@ -2,8 +2,15 @@ import Image from 'next/image';
 
 export function Prabhupada() {
   return (
-    <section id="prabhupada" className="py-16 md:py-24 bg-secondary">
-      <div className="container max-w-screen-md text-center">
+    <section
+      id="prabhupada"
+      className="relative py-16 md:py-24 bg-gradient-to-b from-secondary via-secondary/95 to-background overflow-hidden"
+    >
+      {/* soft decorative background glows */}
+      <div className="pointer-events-none absolute -top-24 left-1/2 h-64 w-64 -translate-x-1/2 rounded-full bg-primary/25 blur-3xl" />
+      <div className="pointer-events-none absolute bottom-0 right-0 h-72 w-72 translate-x-1/4 translate-y-1/4 rounded-full bg-primary/15 blur-3xl" />
+
+      <div className="relative container max-w-screen-md text-center">
         <div className="flex flex-col items-center">
           <h2 className="text-2xl md:text-3xl font-headline text-secondary-foreground/80 mb-6">
             Dedicated to the loving service of

@@ -1,7 +1,7 @@
 "use client";
 
-import * as React from "react";
 import Autoplay from "embla-carousel-autoplay";
+import * as React from "react";
 
 import { Card, CardContent } from "@/components/ui/card";
 import {
@@ -45,8 +45,17 @@ export function QuoteCarousel() {
   );
 
   return (
-    <section className="py-16 md:py-24 bg-background">
-      <div className="container max-w-screen-2xl">
+    <section className="relative py-16 md:py-24 bg-gradient-to-b from-muted/95 via-muted to-background border-t border-border/40 overflow-hidden">
+      {/* subtle background accents, distinct band after Prabhupada section */}
+      <div className="pointer-events-none absolute -top-24 left-0 h-64 w-64 -translate-x-1/3 rounded-full bg-primary/5 blur-3xl" />
+      <div className="pointer-events-none absolute bottom-0 right-0 h-72 w-72 translate-x-1/3 translate-y-1/4 rounded-full bg-primary/10 blur-3xl" />
+
+      <div className="relative container max-w-screen-2xl">
+        <div className="mb-10 text-center">
+          <h2 className="text-3xl md:text-4xl font-headline font-bold text-secondary-foreground">
+            Ācārya Vākya
+          </h2>
+        </div>
         <Carousel
           plugins={[plugin.current]}
           className="w-full"
