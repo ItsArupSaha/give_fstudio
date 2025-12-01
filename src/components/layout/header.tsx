@@ -43,7 +43,7 @@ export default function Header() {
           </span>
         </Link>
 
-        <div className="hidden md:flex items-center gap-6 text-sm">
+        <nav className="hidden md:flex items-center gap-6 text-sm">
           <DropdownMenu>
             <DropdownMenuTrigger className="flex items-center gap-1 font-medium text-foreground/60 transition-colors hover:text-foreground/80 focus:outline-none">
               About <ChevronDown className="h-4 w-4" />
@@ -65,7 +65,7 @@ export default function Header() {
               {item.name}
             </Link>
           ))}
-        </div>
+        </nav>
 
         <div className="flex items-center md:hidden">
           <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
