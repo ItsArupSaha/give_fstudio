@@ -46,7 +46,7 @@ export function QuoteCarousel() {
 
   return (
     <section className="py-16 md:py-24 bg-background">
-      <div className="container max-w-screen-lg">
+      <div className="container max-w-screen-2xl">
         <Carousel
           plugins={[plugin.current]}
           className="w-full"
@@ -59,14 +59,14 @@ export function QuoteCarousel() {
         >
           <CarouselContent>
             {quotes.map((item, index) => (
-              <CarouselItem key={index}>
-                <div className="p-1">
-                  <Card className="bg-transparent border-0 shadow-none">
+              <CarouselItem key={index} className="md:basis-1/2 lg:basis-1/3">
+                <div className="p-2 h-full">
+                  <Card className="h-full flex flex-col justify-center bg-card shadow-sm hover:shadow-lg transition-shadow duration-300">
                     <CardContent className="flex flex-col items-center justify-center p-6 text-center">
-                      <p className="text-2xl md:text-3xl font-headline text-foreground/80 italic">
+                      <p className="text-lg font-body text-card-foreground/80 italic flex-grow">
                         "{item.quote}"
                       </p>
-                      <p className="mt-4 text-lg font-semibold text-primary">
+                      <p className="mt-4 text-base font-semibold text-primary">
                         — {item.author}
                       </p>
                     </CardContent>

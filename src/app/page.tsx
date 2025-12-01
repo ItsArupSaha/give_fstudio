@@ -1,4 +1,4 @@
-import { About } from "@/components/sections/about";
+import { Prabhupada } from "@/components/sections/prabhupada";
 import { Courses } from "@/components/sections/courses";
 import { Faq } from "@/components/sections/faq";
 import { Hero } from "@/components/sections/hero";
@@ -10,7 +10,7 @@ export default function Home() {
   return (
     <>
       <Hero />
-      <About />
+      <Prabhupada />
       <QuoteCarousel />
       <Courses />
       <Testimonials />
