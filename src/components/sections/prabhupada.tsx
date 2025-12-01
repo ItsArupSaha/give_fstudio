@@ -10,7 +10,7 @@ export function Prabhupada() {
           </h2>
           <div className="relative w-48 h-48 md:w-56 md:h-56 rounded-full overflow-hidden shadow-2xl mb-6 border-4 border-white">
             <Image
-              src="https://picsum.photos/seed/prabhupada-2/400/400"
+              src="/SP_1.png"
               alt="Srila Prabhupada smiling."
               fill
               className="object-cover object-top"

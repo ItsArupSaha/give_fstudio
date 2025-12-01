@@ -1,12 +1,12 @@
+import { Button } from "@/components/ui/button";
 import Image from "next/image";
 import Link from "next/link";
-import { Button } from "@/components/ui/button";
 
 export function Hero() {
   return (
     <section className="relative w-full h-[70vh] min-h-[500px] flex items-center justify-center text-center text-white">
       <Image
-        src="https://picsum.photos/seed/hero-1/1920/1080"
+        src="/Govardhan.png"
         alt="A serene, beautiful landscape with a path leading towards a sunrise, symbolizing a spiritual journey."
         fill
         className="object-cover"
@@ -26,7 +26,7 @@ export function Hero() {
             <Link href="#courses">Explore Courses</Link>
           </Button>
           <Button asChild size="lg" variant="secondary" className="transform transition-transform duration-300 hover:scale-105">
-            <Link href="/about/srila-prabhupada">About Us</Link>
+            <Link href="/about/give">About Us</Link>
           </Button>
         </div>
       </div>
