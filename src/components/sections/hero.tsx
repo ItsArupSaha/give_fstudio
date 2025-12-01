@@ -23,7 +23,9 @@ export function Hero() {
             pauseOnHover
             className="px-6 py-1 text-xs md:text-sm font-medium text-primary"
           >
-            Hare Krishna Hare Krishna Krishna Krishna Hare Hare, Hare Rama Hare Rama Rama Rama Hare Hare.
+            <span className="mx-4">
+              Hare Krishna Hare Krishna Krishna Krishna Hare Hare, Hare Rama Hare Rama Rama Rama Hare Hare.
+            </span>
           </Marquee>
         </div>
         <h1 className="text-4xl md:text-6xl lg:text-7xl font-headline font-bold tracking-tight text-shadow-lg">
