@@ -1,5 +1,6 @@
 "use client";
 
+import { UserMenu } from "@/components/auth/user-menu";
 import {
   Accordion,
   AccordionContent,
@@ -95,7 +96,12 @@ export default function Header() {
           ))}
         </nav>
 
-        <div className="flex items-center md:hidden">
+        <div className="hidden md:flex items-center">
+          <UserMenu />
+        </div>
+
+        <div className="flex items-center gap-2 md:hidden">
+          <UserMenu />
           <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
             <SheetTrigger asChild>
               <Button variant="ghost" size="icon">
