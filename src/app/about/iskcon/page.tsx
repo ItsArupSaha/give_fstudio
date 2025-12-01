@@ -1,10 +1,7 @@
 import Image from 'next/image';
 import Link from 'next/link';
-import { PlaceHolderImages } from '@/lib/placeholder-images';
 
 export default function IskconPage() {
-  const iskconImage = PlaceHolderImages.find(p => p.id === 'about-1');
-
   return (
     <div className="bg-background text-foreground">
       <div className="container max-w-screen-2xl py-16 md:py-24">
@@ -17,15 +14,13 @@ export default function IskconPage() {
               </p>
             </div>
             <div className="relative aspect-video rounded-lg overflow-hidden shadow-lg hover:scale-105 transition-transform duration-300">
-              {iskconImage && (
-                <Image
-                  src={iskconImage.imageUrl}
-                  alt={iskconImage.description}
-                  fill
-                  className="object-cover"
-                  data-ai-hint={iskconImage.imageHint}
-                />
-              )}
+              <Image
+                src="https://picsum.photos/seed/about-1/1280/720"
+                alt="A wise, elderly teacher in traditional attire, smiling warmly while speaking to a group of attentive students in a peaceful outdoor setting."
+                fill
+                className="object-cover"
+                data-ai-hint="teacher students"
+              />
             </div>
           </div>
 

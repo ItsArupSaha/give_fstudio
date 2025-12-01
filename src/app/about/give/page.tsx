@@ -1,9 +1,6 @@
 import Image from 'next/image';
-import { PlaceHolderImages } from '@/lib/placeholder-images';
 
 export default function GivePage() {
-  const giveImage = PlaceHolderImages.find(p => p.id === 'give-1');
-
   return (
     <div className="bg-background text-foreground">
       <div className="container max-w-screen-2xl py-16 md:py-24">
@@ -24,15 +21,13 @@ export default function GivePage() {
             </p>
           </div>
           <div className="md:col-span-2 relative aspect-[3/4] rounded-lg overflow-hidden shadow-lg transition-transform duration-300 hover:scale-105">
-            {giveImage && (
-              <Image
-                src={giveImage.imageUrl}
-                alt={giveImage.description}
-                fill
-                className="object-cover"
-                data-ai-hint={giveImage.imageHint}
-              />
-            )}
+            <Image
+              src="https://picsum.photos/seed/give-1/600/800"
+              alt="HG Mani Gopal Das giving a lecture."
+              fill
+              className="object-cover"
+              data-ai-hint="spiritual teacher"
+            />
           </div>
         </div>
       </div>

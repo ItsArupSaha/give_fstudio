@@ -1,13 +1,27 @@
 import Image from 'next/image';
-import { PlaceHolderImages } from '@/lib/placeholder-images';
+
+const images = [
+  {
+    id: 'prabhupada-1',
+    src: 'https://picsum.photos/seed/prabhupada-1/600/800',
+    alt: 'Black and white portrait of Srila Prabhupada.',
+    hint: 'spiritual leader',
+  },
+  {
+    id: 'prabhupada-2',
+    src: 'https://picsum.photos/seed/prabhupada-2/600/800',
+    alt: 'Srila Prabhupada smiling.',
+    hint: 'elderly monk',
+  },
+  {
+    id: 'prabhupada-3',
+    src: 'https://picsum.photos/seed/prabhupada-3/600/800',
+    alt: 'Srila Prabhupada writing at his desk.',
+    hint: 'spiritual author',
+  },
+];
 
 export default function SrilaPrabhupadaPage() {
-  const images = [
-    PlaceHolderImages.find(p => p.id === 'prabhupada-1'),
-    PlaceHolderImages.find(p => p.id === 'prabhupada-2'),
-    PlaceHolderImages.find(p => p.id === 'prabhupada-3'),
-  ];
-
   return (
     <div className="bg-background text-foreground">
       <div className="container max-w-screen-2xl py-16 md:py-24">
@@ -24,15 +38,13 @@ export default function SrilaPrabhupadaPage() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-12">
             {images.map((img, index) => (
               <div key={index} className={`relative aspect-[3/4] rounded-lg overflow-hidden shadow-lg ${index === 1 ? 'md:col-span-1' : ''} ${index === 0 ? 'md:row-span-1' : ''} ${index === 2 ? 'md:row-span-1' : ''} hover:scale-105 transition-transform duration-300`}>
-                {img && (
-                  <Image
-                    src={img.imageUrl}
-                    alt={img.description}
-                    fill
-                    className="object-cover"
-                    data-ai-hint={img.imageHint}
-                  />
-                )}
+                <Image
+                  src={img.src}
+                  alt={img.alt}
+                  fill
+                  className="object-cover"
+                  data-ai-hint={img.hint}
+                />
               </div>
             ))}
           </div>

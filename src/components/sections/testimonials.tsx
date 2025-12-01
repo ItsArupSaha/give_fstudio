@@ -7,7 +7,6 @@ import {
   CarouselNext,
   CarouselPrevious,
 } from '@/components/ui/carousel';
-import { PlaceHolderImages } from '@/lib/placeholder-images';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 
 const testimonials = [
@@ -16,21 +15,33 @@ const testimonials = [
     name: "Arjuna Dasa",
     role: "Bhagavad-gītā Student",
     quote: "The course transformed my understanding of life. The teachers are not just knowledgeable, but truly live the teachings. It has been a life-changing experience.",
-    avatarId: 'avatar-1'
+    avatar: {
+      src: 'https://picsum.photos/seed/avatar-1/100/100',
+      alt: 'Profile picture of a smiling man in his 30s.',
+      hint: 'man smiling',
+    }
   },
   {
     id: "testimonial-2",
     name: "Radhika Devi Dasi",
     role: "Bhakti Sastri Graduate",
     quote: "I'm so grateful for the systematic and deep study provided by GIVE. It has given me the confidence and clarity to share this knowledge with others.",
-    avatarId: 'avatar-2'
+    avatar: {
+      src: 'https://picsum.photos/seed/avatar-2/100/100',
+      alt: 'Profile picture of a smiling woman in her 40s.',
+      hint: 'woman smiling',
+    }
   },
   {
     id: "testimonial-3",
     name: "Krishna Sharma",
     role: "Introductory Course Attendee",
     quote: "As someone new to the philosophy, I felt completely welcomed. The concepts were explained with such patience and clarity. I can't wait to learn more!",
-    avatarId: 'avatar-3'
+    avatar: {
+      src: 'https://picsum.photos/seed/avatar-3/100/100',
+      alt: 'Profile picture of a young man in his 20s, looking thoughtful.',
+      hint: 'young man',
+    }
   },
 ];
 
@@ -52,9 +63,7 @@ export function Testimonials() {
           className="w-full max-w-4xl mx-auto"
         >
           <CarouselContent>
-            {testimonials.map((testimonial) => {
-              const avatarImage = PlaceHolderImages.find(p => p.id === testimonial.avatarId);
-              return (
+            {testimonials.map((testimonial) => (
               <CarouselItem key={testimonial.id} className="md:basis-1/2 lg:basis-1/3">
                 <div className="p-1 h-full">
                   <Card className="flex flex-col justify-between h-full p-6 shadow-md hover:shadow-xl transition-shadow duration-300">
@@ -63,7 +72,7 @@ export function Testimonials() {
                     </CardContent>
                     <div className="flex items-center gap-4 mt-6">
                       <Avatar>
-                        {avatarImage && <AvatarImage src={avatarImage.imageUrl} alt={avatarImage.description} data-ai-hint={avatarImage.imageHint} />}
+                        <AvatarImage src={testimonial.avatar.src} alt={testimonial.avatar.alt} data-ai-hint={testimonial.avatar.hint} />
                         <AvatarFallback>{testimonial.name.charAt(0)}</AvatarFallback>
                       </Avatar>
                       <div>
@@ -74,7 +83,7 @@ export function Testimonials() {
                   </Card>
                 </div>
               </CarouselItem>
-            )})}
+            ))}
           </CarouselContent>
           <CarouselPrevious />
           <CarouselNext />
