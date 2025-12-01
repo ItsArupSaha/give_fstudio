@@ -45,11 +45,24 @@ export function LoginDialog() {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button variant="outline" size="sm">
+        <button
+          type="button"
+          className="text-sm font-medium text-foreground/90 hover:text-foreground transition-colors"
+        >
           Login
-        </Button>
+        </button>
       </DialogTrigger>
       <DialogContent className="max-w-md border border-border bg-muted sm:rounded-xl shadow-xl">
+        <div className="mb-3 overflow-hidden rounded-full bg-background/60 border border-border">
+          <div className="flex w-max animate-[marquee_18s_linear_infinite] px-4 py-1 text-xs md:text-sm font-medium text-primary gap-8">
+            <span>
+              Hare Krishna Hare Krishna Krishna Krishna Hare Hare, Hare Rama Hare Rama Rama Rama Hare Hare.
+            </span>
+            <span aria-hidden="true">
+              Hare Krishna Hare Krishna Krishna Krishna Hare Hare, Hare Rama Hare Rama Rama Rama Hare Hare.
+            </span>
+          </div>
+        </div>
         <DialogHeader>
           <DialogTitle className="font-headline text-xl">Login to GIVE</DialogTitle>
         </DialogHeader>
