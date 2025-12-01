@@ -11,6 +11,9 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSub,
+  DropdownMenuSubContent,
+  DropdownMenuSubTrigger,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
@@ -64,6 +67,21 @@ export default function Header() {
                   <Link href={item.href}>{item.name}</Link>
                 </DropdownMenuItem>
               ))}
+              <DropdownMenuSub>
+                <DropdownMenuSubTrigger>Guardians</DropdownMenuSubTrigger>
+                <DropdownMenuSubContent>
+                  <DropdownMenuItem asChild>
+                    <Link href="/about/srila-bhaktisiddhanta-sarasvati-thakura">
+                      Śrīla Bhaktisiddhānta Sarasvatī Ṭhākura
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <Link href="/about/jayapataka-swami">
+                      HH Jayapatākā Swami
+                    </Link>
+                  </DropdownMenuItem>
+                </DropdownMenuSubContent>
+              </DropdownMenuSub>
             </DropdownMenuContent>
           </DropdownMenu>
           {mainNavItems.map((item) => (
