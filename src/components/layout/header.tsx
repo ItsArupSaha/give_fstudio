@@ -29,6 +29,7 @@ const mainNavItems = [
 const aboutNavItems = [
   { name: "Srila Prabhupada", href: "/about/srila-prabhupada" },
   { name: "ISKCON", href: "/about/iskcon" },
+  { name: "GIVE", href: "/about/give" },
 ];
 
 export default function Header() {
