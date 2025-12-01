@@ -7,6 +7,9 @@ import './globals.css';
 export const metadata: Metadata = {
   title: 'Gaura-vāṇī Institute for Vaiṣṇava Education (GIVE)',
   description: 'Nurturing spiritual growth and understanding through the timeless wisdom of Vaiṣṇava teachings.',
+  icons: {
+    icon: '/GIVE_logo.png',
+  },
 };
 
 export default function RootLayout({
@@ -17,6 +20,7 @@ export default function RootLayout({
   return (
     <html lang="en" className="scroll-smooth">
       <head>
+        <link rel="icon" href="/GIVE_logo.png" />
       </head>
       <body className={cn('font-body antialiased flex flex-col min-h-screen')}>
         <Header />
