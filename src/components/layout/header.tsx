@@ -1,22 +1,22 @@
 "use client";
 
-import * as React from "react";
-import Link from "next/link";
-import { BookOpenText, Menu, X, ChevronDown } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import {
   Accordion,
   AccordionContent,
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
+import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import { BookOpenText, ChevronDown, Menu } from "lucide-react";
+import Link from "next/link";
+import * as React from "react";
 
 const mainNavItems = [
   { name: "Courses", href: "#courses" },
@@ -36,7 +36,7 @@ export default function Header() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = React.useState(false);
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+    <header className="sticky top-0 z-50 w-full border-b border-border/60 bg-secondary/90 backdrop-blur supports-[backdrop-filter]:bg-secondary/80">
       <div className="container flex h-14 max-w-screen-2xl items-center justify-between">
         <Link href="/" className="flex items-center space-x-2">
           <BookOpenText className="h-6 w-6 text-primary" />
@@ -47,7 +47,7 @@ export default function Header() {
 
         <nav className="hidden md:flex items-center gap-6 text-sm">
           <DropdownMenu>
-            <DropdownMenuTrigger className="flex items-center gap-1 font-medium text-foreground/60 transition-colors hover:text-foreground/80 focus:outline-none">
+            <DropdownMenuTrigger className="flex items-center gap-1 font-medium text-foreground/90 transition-colors hover:text-foreground focus:outline-none">
               About <ChevronDown className="h-4 w-4" />
             </DropdownMenuTrigger>
             <DropdownMenuContent>
@@ -62,7 +62,7 @@ export default function Header() {
             <Link
               key={item.name}
               href={item.href}
-              className="font-medium text-foreground/60 transition-colors hover:text-foreground/80"
+              className="font-medium text-foreground/90 transition-colors hover:text-foreground"
             >
               {item.name}
             </Link>
@@ -87,8 +87,8 @@ export default function Header() {
                 </div>
                 <nav className="flex flex-col gap-1 mt-4">
                   <Accordion type="single" collapsible className="w-full">
-                    <AccordionItem value="about" className="border-b-0">
-                      <AccordionTrigger className="text-lg font-medium text-foreground/80 transition-colors hover:text-foreground hover:no-underline py-2">
+                  <AccordionItem value="about" className="border-b-0">
+                      <AccordionTrigger className="text-lg font-medium text-foreground/90 transition-colors hover:text-foreground hover:no-underline py-2">
                         About
                       </AccordionTrigger>
                       <AccordionContent className="pl-4">
@@ -97,7 +97,7 @@ export default function Header() {
                             <Link
                               key={item.name}
                               href={item.href}
-                              className="text-base font-medium text-foreground/70 transition-colors hover:text-foreground"
+                              className="text-base font-medium text-foreground/90 transition-colors hover:text-foreground"
                               onClick={() => setIsMobileMenuOpen(false)}
                             >
                               {item.name}
@@ -111,7 +111,7 @@ export default function Header() {
                     <Link
                       key={item.name}
                       href={item.href}
-                      className="px-4 py-2 text-lg font-medium text-foreground/80 transition-colors hover:text-foreground"
+                      className="px-4 py-2 text-lg font-medium text-foreground/90 transition-colors hover:text-foreground"
                       onClick={() => setIsMobileMenuOpen(false)}
                     >
                       {item.name}

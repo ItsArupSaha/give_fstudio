@@ -1,4 +1,4 @@
-import type {Config} from 'tailwindcss';
+import type { Config } from 'tailwindcss';
 
 export default {
   darkMode: ['class'],
@@ -17,8 +17,8 @@ export default {
     },
     extend: {
       fontFamily: {
-        body: ['Alegreya', 'serif'],
-        headline: ['Montserrat', 'sans-serif'],
+        body: ['Georgia', 'Times New Roman', 'serif'],
+        headline: ['Georgia', 'Times New Roman', 'serif'],
         code: ['monospace'],
       },
       colors: {
