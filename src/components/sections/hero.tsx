@@ -31,7 +31,7 @@ export function Hero() {
             <Link href="#courses">Explore Courses</Link>
           </Button>
           <Button asChild size="lg" variant="secondary" className="transform transition-transform duration-300 hover:scale-105">
-            <Link href="#about">About Us</Link>
+            <Link href="/about/srila-prabhupada">About Us</Link>
           </Button>
         </div>
       </div>
