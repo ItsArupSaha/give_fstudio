@@ -9,6 +9,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { LinkifiedText } from "@/components/ui/linkified-text";
 import { useAuthUser } from "@/hooks/use-auth";
 import type { Batch } from "@/lib/models/batch";
 import type { Submission } from "@/lib/models/submission";
@@ -286,7 +287,7 @@ export default function BatchTasksPage() {
                         <div className="flex-1">
                           <CardTitle className="text-lg">{task.title}</CardTitle>
                           <CardDescription className="mt-1 line-clamp-2">
-                            {task.description}
+                            <LinkifiedText text={task.description} />
                           </CardDescription>
                         </div>
                       </div>
@@ -294,12 +295,12 @@ export default function BatchTasksPage() {
                         <Badge
                           variant="outline"
                           className={`${submissionStatus.color === "gray"
-                              ? "bg-gray-50 text-gray-700 border-gray-200"
-                              : submissionStatus.color === "orange"
-                                ? "bg-orange-50 text-orange-700 border-orange-200"
-                                : submissionStatus.color === "green"
-                                  ? "bg-green-50 text-green-700 border-green-200"
-                                  : "bg-blue-50 text-blue-700 border-blue-200"
+                            ? "bg-gray-50 text-gray-700 border-gray-200"
+                            : submissionStatus.color === "orange"
+                              ? "bg-orange-50 text-orange-700 border-orange-200"
+                              : submissionStatus.color === "green"
+                                ? "bg-green-50 text-green-700 border-green-200"
+                                : "bg-blue-50 text-blue-700 border-blue-200"
                             }`}
                         >
                           {submissionStatus.label}

@@ -10,6 +10,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { LinkifiedText } from "@/components/ui/linkified-text";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import type { Batch } from "@/lib/models/batch";
@@ -481,7 +482,7 @@ function TaskCard({ task }: { task: Task }) {
                 <Badge variant="outline">{task.status}</Badge>
               </div>
               <p className="text-sm text-muted-foreground mb-2">
-                {task.description}
+                <LinkifiedText text={task.description} />
               </p>
               <div className="flex items-center gap-4 text-xs text-muted-foreground">
                 {task.dueDate && (

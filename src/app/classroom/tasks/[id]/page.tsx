@@ -9,6 +9,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { LinkifiedText } from "@/components/ui/linkified-text";
 import { Textarea } from "@/components/ui/textarea";
 import { useAuthUser } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
@@ -251,7 +252,9 @@ export default function TaskSubmissionPage() {
         </CardHeader>
         <CardContent>
           <div className="prose max-w-none mb-4">
-            <p className="whitespace-pre-wrap">{task.description}</p>
+            <p className="whitespace-pre-wrap">
+              <LinkifiedText text={task.description} />
+            </p>
           </div>
 
           {task.type !== "announcement" && (
@@ -283,7 +286,9 @@ export default function TaskSubmissionPage() {
           {task.instructions && (
             <div className="mt-4 p-4 bg-primary/10 rounded-lg">
               <h4 className="font-semibold mb-2">Instructions:</h4>
-              <p className="text-sm whitespace-pre-wrap">{task.instructions}</p>
+              <p className="text-sm whitespace-pre-wrap">
+                <LinkifiedText text={task.instructions} />
+              </p>
             </div>
           )}
         </CardContent>
