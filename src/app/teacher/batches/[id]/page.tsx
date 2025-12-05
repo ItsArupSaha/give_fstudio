@@ -21,6 +21,7 @@ import {
   getBatchById,
   getUserById,
   subscribeEnrollmentsByBatch,
+  subscribeSubmissionsByTask,
   subscribeTasksByBatch,
   updateEnrollment
 } from "@/lib/services/firestore";
@@ -50,6 +51,7 @@ export default function BatchDetailsPage() {
   const [batch, setBatch] = useState<Batch | null>(null);
   const [enrollments, setEnrollments] = useState<Enrollment[]>([]);
   const [tasks, setTasks] = useState<Task[]>([]);
+  const [submissionCounts, setSubmissionCounts] = useState<Map<string, number>>(new Map());
   const [loading, setLoading] = useState(true);
   const [copiedCode, setCopiedCode] = useState(false);
 
@@ -63,13 +65,33 @@ export default function BatchDetailsPage() {
         setEnrollments(enrollments);
       }
     );
+
+    let submissionUnsubscribers: (() => void)[] = [];
+
     const unsubscribeTasks = subscribeTasksByBatch(batchId, (tasks) => {
       setTasks(tasks);
+
+      // Clean up previous submission subscriptions
+      submissionUnsubscribers.forEach((unsub) => unsub());
+      submissionUnsubscribers = [];
+
+      // Subscribe to submissions for each task to get real-time counts
+      tasks.forEach((task) => {
+        const unsubscribe = subscribeSubmissionsByTask(task.id, (submissions) => {
+          setSubmissionCounts((prev) => {
+            const newMap = new Map(prev);
+            newMap.set(task.id, submissions.length);
+            return newMap;
+          });
+        });
+        submissionUnsubscribers.push(unsubscribe);
+      });
     });
 
     return () => {
       unsubscribeEnrollments();
       unsubscribeTasks();
+      submissionUnsubscribers.forEach((unsub) => unsub());
     };
   }, [batchId]);
 
@@ -311,7 +333,11 @@ export default function BatchDetailsPage() {
               ) : (
                 <div className="space-y-2">
                   {tasks.map((task) => (
-                    <TaskCard key={task.id} task={task} />
+                    <TaskCard
+                      key={task.id}
+                      task={task}
+                      submissionCount={submissionCounts.get(task.id) ?? task.submissionCount}
+                    />
                   ))}
                 </div>
               )}
@@ -461,7 +487,7 @@ function PendingEnrollmentCard({
   );
 }
 
-function TaskCard({ task }: { task: Task }) {
+function TaskCard({ task, submissionCount }: { task: Task; submissionCount: number }) {
   const TaskIcon = getTaskTypeIcon(task.type);
   const taskColor = getTaskTypeColor(task.type);
 
@@ -491,7 +517,7 @@ function TaskCard({ task }: { task: Task }) {
                   </span>
                 )}
                 {task.maxPoints > 0 && <span>{task.maxPoints} points</span>}
-                <span>{task.submissionCount} submissions</span>
+                <span>{submissionCount} submissions</span>
               </div>
             </div>
           </div>

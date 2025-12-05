@@ -45,3 +45,4 @@ firebase-debug.log
 firestore-debug.log
 firestore.rules
 firebase-service-account.json
+storage.rules

@@ -439,6 +439,28 @@ export async function updateTask(id: string, task: Partial<Task>): Promise<void>
   }
 }
 
+/**
+ * Recalculates and updates the submission count for a task.
+ * This is useful when the count might be out of sync (e.g., when students create submissions).
+ * Only teachers can call this function.
+ */
+export async function recalculateTaskSubmissionCount(taskId: string): Promise<number> {
+  try {
+    const submissions = await getSubmissionsByTask(taskId);
+    const count = submissions.length;
+    
+    const taskRef = doc(db, "tasks", taskId);
+    await updateDoc(taskRef, {
+      submissionCount: count,
+      updatedAt: Timestamp.now(),
+    });
+    
+    return count;
+  } catch (error) {
+    throw new Error(`Failed to recalculate submission count: ${error instanceof Error ? error.message : String(error)}`);
+  }
+}
+
 export async function deleteTask(id: string): Promise<void> {
   try {
     await deleteDoc(doc(db, "tasks", id));
@@ -511,20 +533,30 @@ export async function createSubmission(
       id: submissionRef.id,
     });
 
-    const batchWrite = writeBatch(db);
-    batchWrite.set(submissionRef, submissionData);
+    // Create the submission first (students have permission for this)
+    await setDoc(submissionRef, submissionData);
+    console.log("Submission created successfully:", submissionRef.id);
 
-    // Update task submission count
-    const taskRef = doc(db, "tasks", submission.taskId);
-    batchWrite.update(taskRef, {
-      submissionCount: increment(1),
-      updatedAt: Timestamp.now(),
-    });
+    // Try to update task submission count (only works if user is a teacher)
+    // If this fails, it's okay - the submission is already created
+    // The submissionCount can be calculated on-the-fly when needed
+    try {
+      const taskRef = doc(db, "tasks", submission.taskId);
+      await updateDoc(taskRef, {
+        submissionCount: increment(1),
+        updatedAt: Timestamp.now(),
+      });
+      console.log("Task submission count updated successfully");
+    } catch (taskUpdateError) {
+      // Log but don't fail - submission is already created successfully
+      // This will fail for students (expected) but work for teachers
+      console.warn("Could not update task submission count (expected for students):", taskUpdateError);
+    }
 
-    await batchWrite.commit();
     return submissionRef.id;
   } catch (error) {
-    throw new Error(`Failed to create submission: ${error}`);
+    console.error("Error creating submission:", error);
+    throw new Error(`Failed to create submission: ${error instanceof Error ? error.message : String(error)}`);
   }
 }
 
@@ -579,6 +611,32 @@ export async function getSubmissionByTaskAndStudent(
   } catch (error) {
     throw new Error(`Failed to get submission: ${error}`);
   }
+}
+
+export function subscribeSubmissionByTaskAndStudent(
+  taskId: string,
+  studentId: string,
+  callback: (submission: Submission | null) => void
+): () => void {
+  const q = query(
+    collection(db, "submissions"),
+    where("taskId", "==", taskId),
+    where("studentId", "==", studentId),
+    limit(1)
+  );
+
+  return onSnapshot(q, (snapshot) => {
+    if (!snapshot.empty) {
+      const doc = snapshot.docs[0];
+      const submission = submissionFromFirestore(
+        doc.id,
+        doc.data() as SubmissionFirestore
+      );
+      callback(submission);
+    } else {
+      callback(null);
+    }
+  });
 }
 
 export async function getSubmissionsByTask(taskId: string): Promise<Submission[]> {

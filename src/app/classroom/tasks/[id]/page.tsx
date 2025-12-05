@@ -17,9 +17,10 @@ import type { Submission } from "@/lib/models/submission";
 import type { Task } from "@/lib/models/task";
 import {
   createSubmission,
-  getSubmissionByTaskAndStudent,
   getTaskById,
+  subscribeSubmissionByTaskAndStudent
 } from "@/lib/services/firestore";
+import { uploadFiles } from "@/lib/services/storage";
 import {
   getTaskTypeColor,
   getTaskTypeIcon,
@@ -51,18 +52,16 @@ export default function TaskSubmissionPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [notes, setNotes] = useState("");
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
+  const [uploadProgress, setUploadProgress] = useState<Map<number, number>>(new Map());
+  const [isUploading, setIsUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (!taskId || !user?.uid) return;
 
-    const loadData = async () => {
+    const loadTask = async () => {
       try {
-        const [taskData, submissionData] = await Promise.all([
-          getTaskById(taskId),
-          getSubmissionByTaskAndStudent(taskId, user.uid),
-        ]);
-
+        const taskData = await getTaskById(taskId);
         if (!taskData) {
           toast({
             title: "Error",
@@ -72,30 +71,71 @@ export default function TaskSubmissionPage() {
           router.back();
           return;
         }
-
         setTask(taskData);
-        if (submissionData) {
-          setSubmission(submissionData);
-          setNotes(submissionData.notes || "");
-        }
+        setLoading(false);
       } catch (error) {
         toast({
           title: "Error",
           description: error instanceof Error ? error.message : "Failed to load task",
           variant: "destructive",
         });
-      } finally {
         setLoading(false);
       }
     };
 
-    loadData();
+    loadTask();
+
+    // Subscribe to real-time submission updates
+    const unsubscribe = subscribeSubmissionByTaskAndStudent(
+      taskId,
+      user.uid,
+      (submissionData) => {
+        if (submissionData) {
+          setSubmission(submissionData);
+          setNotes(submissionData.notes || "");
+        } else {
+          setSubmission(null);
+          setNotes("");
+        }
+      }
+    );
+
+    return () => unsubscribe();
   }, [taskId, user?.uid, router, toast]);
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
       const files = Array.from(e.target.files);
-      setSelectedFiles((prev) => [...prev, ...files]);
+
+      // Validate file sizes (max 100MB per file)
+      const maxSize = 100 * 1024 * 1024; // 100MB
+      const validFiles: File[] = [];
+      const invalidFiles: string[] = [];
+
+      files.forEach((file) => {
+        if (file.size > maxSize) {
+          invalidFiles.push(file.name);
+        } else {
+          validFiles.push(file);
+        }
+      });
+
+      if (invalidFiles.length > 0) {
+        toast({
+          title: "File Size Error",
+          description: `The following files exceed 100MB limit: ${invalidFiles.join(", ")}`,
+          variant: "destructive",
+        });
+      }
+
+      if (validFiles.length > 0) {
+        setSelectedFiles((prev) => [...prev, ...validFiles]);
+      }
+
+      // Reset input
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
     }
   };
 
@@ -106,8 +146,8 @@ export default function TaskSubmissionPage() {
   const handleSubmit = async () => {
     if (!task || !user?.uid) return;
 
-    // Validation: For non-Daily Listening tasks, require at least one submission
-    if (task.type !== "dailyListening") {
+    // Validation: Require at least one submission (file or notes) for all task types except announcements
+    if (task.type !== "announcement") {
       if (selectedFiles.length === 0 && !notes.trim()) {
         toast({
           title: "Validation Error",
@@ -118,29 +158,44 @@ export default function TaskSubmissionPage() {
       }
     }
 
-    // Check for late submission for Daily Listening
-    if (task.type === "dailyListening" && task.dueDate) {
-      const now = new Date();
-      const dueDate = new Date(task.dueDate);
-      const currentDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-      const dueDateOnly = new Date(dueDate.getFullYear(), dueDate.getMonth(), dueDate.getDate());
-
-      if (currentDate > dueDateOnly) {
-        toast({
-          title: "Error",
-          description: "Daily Listening cannot be submitted after the due date",
-          variant: "destructive",
-        });
-        return;
-      }
-    }
-
     setIsSubmitting(true);
-    try {
-      // TODO: Upload files to Firebase Storage and get URLs
-      // For now, we'll use file names as placeholders
-      const fileUrls: string[] = selectedFiles.map((file) => file.name);
+    setIsUploading(true);
+    setUploadProgress(new Map());
 
+    try {
+      let fileUrls: string[] = [];
+
+      // Upload files if any (for all task types except announcements)
+      if (selectedFiles.length > 0 && task.type !== "announcement") {
+        const basePath = `submissions/${task.id}/${user.uid}`;
+
+        try {
+          fileUrls = await uploadFiles(
+            selectedFiles,
+            basePath,
+            (fileIndex, progress) => {
+              setUploadProgress((prev) => {
+                const newMap = new Map(prev);
+                newMap.set(fileIndex, progress);
+                return newMap;
+              });
+            }
+          );
+        } catch (uploadError) {
+          toast({
+            title: "Upload Error",
+            description: uploadError instanceof Error ? uploadError.message : "Failed to upload files. Please try again.",
+            variant: "destructive",
+          });
+          setIsSubmitting(false);
+          setIsUploading(false);
+          return;
+        }
+      }
+
+      setIsUploading(false);
+
+      // Create submission
       const submissionData: Omit<Submission, "id"> = {
         taskId: task.id,
         studentId: user.uid,
@@ -149,22 +204,25 @@ export default function TaskSubmissionPage() {
         createdAt: new Date(),
         updatedAt: new Date(),
         submittedAt: new Date(),
-        fileUrls: task.type === "dailyListening" ? [] : fileUrls,
+        fileUrls: fileUrls,
         recordingUrl: undefined,
-        notes: task.type === "dailyListening" ? undefined : (notes.trim() || undefined),
+        notes: notes.trim() || undefined,
       };
 
       await createSubmission(submissionData);
 
       toast({
         title: "Success",
-        description:
-          task.type === "dailyListening"
-            ? "Daily Listening marked as completed for today!"
-            : "Task submitted successfully!",
+        description: "Task submitted successfully!",
       });
 
-      router.back();
+      // Clear form
+      setSelectedFiles([]);
+      setNotes("");
+      setUploadProgress(new Map());
+
+      // Don't navigate back immediately - let user see the success state
+      // The real-time subscription will update the UI to show "Already Submitted"
     } catch (error) {
       toast({
         title: "Error",
@@ -173,6 +231,7 @@ export default function TaskSubmissionPage() {
       });
     } finally {
       setIsSubmitting(false);
+      setIsUploading(false);
     }
   };
 
@@ -310,6 +369,31 @@ export default function TaskSubmissionPage() {
                 </span>
               )}
             </p>
+            {submission?.fileUrls && submission.fileUrls.length > 0 && (
+              <div className="mt-4 p-4 bg-muted rounded-lg text-left">
+                <h4 className="font-semibold mb-2">Uploaded Files:</h4>
+                <div className="space-y-2">
+                  {submission.fileUrls.map((url, index) => (
+                    <a
+                      key={index}
+                      href={url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-2 text-sm text-primary hover:underline"
+                    >
+                      <FileText className="h-4 w-4" />
+                      <span>File {index + 1}</span>
+                    </a>
+                  ))}
+                </div>
+              </div>
+            )}
+            {submission?.notes && (
+              <div className="mt-4 p-4 bg-muted rounded-lg text-left">
+                <h4 className="font-semibold mb-2">Notes:</h4>
+                <p className="text-sm whitespace-pre-wrap">{submission.notes}</p>
+              </div>
+            )}
             {submission?.feedback && (
               <div className="mt-4 p-4 bg-muted rounded-lg text-left">
                 <h4 className="font-semibold mb-2">Feedback:</h4>
@@ -318,95 +402,141 @@ export default function TaskSubmissionPage() {
             )}
           </CardContent>
         </Card>
+      ) : task.type === "announcement" ? (
+        <Card>
+          <CardContent className="py-12 text-center">
+            <p className="text-muted-foreground">
+              Announcements are read-only. No submission required.
+            </p>
+          </CardContent>
+        </Card>
       ) : (
         <div className="space-y-6">
           {/* File Upload Section */}
-          {task.type !== "dailyListening" && (
-            <Card>
-              <CardHeader>
-                <CardTitle>File Upload</CardTitle>
-                <CardDescription>
-                  Upload pictures or PDF files (Max 10MB per file)
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  multiple
-                  accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
-                  onChange={handleFileSelect}
-                  className="hidden"
-                />
-                <Button
-                  variant="outline"
-                  onClick={() => fileInputRef.current?.click()}
-                  className="w-full"
-                >
-                  <Upload className="h-4 w-4 mr-2" />
-                  Select Files
-                </Button>
+          <Card>
+            <CardHeader>
+              <CardTitle>File Upload</CardTitle>
+              <CardDescription>
+                Upload files: PDF, documents, pictures, videos, or audio (Max 100MB per file)
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <input
+                ref={fileInputRef}
+                type="file"
+                multiple
+                accept=".pdf,.doc,.docx,.txt,.rtf,.odt,.xls,.xlsx,.ppt,.pptx,.jpg,.jpeg,.png,.gif,.webp,.svg,.mp4,.mov,.avi,.mkv,.webm,.mp3,.wav,.ogg,.m4a,.aac,.flac"
+                onChange={handleFileSelect}
+                className="hidden"
+                disabled={alreadySubmitted || isSubmitting}
+              />
+              <Button
+                variant="outline"
+                onClick={() => fileInputRef.current?.click()}
+                className="w-full"
+                disabled={alreadySubmitted || isSubmitting || isUploading}
+              >
+                <Upload className="h-4 w-4 mr-2" />
+                Select Files
+              </Button>
 
-                {selectedFiles.length > 0 && (
-                  <div className="mt-4 space-y-2">
-                    {selectedFiles.map((file, index) => (
+              {selectedFiles.length > 0 && (
+                <div className="mt-4 space-y-2">
+                  {selectedFiles.map((file, index) => {
+                    const progress = uploadProgress.get(index);
+                    const isUploadingFile = isUploading && progress !== undefined && progress < 100;
+
+                    return (
                       <div
                         key={index}
                         className="flex items-center justify-between p-3 bg-muted rounded-lg"
                       >
-                        <div className="flex items-center gap-2">
-                          <FileText className="h-4 w-4 text-muted-foreground" />
-                          <span className="text-sm">{file.name}</span>
-                          <span className="text-xs text-muted-foreground">
-                            ({(file.size / 1024 / 1024).toFixed(2)} MB)
-                          </span>
+                        <div className="flex items-center gap-2 flex-1 min-w-0">
+                          <FileText className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                          <div className="flex-1 min-w-0">
+                            <span className="text-sm truncate block">{file.name}</span>
+                            <span className="text-xs text-muted-foreground">
+                              ({(file.size / 1024 / 1024).toFixed(2)} MB)
+                            </span>
+                            {isUploadingFile && progress !== undefined && (
+                              <div className="mt-2">
+                                <div className="w-full bg-secondary rounded-full h-1.5">
+                                  <div
+                                    className="bg-primary h-1.5 rounded-full transition-all duration-300"
+                                    style={{ width: `${progress}%` }}
+                                  />
+                                </div>
+                                <span className="text-xs text-muted-foreground mt-1 block">
+                                  Uploading... {Math.round(progress)}%
+                                </span>
+                              </div>
+                            )}
+                          </div>
                         </div>
                         <Button
                           variant="ghost"
                           size="icon"
-                          onClick={() => removeFile(index)}
+                          onClick={() => {
+                            removeFile(index);
+                            setUploadProgress((prev) => {
+                              const newMap = new Map(prev);
+                              newMap.delete(index);
+                              return newMap;
+                            });
+                          }}
+                          disabled={isUploadingFile}
+                          className="flex-shrink-0"
                         >
                           <X className="h-4 w-4" />
                         </Button>
                       </div>
-                    ))}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          )}
+                    );
+                  })}
+                </div>
+              )}
+            </CardContent>
+          </Card>
 
           {/* Notes Section */}
-          {task.type !== "dailyListening" && (
-            <Card>
-              <CardHeader>
-                <CardTitle>Additional Notes (Optional)</CardTitle>
-                <CardDescription>
-                  Add any additional notes or comments
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <Textarea
-                  value={notes}
-                  onChange={(e) => setNotes(e.target.value)}
-                  placeholder="Add any additional notes or comments..."
-                  rows={6}
-                />
-              </CardContent>
-            </Card>
-          )}
+          <Card>
+            <CardHeader>
+              <CardTitle>Additional Notes (Optional)</CardTitle>
+              <CardDescription>
+                Add any additional notes or comments
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Textarea
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+                placeholder="Add any additional notes or comments..."
+                rows={6}
+                disabled={alreadySubmitted || isSubmitting}
+              />
+            </CardContent>
+          </Card>
 
           {/* Submit Button */}
           <div className="flex justify-end gap-2">
             <Button variant="outline" onClick={() => router.back()}>
               Cancel
             </Button>
-            <Button onClick={handleSubmit} disabled={isSubmitting}>
-              {isSubmitting ? (
+            <Button
+              onClick={handleSubmit}
+              disabled={isSubmitting || alreadySubmitted || isUploading}
+            >
+              {isUploading ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Uploading Files...
+                </>
+              ) : isSubmitting ? (
                 <>
                   <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                   Submitting...
                 </>
+              ) : alreadySubmitted ? (
+                "Already Submitted"
               ) : (
                 "Submit"
               )}
