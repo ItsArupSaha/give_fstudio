@@ -2,41 +2,34 @@
  * User Roles System
  * 
  * This module handles user roles (teacher/student) stored in Firestore.
+ * Matches the mobile app structure using the users collection with a role field.
  * Users are automatically assigned roles based on their actions:
- * - Teachers: Manually assigned in Firestore
+ * - Teachers: Manually assigned in Firestore (via teachers collection)
  * - Students: Automatically assigned when they enroll in a course/batch
  */
 
 import { db } from "@/lib/firebase";
+import type { UserRole } from "@/lib/models/user";
 import {
   doc,
   getDoc,
-  setDoc
+  setDoc,
+  Timestamp,
+  updateDoc,
 } from "firebase/firestore";
 
-export type UserRole = "teacher" | "student" | null;
-
-export interface UserRoleData {
-  role: UserRole;
-  email: string;
-  createdAt: Date;
-  updatedAt: Date;
-}
-
 /**
- * Get user role from Firestore
+ * Get user role from Firestore users collection
  * @param userId - The Firebase Auth user ID
  * @returns The user's role or null if not found
  */
-export async function getUserRole(
-  userId: string
-): Promise<UserRole> {
+export async function getUserRole(userId: string): Promise<UserRole | null> {
   try {
-    const userRoleRef = doc(db, "userRoles", userId);
-    const userRoleSnap = await getDoc(userRoleRef);
+    const userRef = doc(db, "users", userId);
+    const userSnap = await getDoc(userRef);
 
-    if (userRoleSnap.exists()) {
-      const data = userRoleSnap.data();
+    if (userSnap.exists()) {
+      const data = userSnap.data();
       return (data.role as UserRole) || null;
     }
 
@@ -48,7 +41,7 @@ export async function getUserRole(
 }
 
 /**
- * Set user role in Firestore
+ * Set user role in Firestore users collection
  * @param userId - The Firebase Auth user ID
  * @param email - The user's email address
  * @param role - The role to assign (teacher or student)
@@ -59,21 +52,27 @@ export async function setUserRole(
   role: "teacher" | "student"
 ): Promise<void> {
   try {
-    const userRoleRef = doc(db, "userRoles", userId);
-    const now = new Date();
+    const userRef = doc(db, "users", userId);
+    const userSnap = await getDoc(userRef);
+    const now = Timestamp.now();
 
-    await setDoc(
-      userRoleRef,
-      {
+    if (userSnap.exists()) {
+      // Update existing user
+      await updateDoc(userRef, {
         role,
-        email: email.toLowerCase().trim(),
         updatedAt: now,
-        createdAt: (await getDoc(userRoleRef)).exists()
-          ? (await getDoc(userRoleRef)).data()?.createdAt || now
-          : now,
-      },
-      { merge: true }
-    );
+      });
+    } else {
+      // Create new user document
+      await setDoc(userRef, {
+        email: email.toLowerCase().trim(),
+        name: email.split("@")[0], // Default name from email
+        role,
+        createdAt: now,
+        updatedAt: now,
+        isActive: true,
+      });
+    }
   } catch (error) {
     console.error("Error setting user role:", error);
     throw error;
@@ -125,13 +124,13 @@ export async function isTeacherEmail(email: string | null | undefined): Promise<
 
 /**
  * Get user role data (for a specific user by userId)
- * This checks both the userRoles collection and teachers collection
+ * This checks both the users collection and teachers collection
  */
 export async function getUserRoleData(
   userId: string,
   email: string | null | undefined
-): Promise<UserRole> {
-  // First check if user has a role in userRoles collection
+): Promise<UserRole | null> {
+  // First check if user has a role in users collection
   const role = await getUserRole(userId);
   if (role === "teacher") {
     return "teacher";
@@ -141,7 +140,7 @@ export async function getUserRoleData(
   if (email) {
     const isTeacher = await isTeacherEmail(email);
     if (isTeacher) {
-      // Update userRoles collection for consistency
+      // Update users collection for consistency
       await setUserRole(userId, email, "teacher");
       return "teacher";
     }

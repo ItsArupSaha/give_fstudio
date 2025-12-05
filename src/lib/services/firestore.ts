@@ -1,0 +1,1000 @@
+/**
+ * Firestore Service
+ * 
+ * Comprehensive service for all Firestore operations matching the mobile app functionality
+ */
+
+import { auth, db } from "@/lib/firebase";
+import {
+  batchToFirestore,
+  type Batch,
+  type BatchFirestore
+} from "@/lib/models/batch";
+import type {
+  Comment,
+  CommentFirestore
+} from "@/lib/models/comment";
+import type {
+  CourseGroup,
+  CourseGroupFirestore
+} from "@/lib/models/course-group";
+import type {
+  Enrollment,
+  EnrollmentFirestore
+} from "@/lib/models/enrollment";
+import type {
+  Submission,
+  SubmissionFirestore
+} from "@/lib/models/submission";
+import type {
+  Task,
+  TaskFirestore
+} from "@/lib/models/task";
+import type {
+  User,
+  UserFirestore
+} from "@/lib/models/user";
+import { assignStudentRole, isTeacherEmail, setUserRole } from "@/lib/user-roles";
+import {
+  collection,
+  deleteDoc,
+  doc,
+  getDoc,
+  getDocs,
+  increment,
+  limit,
+  onSnapshot,
+  query,
+  setDoc,
+  Timestamp,
+  updateDoc,
+  where,
+  writeBatch
+} from "firebase/firestore";
+
+// Import conversion functions
+import {
+  batchFromFirestore
+} from "@/lib/models/batch";
+import {
+  commentFromFirestore,
+  commentToFirestore,
+} from "@/lib/models/comment";
+import {
+  courseGroupFromFirestore,
+  courseGroupToFirestore,
+} from "@/lib/models/course-group";
+import {
+  enrollmentFromFirestore,
+  enrollmentToFirestore,
+} from "@/lib/models/enrollment";
+import {
+  submissionFromFirestore,
+  submissionToFirestore,
+} from "@/lib/models/submission";
+import {
+  taskFromFirestore,
+  taskToFirestore,
+} from "@/lib/models/task";
+import {
+  userFromFirestore,
+} from "@/lib/models/user";
+
+// ==================== Course Group Operations ====================
+
+export async function createCourseGroup(
+  courseGroup: Omit<CourseGroup, "id">
+): Promise<string> {
+  try {
+    console.log("createCourseGroup called with:", courseGroup);
+    
+    // Ensure the user document exists and has teacher role
+    const currentUser = auth.currentUser;
+    if (currentUser && currentUser.email) {
+      const userDocRef = doc(db, "users", currentUser.uid);
+      const userDoc = await getDoc(userDocRef);
+      
+      if (!userDoc.exists() || userDoc.data()?.role !== "teacher") {
+        // Check if the email is in the teachers collection
+        const isTeacher = await isTeacherEmail(currentUser.email);
+        if (isTeacher) {
+          console.log("Creating/updating user document with teacher role");
+          // Automatically set the teacher role
+          await setUserRole(currentUser.uid, currentUser.email, "teacher");
+        } else {
+          throw new Error("User is not authorized as a teacher. Please contact an administrator.");
+        }
+      }
+    } else {
+      throw new Error("User not authenticated");
+    }
+    
+    const courseGroupRef = doc(collection(db, "courseGroups"));
+    const fullCourseGroup = {
+      ...courseGroup,
+      id: courseGroupRef.id,
+    };
+    console.log("Full course group object:", fullCourseGroup);
+    const courseGroupData: CourseGroupFirestore = courseGroupToFirestore(fullCourseGroup);
+    console.log("Course group Firestore data:", courseGroupData);
+    await setDoc(courseGroupRef, courseGroupData);
+    console.log("Course group document written successfully");
+    return courseGroupRef.id;
+  } catch (error) {
+    console.error("Error in createCourseGroup:", error);
+    // Log more details about the error
+    if (error instanceof Error) {
+      console.error("Error name:", error.name);
+      console.error("Error message:", error.message);
+      console.error("Error stack:", error.stack);
+    }
+    throw new Error(`Failed to create course group: ${error}`);
+  }
+}
+
+export async function updateCourseGroup(
+  id: string,
+  courseGroup: Partial<CourseGroup>
+): Promise<void> {
+  try {
+    const courseGroupRef = doc(db, "courseGroups", id);
+    const updates: Partial<CourseGroupFirestore> = {
+      updatedAt: Timestamp.now(),
+    };
+
+    if (courseGroup.name !== undefined) updates.name = courseGroup.name;
+    if (courseGroup.description !== undefined)
+      updates.description = courseGroup.description;
+    if (courseGroup.imageUrl !== undefined)
+      updates.imageUrl = courseGroup.imageUrl;
+    if (courseGroup.isActive !== undefined)
+      updates.isActive = courseGroup.isActive;
+
+    await updateDoc(courseGroupRef, updates);
+  } catch (error) {
+    throw new Error(`Failed to update course group: ${error}`);
+  }
+}
+
+export async function deleteCourseGroup(id: string): Promise<void> {
+  try {
+    await deleteDoc(doc(db, "courseGroups", id));
+  } catch (error) {
+    throw new Error(`Failed to delete course group: ${error}`);
+  }
+}
+
+export async function getCourseGroups(teacherId: string): Promise<CourseGroup[]> {
+  try {
+    // Query without orderBy to avoid index requirement, then sort in memory
+    const q = query(
+      collection(db, "courseGroups"),
+      where("teacherId", "==", teacherId),
+      where("isActive", "==", true)
+    );
+    const snapshot = await getDocs(q);
+    const courseGroups = snapshot.docs.map((doc) =>
+      courseGroupFromFirestore(doc.id, doc.data() as CourseGroupFirestore)
+    );
+    // Sort in memory by createdAt descending
+    courseGroups.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+    return courseGroups;
+  } catch (error) {
+    throw new Error(`Failed to get course groups: ${error}`);
+  }
+}
+
+export function subscribeCourseGroups(
+  teacherId: string,
+  callback: (courseGroups: CourseGroup[]) => void
+): () => void {
+  // Query without orderBy to avoid index requirement, then sort in memory
+  const q = query(
+    collection(db, "courseGroups"),
+    where("teacherId", "==", teacherId),
+    where("isActive", "==", true)
+  );
+
+  return onSnapshot(q, (snapshot) => {
+    const courseGroups = snapshot.docs.map((doc) =>
+      courseGroupFromFirestore(doc.id, doc.data() as CourseGroupFirestore)
+    );
+    // Sort in memory by createdAt descending
+    courseGroups.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+    callback(courseGroups);
+  });
+}
+
+export async function getCourseGroupById(id: string): Promise<CourseGroup | null> {
+  try {
+    const docRef = doc(db, "courseGroups", id);
+    const docSnap = await getDoc(docRef);
+    if (docSnap.exists()) {
+      return courseGroupFromFirestore(docSnap.id, docSnap.data() as CourseGroupFirestore);
+    }
+    return null;
+  } catch (error) {
+    throw new Error(`Failed to get course group: ${error}`);
+  }
+}
+
+// ==================== Batch Operations ====================
+
+export async function createBatch(batch: Omit<Batch, "id">): Promise<string> {
+  try {
+    const batchRef = doc(collection(db, "batches"));
+    const batchData: BatchFirestore = batchToFirestore({
+      ...batch,
+      id: batchRef.id,
+    });
+
+    const batchWrite = writeBatch(db);
+    batchWrite.set(batchRef, batchData);
+
+    // Update course group batch count
+    const courseGroupRef = doc(db, "courseGroups", batch.courseGroupId);
+    batchWrite.update(courseGroupRef, {
+      batchCount: increment(1),
+      updatedAt: Timestamp.now(),
+    });
+
+    await batchWrite.commit();
+    return batchRef.id;
+  } catch (error) {
+    throw new Error(`Failed to create batch: ${error}`);
+  }
+}
+
+export async function updateBatch(id: string, batch: Partial<Batch>): Promise<void> {
+  try {
+    const batchRef = doc(db, "batches", id);
+    const updates: Partial<BatchFirestore> = {
+      updatedAt: Timestamp.now(),
+    };
+
+    if (batch.name !== undefined) updates.name = batch.name;
+    if (batch.description !== undefined) updates.description = batch.description;
+    if (batch.startDate !== undefined)
+      updates.startDate = Timestamp.fromDate(batch.startDate);
+    if (batch.endDate !== undefined)
+      updates.endDate = Timestamp.fromDate(batch.endDate);
+    if (batch.schedule !== undefined) updates.schedule = batch.schedule;
+    if (batch.location !== undefined) updates.location = batch.location;
+    if (batch.logoUrl !== undefined) updates.logoUrl = batch.logoUrl;
+    if (batch.isActive !== undefined) updates.isActive = batch.isActive;
+
+    await updateDoc(batchRef, updates);
+  } catch (error) {
+    throw new Error(`Failed to update batch: ${error}`);
+  }
+}
+
+export async function deleteBatch(id: string, courseGroupId: string): Promise<void> {
+  try {
+    const batchWrite = writeBatch(db);
+
+    // Delete batch
+    const batchRef = doc(db, "batches", id);
+    batchWrite.delete(batchRef);
+
+    // Update course group batch count
+    const courseGroupRef = doc(db, "courseGroups", courseGroupId);
+    batchWrite.update(courseGroupRef, {
+      batchCount: increment(-1),
+      updatedAt: Timestamp.now(),
+    });
+
+    await batchWrite.commit();
+  } catch (error) {
+    throw new Error(`Failed to delete batch: ${error}`);
+  }
+}
+
+export async function getBatchesByCourseGroup(
+  courseGroupId: string
+): Promise<Batch[]> {
+  try {
+    // Query without orderBy to avoid index requirement, then sort in memory
+    const q = query(
+      collection(db, "batches"),
+      where("courseGroupId", "==", courseGroupId),
+      where("isActive", "==", true)
+    );
+    const snapshot = await getDocs(q);
+    const batches = snapshot.docs.map((doc) =>
+      batchFromFirestore(doc.id, doc.data() as BatchFirestore)
+    );
+    // Sort in memory by createdAt descending
+    batches.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+    return batches;
+  } catch (error) {
+    throw new Error(`Failed to get batches: ${error}`);
+  }
+}
+
+export function subscribeBatchesByCourseGroup(
+  courseGroupId: string,
+  callback: (batches: Batch[]) => void
+): () => void {
+  // Query without orderBy to avoid index requirement, then sort in memory
+  const q = query(
+    collection(db, "batches"),
+    where("courseGroupId", "==", courseGroupId),
+    where("isActive", "==", true)
+  );
+
+  return onSnapshot(q, (snapshot) => {
+    const batches = snapshot.docs.map((doc) =>
+      batchFromFirestore(doc.id, doc.data() as BatchFirestore)
+    );
+    // Sort in memory by createdAt descending
+    batches.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+    callback(batches);
+  });
+}
+
+// Validates class code and returns minimal info needed for enrollment
+// Students don't need to read full batch details - just validate the code exists
+export async function validateClassCode(classCode: string): Promise<{
+  batchId: string;
+  courseGroupId: string;
+} | null> {
+  try {
+    const q = query(
+      collection(db, "batches"),
+      where("classCode", "==", classCode),
+      where("isActive", "==", true),
+      limit(1)
+    );
+    const snapshot = await getDocs(q);
+    if (!snapshot.empty) {
+      const doc = snapshot.docs[0];
+      const data = doc.data() as BatchFirestore;
+      // Return only the minimal info needed - no full batch details
+      return {
+        batchId: doc.id,
+        courseGroupId: data.courseGroupId,
+      };
+    }
+    return null;
+  } catch (error) {
+    throw new Error(`Failed to validate class code: ${error}`);
+  }
+}
+
+// Keep this for teacher/admin use only
+export async function getBatchByClassCode(classCode: string): Promise<Batch | null> {
+  try {
+    const q = query(
+      collection(db, "batches"),
+      where("classCode", "==", classCode),
+      where("isActive", "==", true),
+      limit(1)
+    );
+    const snapshot = await getDocs(q);
+    if (!snapshot.empty) {
+      const doc = snapshot.docs[0];
+      return batchFromFirestore(doc.id, doc.data() as BatchFirestore);
+    }
+    return null;
+  } catch (error) {
+    throw new Error(`Failed to get batch by class code: ${error}`);
+  }
+}
+
+export async function getBatchById(id: string): Promise<Batch | null> {
+  try {
+    const docRef = doc(db, "batches", id);
+    const docSnap = await getDoc(docRef);
+    if (docSnap.exists()) {
+      return batchFromFirestore(docSnap.id, docSnap.data() as BatchFirestore);
+    }
+    return null;
+  } catch (error) {
+    throw new Error(`Failed to get batch: ${error}`);
+  }
+}
+
+// ==================== Task Operations ====================
+
+export async function createTask(task: Omit<Task, "id">): Promise<string> {
+  try {
+    const taskRef = doc(collection(db, "tasks"));
+    const taskData: TaskFirestore = taskToFirestore({
+      ...task,
+      id: taskRef.id,
+    });
+    await setDoc(taskRef, taskData);
+    return taskRef.id;
+  } catch (error) {
+    throw new Error(`Failed to create task: ${error}`);
+  }
+}
+
+export async function updateTask(id: string, task: Partial<Task>): Promise<void> {
+  try {
+    const taskRef = doc(db, "tasks", id);
+    const updates: Partial<TaskFirestore> = {
+      updatedAt: Timestamp.now(),
+    };
+
+    if (task.title !== undefined) updates.title = task.title;
+    if (task.description !== undefined) updates.description = task.description;
+    if (task.status !== undefined) updates.status = task.status;
+    if (task.dueDate !== undefined)
+      updates.dueDate = Timestamp.fromDate(task.dueDate);
+    if (task.maxPoints !== undefined) updates.maxPoints = task.maxPoints;
+    if (task.attachments !== undefined) updates.attachments = task.attachments;
+    if (task.allowLateSubmission !== undefined)
+      updates.allowLateSubmission = task.allowLateSubmission;
+    if (task.lateSubmissionDays !== undefined)
+      updates.lateSubmissionDays = task.lateSubmissionDays;
+    if (task.instructions !== undefined) updates.instructions = task.instructions;
+    if (task.submissionCount !== undefined)
+      updates.submissionCount = task.submissionCount;
+
+    await updateDoc(taskRef, updates);
+  } catch (error) {
+    throw new Error(`Failed to update task: ${error}`);
+  }
+}
+
+export async function deleteTask(id: string): Promise<void> {
+  try {
+    await deleteDoc(doc(db, "tasks", id));
+  } catch (error) {
+    throw new Error(`Failed to delete task: ${error}`);
+  }
+}
+
+export async function getTasksByBatch(batchId: string): Promise<Task[]> {
+  try {
+    // Query without orderBy to avoid index requirement, then sort in memory
+    const q = query(
+      collection(db, "tasks"),
+      where("batchId", "==", batchId)
+    );
+    const snapshot = await getDocs(q);
+    const tasks = snapshot.docs.map((doc) =>
+      taskFromFirestore(doc.id, doc.data() as TaskFirestore)
+    );
+    // Sort in memory by createdAt descending
+    tasks.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+    return tasks;
+  } catch (error) {
+    throw new Error(`Failed to get tasks: ${error}`);
+  }
+}
+
+export function subscribeTasksByBatch(
+  batchId: string,
+  callback: (tasks: Task[]) => void
+): () => void {
+  // Query without orderBy to avoid index requirement, then sort in memory
+  const q = query(
+    collection(db, "tasks"),
+    where("batchId", "==", batchId)
+  );
+
+  return onSnapshot(q, (snapshot) => {
+    const tasks = snapshot.docs.map((doc) =>
+      taskFromFirestore(doc.id, doc.data() as TaskFirestore)
+    );
+    // Sort in memory by createdAt descending
+    tasks.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+    callback(tasks);
+  });
+}
+
+export async function getTaskById(id: string): Promise<Task | null> {
+  try {
+    const docRef = doc(db, "tasks", id);
+    const docSnap = await getDoc(docRef);
+    if (docSnap.exists()) {
+      return taskFromFirestore(docSnap.id, docSnap.data() as TaskFirestore);
+    }
+    return null;
+  } catch (error) {
+    throw new Error(`Failed to get task: ${error}`);
+  }
+}
+
+// ==================== Submission Operations ====================
+
+export async function createSubmission(
+  submission: Omit<Submission, "id">
+): Promise<string> {
+  try {
+    const submissionRef = doc(collection(db, "submissions"));
+    const submissionData: SubmissionFirestore = submissionToFirestore({
+      ...submission,
+      id: submissionRef.id,
+    });
+
+    const batchWrite = writeBatch(db);
+    batchWrite.set(submissionRef, submissionData);
+
+    // Update task submission count
+    const taskRef = doc(db, "tasks", submission.taskId);
+    batchWrite.update(taskRef, {
+      submissionCount: increment(1),
+      updatedAt: Timestamp.now(),
+    });
+
+    await batchWrite.commit();
+    return submissionRef.id;
+  } catch (error) {
+    throw new Error(`Failed to create submission: ${error}`);
+  }
+}
+
+export async function updateSubmission(
+  id: string,
+  submission: Partial<Submission>
+): Promise<void> {
+  try {
+    const submissionRef = doc(db, "submissions", id);
+    const updates: Partial<SubmissionFirestore> = {
+      updatedAt: Timestamp.now(),
+    };
+
+    if (submission.status !== undefined) updates.status = submission.status;
+    if (submission.submittedAt !== undefined)
+      updates.submittedAt = Timestamp.fromDate(submission.submittedAt);
+    if (submission.fileUrls !== undefined) updates.fileUrls = submission.fileUrls;
+    if (submission.recordingUrl !== undefined)
+      updates.recordingUrl = submission.recordingUrl;
+    if (submission.notes !== undefined) updates.notes = submission.notes;
+    if (submission.grade !== undefined) updates.grade = submission.grade;
+    if (submission.feedback !== undefined) updates.feedback = submission.feedback;
+    if (submission.gradedAt !== undefined)
+      updates.gradedAt = Timestamp.fromDate(submission.gradedAt);
+
+    await updateDoc(submissionRef, updates);
+  } catch (error) {
+    throw new Error(`Failed to update submission: ${error}`);
+  }
+}
+
+export async function getSubmissionByTaskAndStudent(
+  taskId: string,
+  studentId: string
+): Promise<Submission | null> {
+  try {
+    const q = query(
+      collection(db, "submissions"),
+      where("taskId", "==", taskId),
+      where("studentId", "==", studentId),
+      limit(1)
+    );
+    const snapshot = await getDocs(q);
+    if (!snapshot.empty) {
+      const doc = snapshot.docs[0];
+      return submissionFromFirestore(
+        doc.id,
+        doc.data() as SubmissionFirestore
+      );
+    }
+    return null;
+  } catch (error) {
+    throw new Error(`Failed to get submission: ${error}`);
+  }
+}
+
+export async function getSubmissionsByTask(taskId: string): Promise<Submission[]> {
+  try {
+    // Query without orderBy to avoid index requirement, then sort in memory
+    const q = query(
+      collection(db, "submissions"),
+      where("taskId", "==", taskId)
+    );
+    const snapshot = await getDocs(q);
+    const submissions = snapshot.docs.map((doc) =>
+      submissionFromFirestore(doc.id, doc.data() as SubmissionFirestore)
+    );
+    // Sort in memory by createdAt descending
+    submissions.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+    return submissions;
+  } catch (error) {
+    throw new Error(`Failed to get submissions: ${error}`);
+  }
+}
+
+export function subscribeSubmissionsByTask(
+  taskId: string,
+  callback: (submissions: Submission[]) => void
+): () => void {
+  // Query without orderBy to avoid index requirement, then sort in memory
+  const q = query(
+    collection(db, "submissions"),
+    where("taskId", "==", taskId)
+  );
+
+  return onSnapshot(q, (snapshot) => {
+    const submissions = snapshot.docs.map((doc) =>
+      submissionFromFirestore(doc.id, doc.data() as SubmissionFirestore)
+    );
+    // Sort in memory by createdAt descending
+    submissions.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+    callback(submissions);
+  });
+}
+
+export async function getSubmissionsByStudent(
+  studentId: string
+): Promise<Submission[]> {
+  try {
+    // Query without orderBy to avoid index requirement, then sort in memory
+    const q = query(
+      collection(db, "submissions"),
+      where("studentId", "==", studentId)
+    );
+    const snapshot = await getDocs(q);
+    const submissions = snapshot.docs.map((doc) =>
+      submissionFromFirestore(doc.id, doc.data() as SubmissionFirestore)
+    );
+    // Sort in memory by createdAt descending
+    submissions.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+    return submissions;
+  } catch (error) {
+    throw new Error(`Failed to get submissions: ${error}`);
+  }
+}
+
+export function subscribeSubmissionsByStudent(
+  studentId: string,
+  callback: (submissions: Submission[]) => void
+): () => void {
+  // Query without orderBy to avoid index requirement, then sort in memory
+  const q = query(
+    collection(db, "submissions"),
+    where("studentId", "==", studentId)
+  );
+
+  return onSnapshot(q, (snapshot) => {
+    const submissions = snapshot.docs.map((doc) =>
+      submissionFromFirestore(doc.id, doc.data() as SubmissionFirestore)
+    );
+    // Sort in memory by createdAt descending
+    submissions.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+    callback(submissions);
+  });
+}
+
+export async function getSubmissionsByBatch(
+  batchId: string
+): Promise<Submission[]> {
+  try {
+    // Query without orderBy to avoid index requirement, then sort in memory
+    const q = query(
+      collection(db, "submissions"),
+      where("batchId", "==", batchId)
+    );
+    const snapshot = await getDocs(q);
+    const submissions = snapshot.docs.map((doc) =>
+      submissionFromFirestore(doc.id, doc.data() as SubmissionFirestore)
+    );
+    // Sort in memory by createdAt descending
+    submissions.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+    return submissions;
+  } catch (error) {
+    throw new Error(`Failed to get submissions: ${error}`);
+  }
+}
+
+// ==================== Enrollment Operations ====================
+
+export async function createEnrollment(
+  enrollment: Omit<Enrollment, "id">,
+  userEmail: string
+): Promise<string> {
+  try {
+    const enrollmentRef = doc(collection(db, "enrollments"));
+    const enrollmentData: EnrollmentFirestore = enrollmentToFirestore({
+      ...enrollment,
+      id: enrollmentRef.id,
+    });
+
+    // Only create the enrollment document
+    // Don't update batch student count or create membership index yet
+    // These will be created when the enrollment is approved (status changes to "active")
+    await setDoc(enrollmentRef, enrollmentData);
+
+    // Promote user to student role if needed
+    await assignStudentRole(enrollment.studentId, userEmail);
+
+    return enrollmentRef.id;
+  } catch (error) {
+    throw new Error(`Failed to create enrollment: ${error}`);
+  }
+}
+
+export async function updateEnrollment(
+  id: string,
+  enrollment: Partial<Enrollment>
+): Promise<void> {
+  try {
+    const enrollmentRef = doc(db, "enrollments", id);
+    const enrollmentDoc = await getDoc(enrollmentRef);
+    
+    if (!enrollmentDoc.exists()) {
+      throw new Error("Enrollment not found");
+    }
+
+    const currentData = enrollmentDoc.data() as EnrollmentFirestore;
+    const currentStatus = currentData.status;
+    const updates: Partial<EnrollmentFirestore> = {};
+
+    if (enrollment.status !== undefined) updates.status = enrollment.status;
+    if (enrollment.completedAt !== undefined)
+      updates.completedAt = Timestamp.fromDate(enrollment.completedAt);
+    if (enrollment.droppedAt !== undefined)
+      updates.droppedAt = Timestamp.fromDate(enrollment.droppedAt);
+    if (enrollment.notes !== undefined) updates.notes = enrollment.notes;
+
+    const batchWrite = writeBatch(db);
+    batchWrite.update(enrollmentRef, updates);
+
+    // If status changed to "active" (approved), create membership index and update student count
+    if (enrollment.status === "active" && currentStatus !== "active") {
+      const memberRef = doc(
+        db,
+        "batches",
+        currentData.batchId,
+        "members",
+        currentData.studentId
+      );
+      batchWrite.set(memberRef, {
+        enrolledAt: Timestamp.now(),
+      });
+
+      // Update batch student count
+      const batchRef = doc(db, "batches", currentData.batchId);
+      batchWrite.update(batchRef, {
+        studentCount: increment(1),
+        updatedAt: Timestamp.now(),
+      });
+    }
+
+    // If status changed to "dropped", remove membership index and decrement student count
+    if (enrollment.status === "dropped" && currentStatus !== "dropped") {
+      const memberRef = doc(
+        db,
+        "batches",
+        currentData.batchId,
+        "members",
+        currentData.studentId
+      );
+      batchWrite.delete(memberRef);
+
+      // Update batch student count (only if was previously active)
+      if (currentStatus === "active") {
+        const batchRef = doc(db, "batches", currentData.batchId);
+        batchWrite.update(batchRef, {
+          studentCount: increment(-1),
+          updatedAt: Timestamp.now(),
+        });
+      }
+    }
+
+    await batchWrite.commit();
+  } catch (error) {
+    throw new Error(`Failed to update enrollment: ${error}`);
+  }
+}
+
+export async function getEnrollmentsByStudent(
+  studentId: string
+): Promise<Enrollment[]> {
+  try {
+    // Query without orderBy to avoid index requirement, then sort in memory
+    const q = query(
+      collection(db, "enrollments"),
+      where("studentId", "==", studentId)
+    );
+    const snapshot = await getDocs(q);
+    const enrollments = snapshot.docs.map((doc) =>
+      enrollmentFromFirestore(doc.id, doc.data() as EnrollmentFirestore)
+    );
+    // Sort in memory by enrolledAt descending
+    enrollments.sort((a, b) => b.enrolledAt.getTime() - a.enrolledAt.getTime());
+    return enrollments;
+  } catch (error) {
+    throw new Error(`Failed to get enrollments: ${error}`);
+  }
+}
+
+export function subscribeEnrollmentsByStudent(
+  studentId: string,
+  callback: (enrollments: Enrollment[]) => void
+): () => void {
+  // Query without orderBy to avoid index requirement, then sort in memory
+  const q = query(
+    collection(db, "enrollments"),
+    where("studentId", "==", studentId)
+  );
+
+  return onSnapshot(q, (snapshot) => {
+    const enrollments = snapshot.docs.map((doc) =>
+      enrollmentFromFirestore(doc.id, doc.data() as EnrollmentFirestore)
+    );
+    // Sort in memory by enrolledAt descending
+    enrollments.sort((a, b) => b.enrolledAt.getTime() - a.enrolledAt.getTime());
+    callback(enrollments);
+  });
+}
+
+export async function getEnrollmentsByBatch(
+  batchId: string
+): Promise<Enrollment[]> {
+  try {
+    // Query without orderBy to avoid index requirement, then sort in memory
+    const q = query(
+      collection(db, "enrollments"),
+      where("batchId", "==", batchId)
+    );
+    const snapshot = await getDocs(q);
+    const enrollments = snapshot.docs.map((doc) =>
+      enrollmentFromFirestore(doc.id, doc.data() as EnrollmentFirestore)
+    );
+    // Sort in memory by enrolledAt descending
+    enrollments.sort((a, b) => b.enrolledAt.getTime() - a.enrolledAt.getTime());
+    return enrollments;
+  } catch (error) {
+    throw new Error(`Failed to get enrollments: ${error}`);
+  }
+}
+
+export function subscribeEnrollmentsByBatch(
+  batchId: string,
+  callback: (enrollments: Enrollment[]) => void
+): () => void {
+  // Query without orderBy to avoid index requirement, then sort in memory
+  const q = query(
+    collection(db, "enrollments"),
+    where("batchId", "==", batchId)
+  );
+
+  return onSnapshot(q, (snapshot) => {
+    const enrollments = snapshot.docs.map((doc) =>
+      enrollmentFromFirestore(doc.id, doc.data() as EnrollmentFirestore)
+    );
+    // Sort in memory by enrolledAt descending
+    enrollments.sort((a, b) => b.enrolledAt.getTime() - a.enrolledAt.getTime());
+    callback(enrollments);
+  });
+}
+
+// ==================== Comment Operations ====================
+
+export async function createComment(comment: Omit<Comment, "id">): Promise<string> {
+  try {
+    const commentRef = doc(collection(db, "comments"));
+    const commentData: CommentFirestore = commentToFirestore({
+      ...comment,
+      id: commentRef.id,
+    });
+    await setDoc(commentRef, commentData);
+    return commentRef.id;
+  } catch (error) {
+    throw new Error(`Failed to create comment: ${error}`);
+  }
+}
+
+export async function updateComment(
+  id: string,
+  comment: Partial<Comment>
+): Promise<void> {
+  try {
+    const commentRef = doc(db, "comments", id);
+    const updates: Partial<CommentFirestore> = {
+      updatedAt: Timestamp.now(),
+      isEdited: true,
+    };
+
+    if (comment.content !== undefined) updates.content = comment.content;
+    if (comment.attachments !== undefined)
+      updates.attachments = comment.attachments;
+
+    await updateDoc(commentRef, updates);
+  } catch (error) {
+    throw new Error(`Failed to update comment: ${error}`);
+  }
+}
+
+export async function deleteComment(id: string): Promise<void> {
+  try {
+    await deleteDoc(doc(db, "comments", id));
+  } catch (error) {
+    throw new Error(`Failed to delete comment: ${error}`);
+  }
+}
+
+export async function getCommentsByBatch(batchId: string): Promise<Comment[]> {
+  try {
+    // Query without orderBy to avoid index requirement, then sort in memory
+    const q = query(
+      collection(db, "comments"),
+      where("batchId", "==", batchId),
+      where("type", "==", "public")
+    );
+    const snapshot = await getDocs(q);
+    const comments = snapshot.docs.map((doc) =>
+      commentFromFirestore(doc.id, doc.data() as CommentFirestore)
+    );
+    // Sort in memory by createdAt descending
+    comments.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+    return comments;
+  } catch (error) {
+    throw new Error(`Failed to get comments: ${error}`);
+  }
+}
+
+export async function getCommentsByTask(taskId: string): Promise<Comment[]> {
+  try {
+    // Query without orderBy to avoid index requirement, then sort in memory
+    const q = query(
+      collection(db, "comments"),
+      where("taskId", "==", taskId)
+    );
+    const snapshot = await getDocs(q);
+    const comments = snapshot.docs.map((doc) =>
+      commentFromFirestore(doc.id, doc.data() as CommentFirestore)
+    );
+    // Sort in memory by createdAt descending
+    comments.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+    return comments;
+  } catch (error) {
+    throw new Error(`Failed to get comments: ${error}`);
+  }
+}
+
+// ==================== User Operations ====================
+
+export async function getUserById(id: string): Promise<User | null> {
+  try {
+    const docRef = doc(db, "users", id);
+    const docSnap = await getDoc(docRef);
+    if (docSnap.exists()) {
+      return userFromFirestore(docSnap.id, docSnap.data() as UserFirestore);
+    }
+    return null;
+  } catch (error) {
+    throw new Error(`Failed to get user: ${error}`);
+  }
+}
+
+export async function updateUser(user: Partial<User> & { id: string }): Promise<void> {
+  try {
+    const userRef = doc(db, "users", user.id);
+    const updates: Partial<UserFirestore> = {};
+
+    if (user.name !== undefined) updates.name = user.name;
+    if (user.profileImageUrl !== undefined)
+      updates.profileImageUrl = user.profileImageUrl;
+    if (user.whatsappNumber !== undefined)
+      updates.whatsappNumber = user.whatsappNumber;
+    if (user.role !== undefined) updates.role = user.role;
+    if (user.lastLoginAt !== undefined)
+      updates.lastLoginAt = Timestamp.fromDate(user.lastLoginAt);
+    if (user.isActive !== undefined) updates.isActive = user.isActive;
+
+    await updateDoc(userRef, updates);
+  } catch (error) {
+    throw new Error(`Failed to update user: ${error}`);
+  }
+}
+
+// ==================== Helper Functions ====================
+
+/**
+ * Generate a random batch code (6 characters alphanumeric)
+ */
+export function generateBatchCode(): string {
+  const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+  let result = "";
+  for (let i = 0; i < 6; i++) {
+    result += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  return result;
+}

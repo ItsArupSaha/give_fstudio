@@ -1,16 +1,29 @@
 "use client";
 
+import { BatchManagement } from "@/components/teacher/batch-management";
+import { CourseGroupsManagement } from "@/components/teacher/course-groups";
 import { TeacherManagement } from "@/components/teacher/teacher-management";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useAuthUser } from "@/hooks/use-auth";
 import { useTeacher } from "@/hooks/use-teacher";
-import { BookOpen, FileText, Users } from "lucide-react";
+import { getBatchesByCourseGroup, getCourseGroups, getEnrollmentsByBatch } from "@/lib/services/firestore";
+import { FileText, Folder, Users } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 
 export default function TeacherDashboardPage() {
   const { isTeacher, initializing, user } = useTeacher();
+  const { user: authUser } = useAuthUser();
   const router = useRouter();
+  const [stats, setStats] = useState({
+    courseGroups: 0,
+    batches: 0,
+    students: 0,
+    pendingEnrollments: 0,
+  });
+  const [loadingStats, setLoadingStats] = useState(true);
 
   useEffect(() => {
     // Redirect if not a teacher (after auth state is determined)
@@ -18,6 +31,45 @@ export default function TeacherDashboardPage() {
       router.push("/");
     }
   }, [isTeacher, initializing, user, router]);
+
+  useEffect(() => {
+    if (!authUser?.uid || !isTeacher) return;
+
+    loadStats();
+  }, [authUser?.uid, isTeacher]);
+
+  const loadStats = async () => {
+    if (!authUser?.uid) return;
+
+    try {
+      const courseGroups = await getCourseGroups(authUser.uid);
+      let totalBatches = 0;
+      let totalStudents = 0;
+      let pendingEnrollments = 0;
+
+      for (const cg of courseGroups) {
+        const batches = await getBatchesByCourseGroup(cg.id);
+        totalBatches += batches.length;
+
+        for (const batch of batches) {
+          const enrollments = await getEnrollmentsByBatch(batch.id);
+          totalStudents += enrollments.filter((e) => e.status === "active").length;
+          pendingEnrollments += enrollments.filter((e) => e.status === "pending").length;
+        }
+      }
+
+      setStats({
+        courseGroups: courseGroups.length,
+        batches: totalBatches,
+        students: totalStudents,
+        pendingEnrollments,
+      });
+    } catch (error) {
+      console.error("Failed to load stats:", error);
+    } finally {
+      setLoadingStats(false);
+    }
+  };
 
   // Show loading state while checking auth
   if (initializing) {
@@ -58,12 +110,14 @@ export default function TeacherDashboardPage() {
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 mb-8">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Courses</CardTitle>
-            <BookOpen className="h-4 w-4 text-muted-foreground" />
+            <CardTitle className="text-sm font-medium">Course Groups</CardTitle>
+            <Folder className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">0</div>
-            <p className="text-xs text-muted-foreground">Active courses</p>
+            <div className="text-2xl font-bold">
+              {loadingStats ? "..." : stats.courseGroups}
+            </div>
+            <p className="text-xs text-muted-foreground">Active course groups</p>
           </CardContent>
         </Card>
         <Card>
@@ -72,7 +126,9 @@ export default function TeacherDashboardPage() {
             <Users className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">0</div>
+            <div className="text-2xl font-bold">
+              {loadingStats ? "..." : stats.batches}
+            </div>
             <p className="text-xs text-muted-foreground">Active batches</p>
           </CardContent>
         </Card>
@@ -82,76 +138,55 @@ export default function TeacherDashboardPage() {
             <Users className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">0</div>
+            <div className="text-2xl font-bold">
+              {loadingStats ? "..." : stats.students}
+            </div>
             <p className="text-xs text-muted-foreground">Enrolled students</p>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Assignments</CardTitle>
+            <CardTitle className="text-sm font-medium">Pending Requests</CardTitle>
             <FileText className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">0</div>
-            <p className="text-xs text-muted-foreground">Pending reviews</p>
+            <div className="text-2xl font-bold">
+              {loadingStats ? "..." : stats.pendingEnrollments}
+            </div>
+            <p className="text-xs text-muted-foreground">Enrollment requests</p>
           </CardContent>
         </Card>
       </div>
 
-      {/* Quick Actions */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 mb-8">
-        <Card>
-          <CardHeader>
-            <CardTitle>Manage Courses</CardTitle>
-            <CardDescription>Create and manage courses</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Button className="w-full" variant="outline">
-              Manage Courses
-            </Button>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader>
-            <CardTitle>Manage Batches</CardTitle>
-            <CardDescription>Create and manage batches</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Button className="w-full" variant="outline">
-              Manage Batches
-            </Button>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader>
-            <CardTitle>Student Management</CardTitle>
-            <CardDescription>View and manage students</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Button className="w-full" variant="outline">
-              View Students
-            </Button>
-          </CardContent>
-        </Card>
-      </div>
+      {/* Main Management Tabs */}
+      <Tabs defaultValue="course-groups" className="space-y-4">
+        <TabsList>
+          <TabsTrigger value="course-groups">
+            <Folder className="h-4 w-4 mr-2" />
+            Course Groups
+          </TabsTrigger>
+          <TabsTrigger value="batches">
+            <Users className="h-4 w-4 mr-2" />
+            Batches
+          </TabsTrigger>
+          <TabsTrigger value="teachers">
+            <Users className="h-4 w-4 mr-2" />
+            Teachers
+          </TabsTrigger>
+        </TabsList>
 
-      {/* Teacher Management */}
-      <div className="mb-8">
-        <TeacherManagement />
-      </div>
+        <TabsContent value="course-groups">
+          <CourseGroupsManagement />
+        </TabsContent>
 
-      {/* Recent Activity Placeholder */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Recent Activity</CardTitle>
-          <CardDescription>Your recent actions and updates</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="text-center py-8 text-muted-foreground">
-            No recent activity to display
-          </div>
-        </CardContent>
-      </Card>
+        <TabsContent value="batches">
+          <BatchManagement />
+        </TabsContent>
+
+        <TabsContent value="teachers">
+          <TeacherManagement />
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }
