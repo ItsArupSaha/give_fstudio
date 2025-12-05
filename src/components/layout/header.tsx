@@ -24,6 +24,7 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
+import { useTeacher } from "@/hooks/use-teacher";
 import { ChevronDown, Menu } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
@@ -45,6 +46,7 @@ const aboutNavItems = [
 
 export default function Header() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = React.useState(false);
+  const { isTeacher } = useTeacher();
 
   return (
     <header className="sticky top-0 z-50 w-full border-b border-border/60 bg-secondary/90 backdrop-blur supports-[backdrop-filter]:bg-secondary/80">
@@ -91,6 +93,20 @@ export default function Header() {
               </DropdownMenuSub>
             </DropdownMenuContent>
           </DropdownMenu>
+          <Link
+            href="/classroom"
+            className="font-medium text-foreground/90 transition-colors hover:text-foreground"
+          >
+            Classroom
+          </Link>
+          {isTeacher && (
+            <Link
+              href="/teacher"
+              className="font-medium text-foreground/90 transition-colors hover:text-foreground"
+            >
+              Teacher Dashboard
+            </Link>
+          )}
           {mainNavItems.map((item) => (
             <Link
               key={item.name}
@@ -155,6 +171,22 @@ export default function Header() {
                       </AccordionContent>
                     </AccordionItem>
                   </Accordion>
+                  <Link
+                    href="/classroom"
+                    className="px-4 py-2 text-lg font-medium text-foreground/90 transition-colors hover:text-foreground"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                  >
+                    Classroom
+                  </Link>
+                  {isTeacher && (
+                    <Link
+                      href="/teacher"
+                      className="px-4 py-2 text-lg font-medium text-foreground/90 transition-colors hover:text-foreground"
+                      onClick={() => setIsMobileMenuOpen(false)}
+                    >
+                      Teacher Dashboard
+                    </Link>
+                  )}
                   {mainNavItems.map((item) => (
                     <Link
                       key={item.name}
