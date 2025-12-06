@@ -154,12 +154,58 @@ export default function BatchSubmissionsPage() {
         fileCount: data.files.length
       })));
 
-      // Convert to array and sort by task creation date (newest first)
-      const tasksWithFilesArray = Array.from(taskFilesMap.values()).sort(
+      // Separate daily listening tasks from other tasks
+      const dailyListeningTasks: TaskFiles[] = [];
+      const otherTasks: TaskFiles[] = [];
+
+      taskFilesMap.forEach((taskFiles) => {
+        if (taskFiles.task.type === "dailyListening") {
+          dailyListeningTasks.push(taskFiles);
+        } else {
+          otherTasks.push(taskFiles);
+        }
+      });
+
+      // Group all daily listening tasks into one combined group
+      const combinedDailyListening: TaskFiles[] = [];
+      if (dailyListeningTasks.length > 0) {
+        // Use the most recent daily listening task as the representative task
+        const sortedDailyListening = dailyListeningTasks.sort(
+          (a, b) => b.task.createdAt.getTime() - a.task.createdAt.getTime()
+        );
+        const representativeTask = sortedDailyListening[0].task;
+
+        // Combine all files from all daily listening tasks
+        const allDailyListeningFiles: Array<{
+          submissionId: string;
+          fileUrl: string;
+          fileName: string;
+        }> = [];
+
+        dailyListeningTasks.forEach((taskFiles) => {
+          allDailyListeningFiles.push(...taskFiles.files);
+        });
+
+        combinedDailyListening.push({
+          task: {
+            ...representativeTask,
+            id: `daily-listening-combined-${batchId}`, // Special ID for combined group
+            title: "Daily Listening",
+            description: `${dailyListeningTasks.length} daily listening task${dailyListeningTasks.length !== 1 ? "s" : ""} combined`,
+          },
+          files: allDailyListeningFiles,
+        });
+      }
+
+      // Sort other tasks by creation date (newest first)
+      otherTasks.sort(
         (a, b) => b.task.createdAt.getTime() - a.task.createdAt.getTime()
       );
 
-      setTasksWithFiles(tasksWithFilesArray);
+      // Combine: other tasks first, then daily listening group at the end
+      const finalTasksWithFiles = [...otherTasks, ...combinedDailyListening];
+
+      setTasksWithFiles(finalTasksWithFiles);
     } catch (error) {
       console.error("Error loading submissions:", error);
       toast({
@@ -295,11 +341,26 @@ export default function BatchSubmissionsPage() {
 
       // Get all submissions for this task
       const submissions = await getSubmissionsByBatch(batchId);
-      const taskSubmissions = submissions.filter(
-        (s) => s.taskId === taskToDeleteAll.id
-      );
 
-      console.log(`Found ${taskSubmissions.length} submissions for this task`);
+      // If it's the combined daily listening group, delete from all daily listening tasks
+      let taskSubmissions: typeof submissions;
+      if (taskToDeleteAll.title === "Daily Listening" && taskToDeleteAll.type === "dailyListening") {
+        // Get all daily listening task IDs
+        const tasks = await getTasksByBatch(batchId);
+        const dailyListeningTaskIds = tasks
+          .filter((t) => t.type === "dailyListening")
+          .map((t) => t.id);
+
+        taskSubmissions = submissions.filter((s) =>
+          dailyListeningTaskIds.includes(s.taskId)
+        );
+        console.log(`Found ${taskSubmissions.length} submissions across ${dailyListeningTaskIds.length} daily listening tasks`);
+      } else {
+        taskSubmissions = submissions.filter(
+          (s) => s.taskId === taskToDeleteAll.id
+        );
+        console.log(`Found ${taskSubmissions.length} submissions for this task`);
+      }
 
       // Delete all files from storage and update submissions
       const deletePromises: Promise<void>[] = [];
