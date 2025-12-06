@@ -541,11 +541,11 @@ export async function createSubmission(
     // If this fails, it's okay - the submission is already created
     // The submissionCount can be calculated on-the-fly when needed
     try {
-      const taskRef = doc(db, "tasks", submission.taskId);
+    const taskRef = doc(db, "tasks", submission.taskId);
       await updateDoc(taskRef, {
-        submissionCount: increment(1),
-        updatedAt: Timestamp.now(),
-      });
+      submissionCount: increment(1),
+      updatedAt: Timestamp.now(),
+    });
       console.log("Task submission count updated successfully");
     } catch (taskUpdateError) {
       // Log but don't fail - submission is already created successfully
