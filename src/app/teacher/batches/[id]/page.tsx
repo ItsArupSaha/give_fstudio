@@ -322,8 +322,19 @@ export default function BatchDetailsPage() {
         <TabsContent value="tasks" className="space-y-4">
           <Card>
             <CardHeader>
-              <CardTitle>Tasks</CardTitle>
-              <CardDescription>All tasks for this batch</CardDescription>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle>Tasks</CardTitle>
+                  <CardDescription>All tasks for this batch</CardDescription>
+                </div>
+                <Button
+                  onClick={() => router.push(`/teacher/batches/${batchId}/submissions`)}
+                  variant="outline"
+                >
+                  <ClipboardList className="h-4 w-4 mr-2" />
+                  View All Submissions
+                </Button>
+              </div>
             </CardHeader>
             <CardContent>
               {tasks.length === 0 ? (

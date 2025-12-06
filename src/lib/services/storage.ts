@@ -118,6 +118,38 @@ export async function deleteFile(path: string): Promise<void> {
 }
 
 /**
+ * Delete a file from Firebase Storage using its download URL
+ * @param url - The download URL of the file to delete
+ */
+export async function deleteFileByUrl(url: string): Promise<void> {
+  try {
+    // Extract the storage path from the Firebase Storage URL
+    // Format: https://firebasestorage.googleapis.com/v0/b/{bucket}/o/{encodedPath}?alt=media&token={token}
+    // Or: https://firebasestorage.googleapis.com/v0/b/{bucket}/o/{encodedPath}
+    const urlObj = new URL(url);
+    
+    // Handle both /o/ and /b/{bucket}/o/ patterns
+    // Pattern matches: /o/path or /b/bucket-name/o/path
+    const pathMatch = urlObj.pathname.match(/\/(?:o|b\/[^\/]+\/o)\/(.+?)(?:\?|$)/);
+    
+    if (!pathMatch || !pathMatch[1]) {
+      throw new Error(`Invalid Firebase Storage URL format: ${url}`);
+    }
+
+    // Decode the URL-encoded path
+    const storagePath = decodeURIComponent(pathMatch[1]);
+    
+    console.log(`Deleting file from storage path: ${storagePath} (from URL: ${url})`);
+    
+    // Delete using the path
+    await deleteFile(storagePath);
+  } catch (error) {
+    console.error("Error in deleteFileByUrl:", error);
+    throw new Error(`Failed to delete file from URL: ${error instanceof Error ? error.message : String(error)}`);
+  }
+}
+
+/**
  * Delete multiple files from Firebase Storage
  * @param paths - Array of storage paths to delete
  */

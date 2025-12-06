@@ -740,6 +740,25 @@ export async function getSubmissionsByBatch(
   }
 }
 
+export function subscribeSubmissionsByBatch(
+  batchId: string,
+  callback: (submissions: Submission[]) => void
+): () => void {
+  const q = query(
+    collection(db, "submissions"),
+    where("batchId", "==", batchId)
+  );
+
+  return onSnapshot(q, (snapshot) => {
+    const submissions = snapshot.docs.map((doc) =>
+      submissionFromFirestore(doc.id, doc.data() as SubmissionFirestore)
+    );
+    // Sort in memory by createdAt descending
+    submissions.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+    callback(submissions);
+  });
+}
+
 // ==================== Enrollment Operations ====================
 
 export async function createEnrollment(
