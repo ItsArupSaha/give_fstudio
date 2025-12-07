@@ -108,8 +108,12 @@ export default function BatchSubmissionsPage() {
       // Group files by task
       const taskFilesMap = new Map<string, TaskFiles>();
 
-      // Initialize all tasks (even if no files)
+      // Initialize all tasks (even if no files), but exclude announcements
       tasks.forEach((task) => {
+        // Skip announcement tasks as they don't have submissions
+        if (task.type === "announcement") {
+          return;
+        }
         taskFilesMap.set(task.id, {
           task,
           files: [],

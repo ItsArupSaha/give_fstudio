@@ -118,6 +118,11 @@ export default function BatchTasksPage() {
   };
 
   const getSubmissionStatus = (task: Task) => {
+    // Announcements don't have submissions, so don't show status
+    if (task.type === "announcement") {
+      return { status: "announcement", label: "Announcement", color: "blue" };
+    }
+
     const submission = submissions.get(task.id);
     if (!submission) {
       return { status: "not_submitted", label: "Not Submitted", color: "gray" };
