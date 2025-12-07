@@ -327,13 +327,22 @@ export default function BatchDetailsPage() {
                   <CardTitle>Tasks</CardTitle>
                   <CardDescription>All tasks for this batch</CardDescription>
                 </div>
-                <Button
-                  onClick={() => router.push(`/teacher/batches/${batchId}/submissions`)}
-                  variant="outline"
-                >
-                  <ClipboardList className="h-4 w-4 mr-2" />
-                  View All Submissions
-                </Button>
+                <div className="flex items-center gap-2">
+                  <Button
+                    onClick={() => router.push(`/teacher/batches/${batchId}/daily-listening-analytics`)}
+                    variant="outline"
+                  >
+                    <ClipboardList className="h-4 w-4 mr-2" />
+                    Daily Listening Analytics
+                  </Button>
+                  <Button
+                    onClick={() => router.push(`/teacher/batches/${batchId}/submissions`)}
+                    variant="outline"
+                  >
+                    <ClipboardList className="h-4 w-4 mr-2" />
+                    View All Submissions
+                  </Button>
+                </div>
               </div>
             </CardHeader>
             <CardContent>
