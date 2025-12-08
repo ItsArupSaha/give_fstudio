@@ -52,7 +52,7 @@ export function Testimonials() {
     >
       <div className="relative container max-w-screen-2xl">
         <div className="text-center max-w-2xl mx-auto mb-12">
-          <h2 className="text-3xl md:text-4xl font-headline font-bold">Words from Our Students</h2>
+          <h2 className="text-3xl md:text-4xl font-headline font-bold">Words of Gratitude</h2>
           <p className="mt-4 text-lg text-muted-foreground">
             See how studying at GIVE has impacted the lives of our community members.
           </p>
