@@ -86,7 +86,12 @@ export function TaskCreation({ batch, onTaskCreated }: TaskCreationProps) {
         updatedAt: new Date(),
         dueDate:
           formData.type !== "announcement" && formData.dueDate
-            ? new Date(formData.dueDate)
+            ? (() => {
+              // Set time to 11:59:59.999 PM of the selected date
+              const date = new Date(formData.dueDate);
+              date.setHours(23, 59, 59, 999);
+              return date;
+            })()
             : undefined,
         maxPoints:
           formData.type === "announcement" ? 0 : parseInt(formData.maxPoints) || 100,
@@ -221,12 +226,15 @@ export function TaskCreation({ batch, onTaskCreated }: TaskCreationProps) {
                     <Label htmlFor="due-date">Due Date</Label>
                     <Input
                       id="due-date"
-                      type="datetime-local"
+                      type="date"
                       value={formData.dueDate}
                       onChange={(e) =>
                         setFormData({ ...formData, dueDate: e.target.value })
                       }
                     />
+                    <p className="text-xs text-muted-foreground">
+                      Submissions accepted until 11:59 PM on this date
+                    </p>
                   </div>
                   <div className="grid gap-2">
                     <Label htmlFor="points">Max Points</Label>
