@@ -11,15 +11,20 @@ import {
 } from "@/components/ui/card";
 import { LinkifiedText } from "@/components/ui/linkified-text";
 import { useAuthUser } from "@/hooks/use-auth";
+import { useToast } from "@/hooks/use-toast";
 import type { Batch } from "@/lib/models/batch";
 import type { Submission } from "@/lib/models/submission";
 import type { Task } from "@/lib/models/task";
+import { TaskBookmark } from "@/lib/models/task-bookmark";
 import {
+  createTaskBookmark,
+  deleteTaskBookmarkByStudentAndTask,
   getBatchById,
   getSubmissionsByStudent,
   getTasksByBatch,
   subscribeSubmissionsByStudent,
-  subscribeTasksByBatch,
+  subscribeTaskBookmarksByBatch,
+  subscribeTasksByBatch
 } from "@/lib/services/firestore";
 import {
   getTaskTypeColor,
@@ -29,10 +34,11 @@ import {
 import {
   AlertCircle,
   ArrowLeft,
+  Bookmark,
   Calendar,
   Loader2,
   RefreshCw,
-  Star,
+  Star
 } from "lucide-react";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -46,8 +52,11 @@ export default function BatchTasksPage() {
   const [batch, setBatch] = useState<Batch | null>(null);
   const [tasks, setTasks] = useState<Task[]>([]);
   const [submissions, setSubmissions] = useState<Map<string, Submission>>(new Map());
+  const [bookmarks, setBookmarks] = useState<Map<string, TaskBookmark>>(new Map());
+  const [showBookmarkedOnly, setShowBookmarkedOnly] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const { toast } = useToast();
 
   useEffect(() => {
     if (!batchId || !user?.uid) return;
@@ -82,9 +91,23 @@ export default function BatchTasksPage() {
       setSubmissions(submissionMap);
     });
 
+    // Subscribe to bookmarks
+    const unsubscribeBookmarks = subscribeTaskBookmarksByBatch(
+      batchId,
+      user.uid,
+      (bookmarksList) => {
+        const bookmarkMap = new Map<string, TaskBookmark>();
+        for (const bookmark of bookmarksList) {
+          bookmarkMap.set(bookmark.taskId, bookmark);
+        }
+        setBookmarks(bookmarkMap);
+      }
+    );
+
     return () => {
       unsubscribeTasks();
       unsubscribeSubmissions();
+      unsubscribeBookmarks();
     };
   }, [batchId, user?.uid]);
 
@@ -175,6 +198,55 @@ export default function BatchTasksPage() {
     return daysUntilDue <= 3 && daysUntilDue >= 0;
   };
 
+  const isTaskBookmarked = (taskId: string) => {
+    return bookmarks.has(taskId);
+  };
+
+  const handleToggleBookmark = async (task: Task, e: React.MouseEvent) => {
+    e.stopPropagation(); // Prevent card click
+    e.preventDefault(); // Prevent any default behavior
+    if (!user?.uid) {
+      toast({
+        title: "Error",
+        description: "You must be logged in to bookmark tasks",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      if (isTaskBookmarked(task.id)) {
+        await deleteTaskBookmarkByStudentAndTask(user.uid, task.id);
+        toast({
+          title: "Bookmark removed",
+          description: "Task removed from bookmarks",
+        });
+      } else {
+        await createTaskBookmark({
+          studentId: user.uid,
+          taskId: task.id,
+          batchId: batchId,
+          createdAt: new Date(),
+        });
+        toast({
+          title: "Bookmark added",
+          description: "Task added to bookmarks",
+        });
+      }
+    } catch (error) {
+      console.error("Error toggling bookmark:", error);
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to update bookmark",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const filteredTasks = showBookmarkedOnly
+    ? tasks.filter((task) => isTaskBookmarked(task.id))
+    : tasks;
+
   if (loading && !batch) {
     return (
       <div className="container mx-auto px-4 py-8 max-w-7xl">
@@ -248,19 +320,35 @@ export default function BatchTasksPage() {
 
       {/* Tasks List */}
       <div>
-        <div className="flex items-center gap-2 mb-4">
-          <h2 className="text-2xl font-bold">Tasks ({tasks.length})</h2>
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-2xl font-bold">
+            {showBookmarkedOnly ? "Bookmarked Tasks" : "Tasks"} ({filteredTasks.length})
+          </h2>
+          <div className="flex items-center gap-2">
+            <Button
+              variant={showBookmarkedOnly ? "default" : "outline"}
+              size="sm"
+              onClick={() => setShowBookmarkedOnly(!showBookmarkedOnly)}
+            >
+              <Bookmark className={`h-4 w-4 mr-2 ${showBookmarkedOnly ? "fill-current" : ""}`} />
+              {showBookmarkedOnly ? "Show All" : "Show Bookmarked"}
+            </Button>
+          </div>
         </div>
 
-        {tasks.length === 0 ? (
+        {filteredTasks.length === 0 ? (
           <Card>
             <CardContent className="py-12 text-center">
-              <p className="text-muted-foreground">No tasks available yet</p>
+              <p className="text-muted-foreground">
+                {showBookmarkedOnly
+                  ? "No bookmarked tasks yet. Click the bookmark icon on any task to bookmark it."
+                  : "No tasks available yet"}
+              </p>
             </CardContent>
           </Card>
         ) : (
           <div className="grid gap-4">
-            {tasks.map((task) => {
+            {filteredTasks.map((task) => {
               const submissionStatus = getSubmissionStatus(task);
               const TaskIcon = getTaskTypeIcon(task.type);
               const taskColor = getTaskTypeColor(task.type);
@@ -269,20 +357,29 @@ export default function BatchTasksPage() {
               const submission = submissions.get(task.id);
               const isSubmitted = submission?.status === "submitted" || submission?.status === "graded";
 
+              const isClickable = task.type !== "announcement" && !isSubmitted;
+
               return (
                 <Card
                   key={task.id}
-                  className={`cursor-pointer transition-colors hover:bg-accent ${task.type === "announcement" || isSubmitted ? "opacity-75" : ""
+                  className={`transition-colors ${isClickable ? "cursor-pointer hover:bg-accent" : ""} ${task.type === "announcement" || isSubmitted ? "opacity-75" : ""
                     }`}
                   onClick={() => {
-                    if (task.type !== "announcement" && !isSubmitted) {
+                    if (isClickable) {
                       router.push(`/classroom/tasks/${task.id}`);
                     }
                   }}
                 >
                   <CardHeader>
                     <div className="flex items-start justify-between">
-                      <div className="flex items-center gap-3 flex-1">
+                      <div
+                        className="flex items-center gap-3 flex-1"
+                        onClick={(e) => {
+                          if (!isClickable) {
+                            e.stopPropagation();
+                          }
+                        }}
+                      >
                         <div
                           className="p-2 rounded-lg"
                           style={{ backgroundColor: `${taskColor}20`, color: taskColor }}
@@ -296,7 +393,37 @@ export default function BatchTasksPage() {
                           </CardDescription>
                         </div>
                       </div>
-                      <div className="flex items-center gap-2">
+                      <div
+                        className="flex items-center gap-2"
+                        onClick={(e) => e.stopPropagation()}
+                        onMouseDown={(e) => e.stopPropagation()}
+                      >
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          className="h-8 w-8 p-0 hover:bg-accent z-10 relative"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            e.preventDefault();
+                            handleToggleBookmark(task, e);
+                          }}
+                          onMouseDown={(e) => {
+                            e.stopPropagation();
+                            e.preventDefault();
+                          }}
+                          onMouseUp={(e) => {
+                            e.stopPropagation();
+                          }}
+                          title={isTaskBookmarked(task.id) ? "Remove bookmark" : "Bookmark task"}
+                        >
+                          <Bookmark
+                            className={`h-4 w-4 ${isTaskBookmarked(task.id)
+                              ? "fill-yellow-500 text-yellow-500"
+                              : "text-muted-foreground"
+                              }`}
+                          />
+                        </Button>
                         <Badge
                           variant="outline"
                           className={`${submissionStatus.color === "gray"

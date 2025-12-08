@@ -33,15 +33,21 @@ import { useAuthUser } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
 import type { Batch } from "@/lib/models/batch";
 import type { Enrollment } from "@/lib/models/enrollment";
+import type { Task } from "@/lib/models/task";
+import type { TaskBookmark } from "@/lib/models/task-bookmark";
 import {
   createEnrollment,
   getBatchById,
+  getTaskById,
   subscribeEnrollmentsByStudent,
-  validateClassCode,
+  subscribeTaskBookmarksByStudent,
+  validateClassCode
 } from "@/lib/services/firestore";
 import { assignStudentRole } from "@/lib/user-roles";
+import { getTaskTypeColor, getTaskTypeIcon, getTaskTypeLabel } from "@/lib/utils/task-helpers";
 import {
   AlertCircle,
+  Bookmark,
   BookOpen,
   Calendar,
   CheckCircle2,
@@ -49,7 +55,7 @@ import {
   Loader2,
   Plus,
   School,
-  XCircle,
+  XCircle
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -60,6 +66,8 @@ export function StudentDashboard() {
   const { toast } = useToast();
   const [enrollments, setEnrollments] = useState<Enrollment[]>([]);
   const [batches, setBatches] = useState<Map<string, Batch>>(new Map());
+  const [bookmarks, setBookmarks] = useState<TaskBookmark[]>([]);
+  const [bookmarkedTasks, setBookmarkedTasks] = useState<Map<string, Task>>(new Map());
   const [loading, setLoading] = useState(true);
   const [isJoinDialogOpen, setIsJoinDialogOpen] = useState(false);
   const [isJoining, setIsJoining] = useState(false);
@@ -71,7 +79,7 @@ export function StudentDashboard() {
     if (!user?.uid) return;
 
     // Subscribe to real-time enrollment updates
-    const unsubscribe = subscribeEnrollmentsByStudent(user.uid, async (enrollmentsList) => {
+    const unsubscribeEnrollments = subscribeEnrollmentsByStudent(user.uid, async (enrollmentsList) => {
       setEnrollments(enrollmentsList);
 
       // Load batch details for each enrollment
@@ -92,7 +100,31 @@ export function StudentDashboard() {
       setLoading(false);
     });
 
-    return () => unsubscribe();
+    // Subscribe to bookmarks
+    const unsubscribeBookmarks = subscribeTaskBookmarksByStudent(user.uid, async (bookmarksList) => {
+      setBookmarks(bookmarksList);
+
+      // Load task details for each bookmark
+      const taskMap = new Map<string, Task>();
+      for (const bookmark of bookmarksList) {
+        if (!taskMap.has(bookmark.taskId)) {
+          try {
+            const task = await getTaskById(bookmark.taskId);
+            if (task) {
+              taskMap.set(bookmark.taskId, task);
+            }
+          } catch (error) {
+            console.error(`Error loading task ${bookmark.taskId}:`, error);
+          }
+        }
+      }
+      setBookmarkedTasks(taskMap);
+    });
+
+    return () => {
+      unsubscribeEnrollments();
+      unsubscribeBookmarks();
+    };
   }, [user]);
 
   const handleJoinBatch = async () => {
@@ -359,6 +391,84 @@ export function StudentDashboard() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Bookmarked Tasks Section */}
+      {bookmarks.length > 0 && (
+        <div>
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-2xl font-bold flex items-center gap-2">
+              <Bookmark className="h-6 w-6 fill-yellow-500 text-yellow-500" />
+              Bookmarked Tasks ({bookmarks.length})
+            </h3>
+          </div>
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+            {bookmarks.map((bookmark) => {
+              const task = bookmarkedTasks.get(bookmark.taskId);
+              const batch = batches.get(bookmark.batchId);
+
+              if (!task) {
+                return (
+                  <Card key={bookmark.id}>
+                    <CardContent className="py-4">
+                      <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                    </CardContent>
+                  </Card>
+                );
+              }
+
+              const TaskIcon = getTaskTypeIcon(task.type);
+              const taskColor = getTaskTypeColor(task.type);
+
+              return (
+                <Card
+                  key={bookmark.id}
+                  className="cursor-pointer transition-colors hover:bg-accent"
+                  onClick={() => {
+                    if (batch) {
+                      router.push(`/classroom/batches/${batch.id}`);
+                    }
+                  }}
+                >
+                  <CardHeader>
+                    <div className="flex items-start justify-between">
+                      <div className="flex items-center gap-3 flex-1">
+                        <div
+                          className="p-2 rounded-lg"
+                          style={{ backgroundColor: `${taskColor}20`, color: taskColor }}
+                        >
+                          <TaskIcon className="h-4 w-4" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <CardTitle className="text-base line-clamp-2">{task.title}</CardTitle>
+                          {batch && (
+                            <CardDescription className="mt-1">
+                              {batch.name}
+                            </CardDescription>
+                          )}
+                        </div>
+                      </div>
+                      <Bookmark className="h-4 w-4 fill-yellow-500 text-yellow-500 flex-shrink-0" />
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="flex flex-wrap gap-2">
+                      <Badge variant="outline" className="bg-purple-50 text-purple-700 border-purple-200 text-xs">
+                        {getTaskTypeLabel(task.type)}
+                      </Badge>
+                      {task.dueDate && (
+                        <Badge variant="outline" className="bg-gray-50 text-gray-700 border-gray-200 text-xs">
+                          <Calendar className="h-3 w-3 mr-1" />
+                          {new Date(task.dueDate).toLocaleDateString()}
+                        </Badge>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       {/* Enrolled Batches */}
       <div>

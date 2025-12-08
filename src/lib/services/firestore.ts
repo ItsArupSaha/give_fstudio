@@ -79,6 +79,7 @@ import {
 import {
   userFromFirestore,
 } from "@/lib/models/user";
+import { TaskBookmark, TaskBookmarkFirestore, taskBookmarkFromFirestore, taskBookmarkToFirestore } from "../models/task-bookmark";
 
 // ==================== Course Group Operations ====================
 
@@ -519,6 +520,153 @@ export async function getTaskById(id: string): Promise<Task | null> {
   } catch (error) {
     throw new Error(`Failed to get task: ${error}`);
   }
+}
+
+// ==================== Task Bookmark Operations ====================
+
+export async function createTaskBookmark(
+  bookmark: Omit<TaskBookmark, "id">
+): Promise<string> {
+  try {
+    // Check if bookmark already exists
+    const existingBookmark = await getTaskBookmarkByStudentAndTask(
+      bookmark.studentId,
+      bookmark.taskId
+    );
+    if (existingBookmark) {
+      return existingBookmark.id;
+    }
+
+    const bookmarkRef = doc(collection(db, "taskBookmarks"));
+    const bookmarkData: TaskBookmarkFirestore = taskBookmarkToFirestore({
+      ...bookmark,
+      id: bookmarkRef.id,
+    });
+    await setDoc(bookmarkRef, bookmarkData);
+    return bookmarkRef.id;
+  } catch (error) {
+    throw new Error(`Failed to create task bookmark: ${error}`);
+  }
+}
+
+export async function deleteTaskBookmark(bookmarkId: string): Promise<void> {
+  try {
+    const bookmarkRef = doc(db, "taskBookmarks", bookmarkId);
+    await deleteDoc(bookmarkRef);
+  } catch (error) {
+    throw new Error(`Failed to delete task bookmark: ${error}`);
+  }
+}
+
+export async function deleteTaskBookmarkByStudentAndTask(
+  studentId: string,
+  taskId: string
+): Promise<void> {
+  try {
+    const bookmark = await getTaskBookmarkByStudentAndTask(studentId, taskId);
+    if (bookmark) {
+      await deleteTaskBookmark(bookmark.id);
+    }
+  } catch (error) {
+    throw new Error(`Failed to delete task bookmark: ${error}`);
+  }
+}
+
+export async function getTaskBookmarkByStudentAndTask(
+  studentId: string,
+  taskId: string
+): Promise<TaskBookmark | null> {
+  try {
+    const q = query(
+      collection(db, "taskBookmarks"),
+      where("studentId", "==", studentId),
+      where("taskId", "==", taskId),
+      limit(1)
+    );
+    const snapshot = await getDocs(q);
+    if (snapshot.empty) {
+      return null;
+    }
+    const doc = snapshot.docs[0];
+    return taskBookmarkFromFirestore(
+      doc.id,
+      doc.data() as TaskBookmarkFirestore
+    );
+  } catch (error) {
+    throw new Error(`Failed to get task bookmark: ${error}`);
+  }
+}
+
+export async function getTaskBookmarksByStudent(
+  studentId: string
+): Promise<TaskBookmark[]> {
+  try {
+    const q = query(
+      collection(db, "taskBookmarks"),
+      where("studentId", "==", studentId)
+    );
+    const snapshot = await getDocs(q);
+    return snapshot.docs.map((doc) =>
+      taskBookmarkFromFirestore(doc.id, doc.data() as TaskBookmarkFirestore)
+    );
+  } catch (error) {
+    throw new Error(`Failed to get task bookmarks: ${error}`);
+  }
+}
+
+export function subscribeTaskBookmarksByStudent(
+  studentId: string,
+  callback: (bookmarks: TaskBookmark[]) => void
+): () => void {
+  const q = query(
+    collection(db, "taskBookmarks"),
+    where("studentId", "==", studentId)
+  );
+
+  return onSnapshot(q, (snapshot) => {
+    const bookmarks = snapshot.docs.map((doc) =>
+      taskBookmarkFromFirestore(doc.id, doc.data() as TaskBookmarkFirestore)
+    );
+    callback(bookmarks);
+  });
+}
+
+export async function getTaskBookmarksByBatch(
+  batchId: string,
+  studentId: string
+): Promise<TaskBookmark[]> {
+  try {
+    const q = query(
+      collection(db, "taskBookmarks"),
+      where("studentId", "==", studentId),
+      where("batchId", "==", batchId)
+    );
+    const snapshot = await getDocs(q);
+    return snapshot.docs.map((doc) =>
+      taskBookmarkFromFirestore(doc.id, doc.data() as TaskBookmarkFirestore)
+    );
+  } catch (error) {
+    throw new Error(`Failed to get task bookmarks: ${error}`);
+  }
+}
+
+export function subscribeTaskBookmarksByBatch(
+  batchId: string,
+  studentId: string,
+  callback: (bookmarks: TaskBookmark[]) => void
+): () => void {
+  const q = query(
+    collection(db, "taskBookmarks"),
+    where("studentId", "==", studentId),
+    where("batchId", "==", batchId)
+  );
+
+  return onSnapshot(q, (snapshot) => {
+    const bookmarks = snapshot.docs.map((doc) =>
+      taskBookmarkFromFirestore(doc.id, doc.data() as TaskBookmarkFirestore)
+    );
+    callback(bookmarks);
+  });
 }
 
 // ==================== Submission Operations ====================
