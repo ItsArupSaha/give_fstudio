@@ -107,12 +107,19 @@ export async function uploadFiles(
 /**
  * Delete a file from Firebase Storage
  * @param path - Storage path of the file to delete
+ * @returns true if file was deleted, false if file didn't exist
  */
-export async function deleteFile(path: string): Promise<void> {
+export async function deleteFile(path: string): Promise<boolean> {
   try {
     const storageRef = ref(storage, path);
     await deleteObject(storageRef);
-  } catch (error) {
+    return true;
+  } catch (error: any) {
+    // If file doesn't exist, treat it as already deleted (success)
+    if (error?.code === 'storage/object-not-found') {
+      console.log(`File already deleted or doesn't exist: ${path}`);
+      return false;
+    }
     throw new Error(`Failed to delete file: ${error}`);
   }
 }
@@ -120,8 +127,9 @@ export async function deleteFile(path: string): Promise<void> {
 /**
  * Delete a file from Firebase Storage using its download URL
  * @param url - The download URL of the file to delete
+ * @returns true if file was deleted, false if file didn't exist
  */
-export async function deleteFileByUrl(url: string): Promise<void> {
+export async function deleteFileByUrl(url: string): Promise<boolean> {
   try {
     // Extract the storage path from the Firebase Storage URL
     // Format: https://firebasestorage.googleapis.com/v0/b/{bucket}/o/{encodedPath}?alt=media&token={token}
@@ -142,8 +150,14 @@ export async function deleteFileByUrl(url: string): Promise<void> {
     console.log(`Deleting file from storage path: ${storagePath} (from URL: ${url})`);
     
     // Delete using the path
-    await deleteFile(storagePath);
-  } catch (error) {
+    return await deleteFile(storagePath);
+  } catch (error: any) {
+    // If file doesn't exist, treat it as already deleted (success)
+    if (error?.code === 'storage/object-not-found' || 
+        (error instanceof Error && error.message.includes('object-not-found'))) {
+      console.log(`File already deleted or doesn't exist: ${url}`);
+      return false;
+    }
     console.error("Error in deleteFileByUrl:", error);
     throw new Error(`Failed to delete file from URL: ${error instanceof Error ? error.message : String(error)}`);
   }
@@ -152,10 +166,11 @@ export async function deleteFileByUrl(url: string): Promise<void> {
 /**
  * Delete multiple files from Firebase Storage
  * @param paths - Array of storage paths to delete
+ * @returns Array of booleans indicating success (true) or file didn't exist (false) for each path
  */
-export async function deleteFiles(paths: string[]): Promise<void> {
+export async function deleteFiles(paths: string[]): Promise<boolean[]> {
   try {
-    await Promise.all(paths.map((path) => deleteFile(path)));
+    return await Promise.all(paths.map((path) => deleteFile(path)));
   } catch (error) {
     throw new Error(`Failed to delete files: ${error}`);
   }

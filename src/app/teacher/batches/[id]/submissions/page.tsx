@@ -365,9 +365,14 @@ export default function BatchSubmissionsPage() {
     try {
       console.log("Deleting file:", fileToDelete.fileName, "from URL:", fileToDelete.fileUrl);
 
-      // Delete file from storage
-      await deleteFileByUrl(fileToDelete.fileUrl);
-      console.log("File deleted from storage successfully");
+      // Delete file from storage (returns false if file doesn't exist)
+      const fileExisted = await deleteFileByUrl(fileToDelete.fileUrl);
+
+      if (fileExisted) {
+        console.log("File deleted from storage successfully");
+      } else {
+        console.log("File was already deleted or doesn't exist in storage");
+      }
 
       // Get current submissions to update the submission document
       const submissions = await getSubmissionsByBatch(batchId);
@@ -392,7 +397,9 @@ export default function BatchSubmissionsPage() {
 
       toast({
         title: "Success",
-        description: "File deleted successfully",
+        description: fileExisted
+          ? "File deleted successfully"
+          : "File reference removed (file was already deleted from storage)",
       });
 
       // Reload data
@@ -450,6 +457,8 @@ export default function BatchSubmissionsPage() {
       // Delete all files from storage and update submissions
       const deletePromises: Promise<void>[] = [];
       let totalFiles = 0;
+      let filesDeleted = 0;
+      let filesNotFound = 0;
 
       for (const submission of taskSubmissions) {
         console.log(`Processing submission ${submission.id} with ${submission.fileUrls.length} files`);
@@ -458,10 +467,24 @@ export default function BatchSubmissionsPage() {
         for (const fileUrl of submission.fileUrls) {
           totalFiles++;
           deletePromises.push(
-            deleteFileByUrl(fileUrl).catch((error) => {
-              console.error(`Failed to delete file ${fileUrl}:`, error);
-              throw error;
-            })
+            deleteFileByUrl(fileUrl)
+              .then((existed) => {
+                if (existed) {
+                  filesDeleted++;
+                } else {
+                  filesNotFound++;
+                }
+              })
+              .catch((error) => {
+                // Only throw if it's not a "file not found" error
+                if (error?.code !== 'storage/object-not-found' &&
+                  !(error instanceof Error && error.message.includes('object-not-found'))) {
+                  console.error(`Failed to delete file ${fileUrl}:`, error);
+                  throw error;
+                } else {
+                  filesNotFound++;
+                }
+              })
           );
         }
 
@@ -480,11 +503,15 @@ export default function BatchSubmissionsPage() {
 
       console.log(`Deleting ${totalFiles} files and updating ${taskSubmissions.length} submissions...`);
       await Promise.all(deletePromises);
-      console.log("All files deleted successfully");
+      console.log(`All files processed: ${filesDeleted} deleted, ${filesNotFound} already missing`);
+
+      const description = filesNotFound > 0
+        ? `All file references removed. ${filesDeleted} file(s) deleted, ${filesNotFound} file(s) were already missing from storage.`
+        : `All files for "${taskToDeleteAll.title}" deleted successfully`;
 
       toast({
         title: "Success",
-        description: `All files for "${taskToDeleteAll.title}" deleted successfully`,
+        description,
       });
 
       // Reload data
