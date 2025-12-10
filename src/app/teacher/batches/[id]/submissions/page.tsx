@@ -1,6 +1,12 @@
 "use client";
 
 import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
+import {
   AlertDialog,
   AlertDialogAction,
   AlertDialogCancel,
@@ -23,10 +29,12 @@ import { useTeacher } from "@/hooks/use-teacher";
 import { useToast } from "@/hooks/use-toast";
 import type { Batch } from "@/lib/models/batch";
 import type { Task } from "@/lib/models/task";
+import type { User } from "@/lib/models/user";
 import {
   getBatchById,
   getSubmissionsByBatch,
   getTasksByBatch,
+  getUserById,
   updateSubmission,
 } from "@/lib/services/firestore";
 import { deleteFileByUrl } from "@/lib/services/storage";
@@ -45,13 +53,21 @@ import {
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
+interface StudentFile {
+  submissionId: string;
+  fileUrl: string;
+  fileName: string;
+  studentId: string;
+}
+
+interface StudentSubmission {
+  studentId: string;
+  files: StudentFile[];
+}
+
 interface TaskFiles {
   task: Task;
-  files: Array<{
-    submissionId: string;
-    fileUrl: string;
-    fileName: string;
-  }>;
+  studentSubmissions: StudentSubmission[];
 }
 
 export default function BatchSubmissionsPage() {
@@ -63,6 +79,7 @@ export default function BatchSubmissionsPage() {
 
   const [batch, setBatch] = useState<Batch | null>(null);
   const [tasksWithFiles, setTasksWithFiles] = useState<TaskFiles[]>([]);
+  const [studentsMap, setStudentsMap] = useState<Map<string, User>>(new Map());
   const [loading, setLoading] = useState(true);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deleteAllDialogOpen, setDeleteAllDialogOpen] = useState(false);
@@ -70,6 +87,7 @@ export default function BatchSubmissionsPage() {
     submissionId: string;
     fileUrl: string;
     fileName: string;
+    studentId: string;
   } | null>(null);
   const [taskToDeleteAll, setTaskToDeleteAll] = useState<Task | null>(null);
   const [deleting, setDeleting] = useState(false);
@@ -116,26 +134,45 @@ export default function BatchSubmissionsPage() {
         }
         taskFilesMap.set(task.id, {
           task,
-          files: [],
+          studentSubmissions: [],
         });
       });
 
-      // Add files from submissions
+      // Group files by task and student
+      const uniqueStudentIds = new Set<string>();
       submissions.forEach((submission) => {
         const taskFiles = taskFilesMap.get(submission.taskId);
         if (taskFiles) {
           // Check if fileUrls exists and is an array with content
           if (submission.fileUrls && Array.isArray(submission.fileUrls) && submission.fileUrls.length > 0) {
-            console.log(`Submission ${submission.id} for task ${submission.taskId} has ${submission.fileUrls.length} files:`, submission.fileUrls);
+            // Track student ID for loading student info
+            if (submission.studentId) {
+              uniqueStudentIds.add(submission.studentId);
+            }
+
+            // Find or create student submission entry
+            let studentSubmission = taskFiles.studentSubmissions.find(
+              (s) => s.studentId === submission.studentId
+            );
+
+            if (!studentSubmission) {
+              studentSubmission = {
+                studentId: submission.studentId,
+                files: [],
+              };
+              taskFiles.studentSubmissions.push(studentSubmission);
+            }
+
+            // Add files to student submission
             submission.fileUrls.forEach((fileUrl, index) => {
               if (fileUrl && typeof fileUrl === 'string' && fileUrl.trim() !== '') {
                 try {
                   const fileName = getFileNameFromUrl(fileUrl);
-                  console.log(`Processing file ${index + 1}/${submission.fileUrls.length}: URL=${fileUrl}, extracted name=${fileName}`);
-                  taskFiles.files.push({
+                  studentSubmission.files.push({
                     submissionId: submission.id,
                     fileUrl,
                     fileName,
+                    studentId: submission.studentId,
                   });
                 } catch (error) {
                   console.error(`Error processing file URL ${index + 1} in submission ${submission.id}:`, error, fileUrl);
@@ -144,18 +181,41 @@ export default function BatchSubmissionsPage() {
                 console.warn(`Invalid file URL at index ${index} in submission ${submission.id}:`, fileUrl);
               }
             });
-          } else {
-            console.log(`Submission ${submission.id} for task ${submission.taskId} has no files. fileUrls:`, submission.fileUrls);
           }
-        } else {
-          console.warn(`No task found for submission ${submission.id} with taskId ${submission.taskId}`);
         }
+      });
+
+      // Load student information for all unique student IDs
+      const studentsMap = new Map<string, User>();
+      const studentLoadPromises = Array.from(uniqueStudentIds).map(async (studentId) => {
+        try {
+          const student = await getUserById(studentId);
+          if (student) {
+            studentsMap.set(studentId, student);
+          }
+        } catch (error) {
+          console.error(`Failed to load student ${studentId}:`, error);
+        }
+      });
+      await Promise.all(studentLoadPromises);
+      setStudentsMap(studentsMap);
+
+      // Sort student submissions by student name for each task
+      taskFilesMap.forEach((taskFiles) => {
+        taskFiles.studentSubmissions.sort((a, b) => {
+          const studentA = studentsMap.get(a.studentId);
+          const studentB = studentsMap.get(b.studentId);
+          const nameA = studentA?.name || "Unknown Student";
+          const nameB = studentB?.name || "Unknown Student";
+          return nameA.localeCompare(nameB);
+        });
       });
 
       console.log("Final task files map:", Array.from(taskFilesMap.entries()).map(([taskId, data]) => ({
         taskId,
         taskTitle: data.task.title,
-        fileCount: data.files.length
+        studentCount: data.studentSubmissions.length,
+        totalFiles: data.studentSubmissions.reduce((sum, s) => sum + s.files.length, 0)
       })));
 
       // Separate daily listening tasks from other tasks
@@ -179,15 +239,21 @@ export default function BatchSubmissionsPage() {
         );
         const representativeTask = sortedDailyListening[0].task;
 
-        // Combine all files from all daily listening tasks
-        const allDailyListeningFiles: Array<{
-          submissionId: string;
-          fileUrl: string;
-          fileName: string;
-        }> = [];
+        // Combine all student submissions from all daily listening tasks
+        const studentSubmissionsMap = new Map<string, StudentSubmission>();
 
         dailyListeningTasks.forEach((taskFiles) => {
-          allDailyListeningFiles.push(...taskFiles.files);
+          taskFiles.studentSubmissions.forEach((studentSub) => {
+            const existing = studentSubmissionsMap.get(studentSub.studentId);
+            if (existing) {
+              existing.files.push(...studentSub.files);
+            } else {
+              studentSubmissionsMap.set(studentSub.studentId, {
+                studentId: studentSub.studentId,
+                files: [...studentSub.files],
+              });
+            }
+          });
         });
 
         combinedDailyListening.push({
@@ -197,7 +263,13 @@ export default function BatchSubmissionsPage() {
             title: "Daily Listening",
             description: `${dailyListeningTasks.length} daily listening task${dailyListeningTasks.length !== 1 ? "s" : ""} combined`,
           },
-          files: allDailyListeningFiles,
+          studentSubmissions: Array.from(studentSubmissionsMap.values()).sort((a, b) => {
+            const studentA = studentsMap.get(a.studentId);
+            const studentB = studentsMap.get(b.studentId);
+            const nameA = studentA?.name || "Unknown Student";
+            const nameB = studentB?.name || "Unknown Student";
+            return nameA.localeCompare(nameB);
+          }),
         });
       }
 
@@ -271,9 +343,10 @@ export default function BatchSubmissionsPage() {
   const handleDeleteClick = (
     submissionId: string,
     fileUrl: string,
-    fileName: string
+    fileName: string,
+    studentId: string
   ) => {
-    setFileToDelete({ submissionId, fileUrl, fileName });
+    setFileToDelete({ submissionId, fileUrl, fileName, studentId });
     setDeleteDialogOpen(true);
   };
 
@@ -495,10 +568,11 @@ export default function BatchSubmissionsPage() {
         </Card>
       ) : (
         <div className="space-y-6">
-          {tasksWithFiles.map(({ task, files }) => {
+          {tasksWithFiles.map(({ task, studentSubmissions }) => {
             const TaskIcon = getTaskTypeIcon(task.type);
             const taskColor = getTaskTypeColor(task.type);
             const isDailyListening = task.type === "dailyListening";
+            const totalFiles = studentSubmissions.reduce((sum, s) => sum + s.files.length, 0);
 
             return (
               <Card key={task.id}>
@@ -517,14 +591,15 @@ export default function BatchSubmissionsPage() {
                       <div className="flex-1">
                         <CardTitle className="text-2xl">{task.title}</CardTitle>
                         <CardDescription className="mt-1">
-                          {getTaskTypeLabel(task.type)} • {files.length} file
-                          {files.length !== 1 ? "s" : ""}
+                          {getTaskTypeLabel(task.type)} • {studentSubmissions.length} student
+                          {studentSubmissions.length !== 1 ? "s" : ""} • {totalFiles} file
+                          {totalFiles !== 1 ? "s" : ""}
                         </CardDescription>
                       </div>
                     </div>
                     <div className="flex items-center gap-2">
                       <Badge variant="outline">{task.status}</Badge>
-                      {isDailyListening && files.length > 0 && (
+                      {isDailyListening && totalFiles > 0 && (
                         <Button
                           variant="destructive"
                           size="sm"
@@ -538,54 +613,91 @@ export default function BatchSubmissionsPage() {
                   </div>
                 </CardHeader>
                 <CardContent>
-                  {files.length === 0 ? (
+                  {studentSubmissions.length === 0 ? (
                     <div className="py-8 text-center text-muted-foreground">
-                      <p>There are no files for this task in our storage.</p>
+                      <p>No student submissions for this task.</p>
                     </div>
                   ) : (
-                    <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-                      {files.map((file, index) => (
-                        <div
-                          key={index}
-                          className="flex items-center justify-between p-3 bg-muted rounded-lg border"
-                        >
-                          <div className="flex items-center gap-2 flex-1 min-w-0">
-                            <FileText className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-                            <span className="text-sm truncate" title={file.fileName}>
-                              {file.fileName}
-                            </span>
-                          </div>
-                          <div className="flex items-center gap-1 flex-shrink-0">
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-8 w-8"
-                              onClick={() =>
-                                handleDownload(file.fileUrl, file.fileName)
-                              }
-                              title="Download file"
-                            >
-                              <Download className="h-4 w-4" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-8 w-8 text-destructive hover:text-destructive"
-                              onClick={() =>
-                                handleDeleteClick(
-                                  file.submissionId,
-                                  file.fileUrl,
-                                  file.fileName
-                                )
-                              }
-                              title="Delete file"
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
+                    <Accordion type="multiple" className="w-full">
+                      {studentSubmissions.map((studentSub) => {
+                        const student = studentsMap.get(studentSub.studentId);
+                        const studentName = student?.name || "Unknown Student";
+                        const studentEmail = student?.email || "";
+                        const fileCount = studentSub.files.length;
+
+                        return (
+                          <AccordionItem
+                            key={studentSub.studentId}
+                            value={studentSub.studentId}
+                            className="border-b"
+                          >
+                            <AccordionTrigger className="hover:no-underline">
+                              <div className="flex items-center justify-between w-full pr-4">
+                                <div className="flex flex-col items-start">
+                                  <span className="font-medium text-base">
+                                    {studentName}
+                                  </span>
+                                  {studentEmail && (
+                                    <span className="text-sm text-muted-foreground">
+                                      {studentEmail}
+                                    </span>
+                                  )}
+                                </div>
+                                <Badge variant="secondary" className="ml-auto">
+                                  {fileCount} file{fileCount !== 1 ? "s" : ""}
+                                </Badge>
+                              </div>
+                            </AccordionTrigger>
+                            <AccordionContent>
+                              <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3 pt-2">
+                                {studentSub.files.map((file: StudentFile, index: number) => (
+                                  <div
+                                    key={index}
+                                    className="flex items-center justify-between p-3 bg-muted rounded-lg border"
+                                  >
+                                    <div className="flex items-center gap-2 flex-1 min-w-0">
+                                      <FileText className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                                      <span className="text-sm truncate" title={file.fileName}>
+                                        {file.fileName}
+                                      </span>
+                                    </div>
+                                    <div className="flex items-center gap-1 flex-shrink-0">
+                                      <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        className="h-8 w-8"
+                                        onClick={() =>
+                                          handleDownload(file.fileUrl, file.fileName)
+                                        }
+                                        title="Download file"
+                                      >
+                                        <Download className="h-4 w-4" />
+                                      </Button>
+                                      <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        className="h-8 w-8 text-destructive hover:text-destructive"
+                                        onClick={() =>
+                                          handleDeleteClick(
+                                            file.submissionId,
+                                            file.fileUrl,
+                                            file.fileName,
+                                            file.studentId
+                                          )
+                                        }
+                                        title="Delete file"
+                                      >
+                                        <Trash2 className="h-4 w-4" />
+                                      </Button>
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            </AccordionContent>
+                          </AccordionItem>
+                        );
+                      })}
+                    </Accordion>
                   )}
                 </CardContent>
               </Card>
