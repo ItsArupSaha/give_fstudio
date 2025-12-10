@@ -250,21 +250,27 @@ export default function BatchDetailsPage() {
       </div>
 
       <Tabs defaultValue="students" className="space-y-4">
-        <TabsList className="flex-wrap w-full sm:w-auto">
-          <TabsTrigger value="students" className="flex-1 sm:flex-initial min-w-0">
-            <Users className="h-4 w-4 mr-1 sm:mr-2 flex-shrink-0" />
-            <span className="truncate">Students</span>
-            <span className="ml-1 flex-shrink-0">({activeEnrollments.length})</span>
+        <TabsList className="flex-wrap w-full sm:w-auto h-auto sm:h-10">
+          <TabsTrigger value="students" className="flex-1 sm:flex-initial min-w-0 flex-col sm:flex-row items-center justify-center gap-0.5 sm:gap-1 px-2 sm:px-3 py-2 sm:py-1.5 h-auto sm:h-auto">
+            <div className="flex items-center gap-1 sm:gap-2">
+              <Users className="h-4 w-4 flex-shrink-0" />
+              <span className="whitespace-nowrap text-xs sm:text-sm">Students</span>
+            </div>
+            <span className="text-xs leading-tight">({activeEnrollments.length})</span>
           </TabsTrigger>
-          <TabsTrigger value="pending" className="flex-1 sm:flex-initial min-w-0">
-            <ClipboardList className="h-4 w-4 mr-1 sm:mr-2 flex-shrink-0" />
-            <span className="truncate">Pending</span>
-            <span className="ml-1 flex-shrink-0">({pendingEnrollments.length})</span>
+          <TabsTrigger value="pending" className="flex-1 sm:flex-initial min-w-0 flex-col sm:flex-row items-center justify-center gap-0.5 sm:gap-1 px-2 sm:px-3 py-2 sm:py-1.5 h-auto sm:h-auto">
+            <div className="flex items-center gap-1 sm:gap-2">
+              <ClipboardList className="h-4 w-4 flex-shrink-0" />
+              <span className="whitespace-nowrap text-xs sm:text-sm">Pending</span>
+            </div>
+            <span className="text-xs leading-tight">({pendingEnrollments.length})</span>
           </TabsTrigger>
-          <TabsTrigger value="tasks" className="flex-1 sm:flex-initial min-w-0">
-            <ClipboardList className="h-4 w-4 mr-1 sm:mr-2 flex-shrink-0" />
-            <span className="truncate">Tasks</span>
-            <span className="ml-1 flex-shrink-0">({tasks.length})</span>
+          <TabsTrigger value="tasks" className="flex-1 sm:flex-initial min-w-0 flex-col sm:flex-row items-center justify-center gap-0.5 sm:gap-1 px-2 sm:px-3 py-2 sm:py-1.5 h-auto sm:h-auto">
+            <div className="flex items-center gap-1 sm:gap-2">
+              <ClipboardList className="h-4 w-4 flex-shrink-0" />
+              <span className="whitespace-nowrap text-xs sm:text-sm">Tasks</span>
+            </div>
+            <span className="text-xs leading-tight">({tasks.length})</span>
           </TabsTrigger>
         </TabsList>
 

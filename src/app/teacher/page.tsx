@@ -168,7 +168,7 @@ export default function TeacherDashboardPage() {
         <TabsList className="flex flex-wrap w-full sm:w-auto gap-2">
           <TabsTrigger value="course-groups" className="flex-1 sm:flex-initial min-w-0">
             <Folder className="h-4 w-4 mr-1 sm:mr-2 flex-shrink-0" />
-            <span className="truncate">Course Groups</span>
+            <span className="truncate">Groups</span>
           </TabsTrigger>
           <TabsTrigger value="batches" className="flex-1 sm:flex-initial min-w-0">
             <Users className="h-4 w-4 mr-1 sm:mr-2 flex-shrink-0" />
