@@ -25,6 +25,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox";
 import { useTeacher } from "@/hooks/use-teacher";
 import { useToast } from "@/hooks/use-toast";
 import type { Batch } from "@/lib/models/batch";
@@ -94,6 +95,9 @@ export default function BatchSubmissionsPage() {
   const [taskToDeleteAll, setTaskToDeleteAll] = useState<Task | null>(null);
   const [deleting, setDeleting] = useState(false);
   const [deletingAll, setDeletingAll] = useState(false);
+  const [selectedFiles, setSelectedFiles] = useState<Set<string>>(new Set());
+  const [deleteSelectedDialogOpen, setDeleteSelectedDialogOpen] = useState(false);
+  const [deletingSelected, setDeletingSelected] = useState(false);
 
   useEffect(() => {
     // Redirect if not a teacher
@@ -290,6 +294,8 @@ export default function BatchSubmissionsPage() {
       const finalTasksWithFiles = [...otherTasks, ...combinedDailyListening];
 
       setTasksWithFiles(finalTasksWithFiles);
+      // Clear selection when data is reloaded
+      setSelectedFiles(new Set());
     } catch (error) {
       console.error("Error loading submissions:", error);
       toast({
@@ -533,6 +539,169 @@ export default function BatchSubmissionsPage() {
     }
   };
 
+  // Multi-select delete handlers
+  const handleFileSelect = (fileUrl: string, checked: boolean) => {
+    setSelectedFiles((prev) => {
+      const newSet = new Set(prev);
+      if (checked) {
+        newSet.add(fileUrl);
+      } else {
+        newSet.delete(fileUrl);
+      }
+      return newSet;
+    });
+  };
+
+  const handleSelectAll = (taskFiles: TaskFiles, checked: boolean) => {
+    setSelectedFiles((prev) => {
+      const newSet = new Set(prev);
+      if (checked) {
+        // Add all file URLs from this task
+        taskFiles.studentSubmissions.forEach((studentSub) => {
+          studentSub.files.forEach((file) => {
+            newSet.add(file.fileUrl);
+          });
+        });
+      } else {
+        // Remove all file URLs from this task
+        taskFiles.studentSubmissions.forEach((studentSub) => {
+          studentSub.files.forEach((file) => {
+            newSet.delete(file.fileUrl);
+          });
+        });
+      }
+      return newSet;
+    });
+  };
+
+  const getSelectedFilesForTask = (taskFiles: TaskFiles): StudentFile[] => {
+    const selected: StudentFile[] = [];
+    taskFiles.studentSubmissions.forEach((studentSub) => {
+      studentSub.files.forEach((file) => {
+        if (selectedFiles.has(file.fileUrl)) {
+          selected.push(file);
+        }
+      });
+    });
+    return selected;
+  };
+
+  const handleDeleteSelectedClick = () => {
+    setDeleteSelectedDialogOpen(true);
+  };
+
+  const handleDeleteSelectedConfirm = async () => {
+    if (selectedFiles.size === 0) return;
+
+    setDeletingSelected(true);
+    try {
+      // Get all submissions to update
+      const submissions = await getSubmissionsByBatch(batchId);
+
+      // Group selected files by submission ID
+      const filesBySubmission = new Map<string, { fileUrl: string; fileName: string }[]>();
+
+      // Find all selected files across all tasks
+      tasksWithFiles.forEach(({ task, studentSubmissions }) => {
+        // Only process non-daily-listening tasks
+        if (task.type !== "dailyListening") {
+          studentSubmissions.forEach((studentSub) => {
+            studentSub.files.forEach((file) => {
+              if (selectedFiles.has(file.fileUrl)) {
+                const existing = filesBySubmission.get(file.submissionId) || [];
+                existing.push({ fileUrl: file.fileUrl, fileName: file.fileName });
+                filesBySubmission.set(file.submissionId, existing);
+              }
+            });
+          });
+        }
+      });
+
+      console.log(`Deleting ${selectedFiles.size} selected files from ${filesBySubmission.size} submissions`);
+
+      // Delete files from storage and update submissions
+      const deletePromises: Promise<void>[] = [];
+      let filesDeleted = 0;
+      let filesNotFound = 0;
+
+      for (const [submissionId, files] of filesBySubmission.entries()) {
+        const submission = submissions.find((s) => s.id === submissionId);
+        if (!submission) {
+          console.warn(`Submission ${submissionId} not found`);
+          continue;
+        }
+
+        // Delete each file from storage
+        for (const file of files) {
+          deletePromises.push(
+            deleteFileByUrl(file.fileUrl)
+              .then((existed) => {
+                if (existed) {
+                  filesDeleted++;
+                } else {
+                  filesNotFound++;
+                }
+              })
+              .catch((error) => {
+                if (error?.code !== 'storage/object-not-found' &&
+                  !(error instanceof Error && error.message.includes('object-not-found'))) {
+                  console.error(`Failed to delete file ${file.fileUrl}:`, error);
+                  throw error;
+                } else {
+                  filesNotFound++;
+                }
+              })
+          );
+        }
+
+        // Update submission to remove deleted file URLs
+        const updatedFileUrls = submission.fileUrls.filter(
+          (url) => !files.some((f) => f.fileUrl === url)
+        );
+
+        if (updatedFileUrls.length !== submission.fileUrls.length) {
+          deletePromises.push(
+            updateSubmission(submissionId, {
+              fileUrls: updatedFileUrls,
+            }).catch((error) => {
+              console.error(`Failed to update submission ${submissionId}:`, error);
+              throw error;
+            })
+          );
+        }
+      }
+
+      await Promise.all(deletePromises);
+      console.log(`Selected files processed: ${filesDeleted} deleted, ${filesNotFound} already missing`);
+
+      const description = filesNotFound > 0
+        ? `${filesDeleted} file(s) deleted, ${filesNotFound} file(s) were already missing from storage.`
+        : `${selectedFiles.size} file(s) deleted successfully`;
+
+      toast({
+        title: "Success",
+        description,
+      });
+
+      // Clear selection and reload data
+      setSelectedFiles(new Set());
+      await loadData();
+    } catch (error) {
+      console.error("Error deleting selected files:", error);
+      toast({
+        title: "Error",
+        description:
+          error instanceof Error
+            ? error.message
+            : "Failed to delete selected files",
+        variant: "destructive",
+      });
+    } finally {
+      setDeletingSelected(false);
+      setDeleteSelectedDialogOpen(false);
+    }
+  };
+
   if (teacherInitializing || loading) {
     return (
       <div className="container mx-auto px-4 py-8 max-w-7xl">
@@ -644,6 +813,36 @@ export default function BatchSubmissionsPage() {
                           Delete All
                         </Button>
                       )}
+                      {!isDailyListening && totalFiles > 0 && (
+                        <>
+                          {(() => {
+                            const selectedForTask = getSelectedFilesForTask({ task, studentSubmissions });
+                            const allSelected = selectedForTask.length > 0 && selectedForTask.length === totalFiles;
+                            const someSelected = selectedForTask.length > 0 && selectedForTask.length < totalFiles;
+                            return (
+                              <>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => handleSelectAll({ task, studentSubmissions }, !allSelected)}
+                                >
+                                  {allSelected ? "Deselect All" : "Select All"}
+                                </Button>
+                                {selectedForTask.length > 0 && (
+                                  <Button
+                                    variant="destructive"
+                                    size="sm"
+                                    onClick={handleDeleteSelectedClick}
+                                  >
+                                    <Trash2 className="h-4 w-4 mr-2" />
+                                    Delete Selected ({selectedForTask.length})
+                                  </Button>
+                                )}
+                              </>
+                            );
+                          })()}
+                        </>
+                      )}
                     </div>
                   </div>
                 </CardHeader>
@@ -685,55 +884,69 @@ export default function BatchSubmissionsPage() {
                             </AccordionTrigger>
                             <AccordionContent>
                               <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3 pt-2">
-                                {studentSub.files.map((file: StudentFile, index: number) => (
-                                  <div
-                                    key={index}
-                                    className="flex flex-col p-3 bg-muted rounded-lg border gap-2"
-                                  >
-                                    <div className="flex items-center gap-2 flex-1 min-w-0">
-                                      <FileText className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-                                      <span className="text-sm truncate" title={file.fileName}>
-                                        {file.fileName}
-                                      </span>
-                                    </div>
-                                    {file.taskTitle && (
-                                      <div className="flex items-center gap-1">
-                                        <Badge variant="outline" className="text-xs">
-                                          {file.taskTitle}
-                                        </Badge>
+                                {studentSub.files.map((file: StudentFile, index: number) => {
+                                  const isDailyListening = task.type === "dailyListening";
+                                  const isSelected = selectedFiles.has(file.fileUrl);
+
+                                  return (
+                                    <div
+                                      key={index}
+                                      className={`flex flex-col p-3 bg-muted rounded-lg border gap-2 ${isSelected && !isDailyListening ? 'ring-2 ring-primary' : ''}`}
+                                    >
+                                      <div className="flex items-center gap-2 flex-1 min-w-0">
+                                        {!isDailyListening && (
+                                          <Checkbox
+                                            checked={isSelected}
+                                            onCheckedChange={(checked) =>
+                                              handleFileSelect(file.fileUrl, checked === true)
+                                            }
+                                            className="flex-shrink-0"
+                                          />
+                                        )}
+                                        <FileText className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                                        <span className="text-sm truncate" title={file.fileName}>
+                                          {file.fileName}
+                                        </span>
                                       </div>
-                                    )}
-                                    <div className="flex items-center gap-1 flex-shrink-0 self-end">
-                                      <Button
-                                        variant="ghost"
-                                        size="icon"
-                                        className="h-8 w-8"
-                                        onClick={() =>
-                                          handleDownload(file.fileUrl, file.fileName)
-                                        }
-                                        title="Download file"
-                                      >
-                                        <Download className="h-4 w-4" />
-                                      </Button>
-                                      <Button
-                                        variant="ghost"
-                                        size="icon"
-                                        className="h-8 w-8 text-destructive hover:text-destructive"
-                                        onClick={() =>
-                                          handleDeleteClick(
-                                            file.submissionId,
-                                            file.fileUrl,
-                                            file.fileName,
-                                            file.studentId
-                                          )
-                                        }
-                                        title="Delete file"
-                                      >
-                                        <Trash2 className="h-4 w-4" />
-                                      </Button>
+                                      {file.taskTitle && (
+                                        <div className="flex items-center gap-1">
+                                          <Badge variant="outline" className="text-xs">
+                                            {file.taskTitle}
+                                          </Badge>
+                                        </div>
+                                      )}
+                                      <div className="flex items-center gap-1 flex-shrink-0 self-end">
+                                        <Button
+                                          variant="ghost"
+                                          size="icon"
+                                          className="h-8 w-8"
+                                          onClick={() =>
+                                            handleDownload(file.fileUrl, file.fileName)
+                                          }
+                                          title="Download file"
+                                        >
+                                          <Download className="h-4 w-4" />
+                                        </Button>
+                                        <Button
+                                          variant="ghost"
+                                          size="icon"
+                                          className="h-8 w-8 text-destructive hover:text-destructive"
+                                          onClick={() =>
+                                            handleDeleteClick(
+                                              file.submissionId,
+                                              file.fileUrl,
+                                              file.fileName,
+                                              file.studentId
+                                            )
+                                          }
+                                          title="Delete file"
+                                        >
+                                          <Trash2 className="h-4 w-4" />
+                                        </Button>
+                                      </div>
                                     </div>
-                                  </div>
-                                ))}
+                                  );
+                                })}
                               </div>
                             </AccordionContent>
                           </AccordionItem>
@@ -807,6 +1020,40 @@ export default function BatchSubmissionsPage() {
                 </>
               ) : (
                 "Delete All"
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Delete Selected Files Dialog */}
+      <AlertDialog
+        open={deleteSelectedDialogOpen}
+        onOpenChange={setDeleteSelectedDialogOpen}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Selected Files</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete {selectedFiles.size} selected file{selectedFiles.size !== 1 ? "s" : ""}?
+              This action cannot be undone and the files will be permanently removed
+              from storage.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deletingSelected}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeleteSelectedConfirm}
+              disabled={deletingSelected}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {deletingSelected ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Deleting...
+                </>
+              ) : (
+                "Delete Selected"
               )}
             </AlertDialogAction>
           </AlertDialogFooter>
