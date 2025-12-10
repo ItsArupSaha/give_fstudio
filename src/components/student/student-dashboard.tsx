@@ -29,6 +29,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { LinkifiedText } from "@/components/ui/linkified-text";
 import { useAuthUser } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
 import type { Batch } from "@/lib/models/batch";
@@ -521,8 +522,8 @@ export function StudentDashboard() {
                   </CardHeader>
                   <CardContent>
                     {batch.description && (
-                      <p className="text-sm text-muted-foreground mb-4 line-clamp-2">
-                        {batch.description}
+                      <p className="text-sm text-black mb-4 whitespace-pre-wrap leading-relaxed">
+                        <LinkifiedText text={batch.description} className="whitespace-pre-wrap" />
                       </p>
                     )}
                     <div className="flex items-center gap-4 text-xs text-muted-foreground">
