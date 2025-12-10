@@ -10,7 +10,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { LinkifiedText } from "@/components/ui/linkified-text";
+import { ExpandableDescription } from "@/components/ui/expandable-description";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import type { Batch } from "@/lib/models/batch";
@@ -222,7 +222,9 @@ export default function BatchDetailsPage() {
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-4xl font-bold mb-2">{batch.name}</h1>
-            <p className="text-muted-foreground">{batch.description}</p>
+            {batch.description && (
+              <ExpandableDescription text={batch.description} maxLines={3} className="text-muted-foreground" />
+            )}
           </div>
           <div className="flex items-center gap-2">
             <div className="flex items-center gap-2 p-2 bg-muted rounded-lg">

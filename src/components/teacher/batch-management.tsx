@@ -17,9 +17,9 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import { ExpandableDescription } from "@/components/ui/expandable-description";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { LinkifiedText } from "@/components/ui/linkified-text";
 import {
   Select,
   SelectContent,
@@ -381,9 +381,11 @@ export function BatchManagement() {
                       <div className="flex items-start justify-between">
                         <div>
                           <CardTitle className="text-lg">{batch.name}</CardTitle>
-                          <CardDescription className="mt-1 text-black whitespace-pre-wrap leading-relaxed">
-                            <LinkifiedText text={batch.description} className="whitespace-pre-wrap" />
-                          </CardDescription>
+                          {batch.description && (
+                            <CardDescription className="mt-1">
+                              <ExpandableDescription text={batch.description} maxLines={2} />
+                            </CardDescription>
+                          )}
                         </div>
                         <div className="flex gap-1">
                           <Button

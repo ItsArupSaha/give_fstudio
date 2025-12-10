@@ -9,6 +9,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { ExpandableDescription } from "@/components/ui/expandable-description";
 import { LinkifiedText } from "@/components/ui/linkified-text";
 import { useAuthUser } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
@@ -289,7 +290,6 @@ export default function BatchTasksPage() {
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-4xl font-bold mb-2">{batch.name} - Tasks</h1>
-            <p className="text-muted-foreground">Class Code: {batch.classCode}</p>
           </div>
           <Button variant="outline" onClick={refreshData}>
             <RefreshCw className="h-4 w-4 mr-2" />
@@ -307,12 +307,11 @@ export default function BatchTasksPage() {
             </div>
             <div className="flex-1">
               <h3 className="text-xl font-semibold mb-2">{batch.name}</h3>
-              <p className="text-sm text-muted-foreground mb-2">
-                {batch.description}
-              </p>
-              <div className="flex items-center gap-4 text-xs text-muted-foreground">
-                <span>Class Code: <strong>{batch.classCode}</strong></span>
-              </div>
+              {batch.description && (
+                <div className="mb-2">
+                  <ExpandableDescription text={batch.description} maxLines={3} className="text-sm text-muted-foreground" />
+                </div>
+              )}
             </div>
           </div>
         </CardContent>
