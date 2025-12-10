@@ -32,7 +32,7 @@ export default function ClassroomPage() {
   return (
     <div className="container mx-auto px-4 py-8 max-w-7xl">
       <div className="mb-8">
-        <h1 className="text-4xl font-bold mb-2">Classroom</h1>
+        <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-2">Classroom</h1>
         <p className="text-muted-foreground">
           Manage your courses and batches here
         </p>

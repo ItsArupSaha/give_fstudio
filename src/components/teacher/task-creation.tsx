@@ -156,7 +156,7 @@ export function TaskCreation({ batch, onTaskCreated }: TaskCreationProps) {
           Create Task
         </Button>
       </DialogTrigger>
-      <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto w-[95vw] sm:w-full">
         <form onSubmit={handleSubmit}>
           <DialogHeader>
             <DialogTitle>Create Task</DialogTitle>
@@ -168,7 +168,7 @@ export function TaskCreation({ batch, onTaskCreated }: TaskCreationProps) {
             {/* Task Type Selection */}
             <div className="grid gap-2">
               <Label>Task Type *</Label>
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                 {taskTypes.map((type) => {
                   const Icon = type.icon;
                   const isSelected = formData.type === type.value;
@@ -221,7 +221,7 @@ export function TaskCreation({ batch, onTaskCreated }: TaskCreationProps) {
             {/* Due Date and Points (not for announcements) */}
             {formData.type !== "announcement" && (
               <>
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="grid gap-2">
                     <Label htmlFor="due-date">Due Date</Label>
                     <Input

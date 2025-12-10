@@ -378,16 +378,16 @@ export default function DailyListeningAnalyticsPage() {
           Back to Batch Details
         </Button>
         <div className="flex flex-col gap-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-4xl font-bold mb-2">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div className="flex-1 min-w-0">
+              <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-2 break-words">
                 Daily Listening Analytics - {batch.name}
               </h1>
               <p className="text-muted-foreground">
                 View submission statistics for daily listening tasks
               </p>
             </div>
-            <Button onClick={exportToExcel} disabled={analytics.length === 0}>
+            <Button onClick={exportToExcel} disabled={analytics.length === 0} className="w-full sm:w-auto">
               <Download className="h-4 w-4 mr-2" />
               Export to Excel
             </Button>
@@ -591,68 +591,70 @@ export default function DailyListeningAnalyticsPage() {
                   <p>No active students found in this batch</p>
                 </div>
               ) : (
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Student Name</TableHead>
-                      <TableHead>Email</TableHead>
-                      <TableHead className="text-center">
-                        Total Tasks
-                      </TableHead>
-                      <TableHead className="text-center">
-                        Submitted
-                      </TableHead>
-                      <TableHead className="text-center">
-                        Percentage
-                      </TableHead>
-                      <TableHead className="text-center">Status</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {analytics.map((item) => (
-                      <TableRow key={item.student.id}>
-                        <TableCell className="font-medium">
-                          {item.student.name || "Unknown Student"}
-                        </TableCell>
-                        <TableCell>{item.student.email || "No email"}</TableCell>
-                        <TableCell className="text-center">
-                          {item.totalDailyListeningTasks}
-                        </TableCell>
-                        <TableCell className="text-center">
-                          {item.submittedCount}
-                        </TableCell>
-                        <TableCell className="text-center">
-                          <Badge
-                            variant={
-                              item.percentage === 100
-                                ? "default"
-                                : item.percentage >= 80
-                                  ? "secondary"
-                                  : item.percentage >= 50
-                                    ? "outline"
-                                    : "destructive"
-                            }
-                          >
-                            {item.percentage}%
-                          </Badge>
-                        </TableCell>
-                        <TableCell className="text-center">
-                          {item.percentage === 100 ? (
-                            <Badge variant="default">Complete</Badge>
-                          ) : item.percentage >= 80 ? (
-                            <Badge variant="secondary">Good</Badge>
-                          ) : item.percentage >= 50 ? (
-                            <Badge variant="outline">Average</Badge>
-                          ) : (
-                            <Badge variant="destructive">
-                              Needs Improvement
-                            </Badge>
-                          )}
-                        </TableCell>
+                <div className="overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Student Name</TableHead>
+                        <TableHead>Email</TableHead>
+                        <TableHead className="text-center">
+                          Total Tasks
+                        </TableHead>
+                        <TableHead className="text-center">
+                          Submitted
+                        </TableHead>
+                        <TableHead className="text-center">
+                          Percentage
+                        </TableHead>
+                        <TableHead className="text-center">Status</TableHead>
                       </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
+                    </TableHeader>
+                    <TableBody>
+                      {analytics.map((item) => (
+                        <TableRow key={item.student.id}>
+                          <TableCell className="font-medium">
+                            {item.student.name || "Unknown Student"}
+                          </TableCell>
+                          <TableCell>{item.student.email || "No email"}</TableCell>
+                          <TableCell className="text-center">
+                            {item.totalDailyListeningTasks}
+                          </TableCell>
+                          <TableCell className="text-center">
+                            {item.submittedCount}
+                          </TableCell>
+                          <TableCell className="text-center">
+                            <Badge
+                              variant={
+                                item.percentage === 100
+                                  ? "default"
+                                  : item.percentage >= 80
+                                    ? "secondary"
+                                    : item.percentage >= 50
+                                      ? "outline"
+                                      : "destructive"
+                              }
+                            >
+                              {item.percentage}%
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="text-center">
+                            {item.percentage === 100 ? (
+                              <Badge variant="default">Complete</Badge>
+                            ) : item.percentage >= 80 ? (
+                              <Badge variant="secondary">Good</Badge>
+                            ) : item.percentage >= 50 ? (
+                              <Badge variant="outline">Average</Badge>
+                            ) : (
+                              <Badge variant="destructive">
+                                Needs Improvement
+                              </Badge>
+                            )}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
               )}
             </CardContent>
           </Card>

@@ -178,7 +178,7 @@ export function CourseGroupsManagement() {
   return (
     <Card>
       <CardHeader>
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
             <CardTitle className="flex items-center gap-2">
               <Folder className="h-5 w-5" />
@@ -196,12 +196,12 @@ export function CourseGroupsManagement() {
             }}
           >
             <DialogTrigger asChild>
-              <Button>
+              <Button className="w-full sm:w-auto">
                 <Plus className="h-4 w-4 mr-2" />
                 Create Course Group
               </Button>
             </DialogTrigger>
-            <DialogContent>
+            <DialogContent className="w-[95vw] sm:w-full">
               <form onSubmit={handleSubmit}>
                 <DialogHeader>
                   <DialogTitle>

@@ -233,7 +233,7 @@ export function BatchManagement() {
   return (
     <Card>
       <CardHeader>
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
             <CardTitle className="flex items-center gap-2">
               <Users className="h-5 w-5" />
@@ -251,12 +251,12 @@ export function BatchManagement() {
             }}
           >
             <DialogTrigger asChild>
-              <Button disabled={!selectedCourseGroupId || courseGroups.length === 0}>
+              <Button disabled={!selectedCourseGroupId || courseGroups.length === 0} className="w-full sm:w-auto">
                 <Plus className="h-4 w-4 mr-2" />
                 Create Batch
               </Button>
             </DialogTrigger>
-            <DialogContent className="max-w-2xl">
+            <DialogContent className="max-w-2xl w-[95vw] sm:w-full">
               <form onSubmit={handleSubmit}>
                 <DialogHeader>
                   <DialogTitle>
@@ -378,8 +378,8 @@ export function BatchManagement() {
                 {batches.map((batch) => (
                   <Card key={batch.id}>
                     <CardHeader>
-                      <div className="flex items-start justify-between">
-                        <div>
+                      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
+                        <div className="min-w-0 flex-1">
                           <CardTitle className="text-lg">{batch.name}</CardTitle>
                           {batch.description && (
                             <CardDescription className="mt-1">
@@ -387,7 +387,7 @@ export function BatchManagement() {
                             </CardDescription>
                           )}
                         </div>
-                        <div className="flex gap-1">
+                        <div className="flex gap-1 self-start sm:self-auto">
                           <Button
                             variant="ghost"
                             size="icon"
@@ -408,14 +408,14 @@ export function BatchManagement() {
                     </CardHeader>
                     <CardContent>
                       <div className="space-y-3">
-                        <div className="flex items-center justify-between p-2 bg-muted rounded">
+                        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 p-2 bg-muted rounded">
                           <span className="text-sm font-medium">Class Code:</span>
                           <div className="flex items-center gap-2">
-                            <code className="text-sm font-mono">{batch.classCode}</code>
+                            <code className="text-sm font-mono break-all">{batch.classCode}</code>
                             <Button
                               variant="ghost"
                               size="icon"
-                              className="h-6 w-6"
+                              className="h-6 w-6 flex-shrink-0"
                               onClick={() => handleCopyCode(batch.classCode)}
                             >
                               {copiedCode === batch.classCode ? (
@@ -426,7 +426,7 @@ export function BatchManagement() {
                             </Button>
                           </div>
                         </div>
-                        <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                        <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 text-sm text-muted-foreground">
                           <span>{batch.studentCount} students</span>
                           {batch.startDate && (
                             <span>

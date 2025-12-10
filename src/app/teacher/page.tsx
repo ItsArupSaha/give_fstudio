@@ -1,5 +1,6 @@
 "use client";
 
+import { AllStudentsView } from "@/components/teacher/all-students-view";
 import { BatchManagement } from "@/components/teacher/batch-management";
 import { CourseGroupsManagement } from "@/components/teacher/course-groups";
 import { TeacherManagement } from "@/components/teacher/teacher-management";
@@ -24,6 +25,7 @@ export default function TeacherDashboardPage() {
     pendingEnrollments: 0,
   });
   const [loadingStats, setLoadingStats] = useState(true);
+  const [showAllStudents, setShowAllStudents] = useState(false);
 
   useEffect(() => {
     // Redirect if not a teacher (after auth state is determined)
@@ -100,7 +102,7 @@ export default function TeacherDashboardPage() {
   return (
     <div className="container mx-auto px-4 py-8 max-w-7xl">
       <div className="mb-8">
-        <h1 className="text-4xl font-bold mb-2">Teacher Dashboard</h1>
+        <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-2">Teacher Dashboard</h1>
         <p className="text-muted-foreground">
           Manage courses, batches, and students from here
         </p>
@@ -132,7 +134,10 @@ export default function TeacherDashboardPage() {
             <p className="text-xs text-muted-foreground">Active batches</p>
           </CardContent>
         </Card>
-        <Card>
+        <Card
+          className="cursor-pointer hover:bg-accent transition-colors"
+          onClick={() => setShowAllStudents(true)}
+        >
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Students</CardTitle>
             <Users className="h-4 w-4 text-muted-foreground" />
@@ -160,18 +165,18 @@ export default function TeacherDashboardPage() {
 
       {/* Main Management Tabs */}
       <Tabs defaultValue="course-groups" className="space-y-4">
-        <TabsList>
-          <TabsTrigger value="course-groups">
-            <Folder className="h-4 w-4 mr-2" />
-            Course Groups
+        <TabsList className="flex flex-wrap w-full sm:w-auto gap-2">
+          <TabsTrigger value="course-groups" className="flex-1 sm:flex-initial min-w-0">
+            <Folder className="h-4 w-4 mr-1 sm:mr-2 flex-shrink-0" />
+            <span className="truncate">Course Groups</span>
           </TabsTrigger>
-          <TabsTrigger value="batches">
-            <Users className="h-4 w-4 mr-2" />
-            Batches
+          <TabsTrigger value="batches" className="flex-1 sm:flex-initial min-w-0">
+            <Users className="h-4 w-4 mr-1 sm:mr-2 flex-shrink-0" />
+            <span className="truncate">Batches</span>
           </TabsTrigger>
-          <TabsTrigger value="teachers">
-            <Users className="h-4 w-4 mr-2" />
-            Teachers
+          <TabsTrigger value="teachers" className="flex-1 sm:flex-initial min-w-0">
+            <Users className="h-4 w-4 mr-1 sm:mr-2 flex-shrink-0" />
+            <span className="truncate">Teachers</span>
           </TabsTrigger>
         </TabsList>
 
@@ -187,6 +192,11 @@ export default function TeacherDashboardPage() {
           <TeacherManagement />
         </TabsContent>
       </Tabs>
+
+      <AllStudentsView
+        open={showAllStudents}
+        onOpenChange={setShowAllStudents}
+      />
     </div>
   );
 }

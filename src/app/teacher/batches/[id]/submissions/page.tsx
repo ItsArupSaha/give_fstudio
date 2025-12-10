@@ -753,7 +753,7 @@ export default function BatchSubmissionsPage() {
           Back to Batch Details
         </Button>
         <div>
-          <h1 className="text-4xl font-bold mb-2">
+          <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-2 break-words">
             Submissions - {batch.name}
           </h1>
           <p className="text-muted-foreground">
@@ -781,10 +781,10 @@ export default function BatchSubmissionsPage() {
             return (
               <Card key={task.id}>
                 <CardHeader>
-                  <div className="flex items-start justify-between">
-                    <div className="flex items-center gap-3 flex-1">
+                  <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+                    <div className="flex items-center gap-3 flex-1 min-w-0">
                       <div
-                        className="p-2 rounded-lg"
+                        className="p-2 rounded-lg flex-shrink-0"
                         style={{
                           backgroundColor: `${taskColor}20`,
                           color: taskColor,
@@ -792,8 +792,8 @@ export default function BatchSubmissionsPage() {
                       >
                         <TaskIcon className="h-6 w-6" />
                       </div>
-                      <div className="flex-1">
-                        <CardTitle className="text-2xl">{task.title}</CardTitle>
+                      <div className="flex-1 min-w-0">
+                        <CardTitle className="text-xl sm:text-2xl break-words">{task.title}</CardTitle>
                         <CardDescription className="mt-1">
                           {getTaskTypeLabel(task.type)} • {studentSubmissions.length} student
                           {studentSubmissions.length !== 1 ? "s" : ""} • {totalFiles} file
@@ -801,7 +801,7 @@ export default function BatchSubmissionsPage() {
                         </CardDescription>
                       </div>
                     </div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex flex-wrap items-center gap-2">
                       <Badge variant="outline">{task.status}</Badge>
                       {isDailyListening && totalFiles > 0 && (
                         <Button
@@ -866,18 +866,18 @@ export default function BatchSubmissionsPage() {
                             className="border-b"
                           >
                             <AccordionTrigger className="hover:no-underline">
-                              <div className="flex items-center justify-between w-full pr-4">
-                                <div className="flex flex-col items-start">
-                                  <span className="font-medium text-base">
+                              <div className="flex items-center justify-between w-full pr-4 gap-2">
+                                <div className="flex flex-col items-start min-w-0 flex-1">
+                                  <span className="font-medium text-base break-words">
                                     {studentName}
                                   </span>
                                   {studentEmail && (
-                                    <span className="text-sm text-muted-foreground">
+                                    <span className="text-sm text-muted-foreground break-all">
                                       {studentEmail}
                                     </span>
                                   )}
                                 </div>
-                                <Badge variant="secondary" className="ml-auto">
+                                <Badge variant="secondary" className="ml-auto flex-shrink-0">
                                   {fileCount} file{fileCount !== 1 ? "s" : ""}
                                 </Badge>
                               </div>

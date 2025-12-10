@@ -279,7 +279,7 @@ export function StudentDashboard() {
         <CardContent className="pt-6">
           <div className="space-y-2">
             <p className="text-primary-foreground/90">Welcome back,</p>
-            <h2 className="text-3xl font-bold">
+            <h2 className="text-2xl sm:text-3xl font-bold">
               {user?.displayName || user?.email?.split("@")[0] || "Student"}
             </h2>
             <p className="text-primary-foreground/90">

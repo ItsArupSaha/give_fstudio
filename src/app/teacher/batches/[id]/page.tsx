@@ -11,6 +11,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { ExpandableDescription } from "@/components/ui/expandable-description";
+import { LinkifiedText } from "@/components/ui/linkified-text";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import type { Batch } from "@/lib/models/batch";
@@ -219,14 +220,14 @@ export default function BatchDetailsPage() {
           <ArrowLeft className="h-4 w-4 mr-2" />
           Back to Dashboard
         </Button>
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-4xl font-bold mb-2">{batch.name}</h1>
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div className="flex-1 min-w-0">
+            <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-2 break-words">{batch.name}</h1>
             {batch.description && (
               <ExpandableDescription text={batch.description} maxLines={3} className="text-muted-foreground" />
             )}
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
             <div className="flex items-center gap-2 p-2 bg-muted rounded-lg">
               <span className="text-sm font-medium">Class Code:</span>
               <code className="text-sm font-mono">{batch.classCode}</code>
@@ -249,18 +250,21 @@ export default function BatchDetailsPage() {
       </div>
 
       <Tabs defaultValue="students" className="space-y-4">
-        <TabsList>
-          <TabsTrigger value="students">
-            <Users className="h-4 w-4 mr-2" />
-            Students ({activeEnrollments.length})
+        <TabsList className="flex-wrap w-full sm:w-auto">
+          <TabsTrigger value="students" className="flex-1 sm:flex-initial min-w-0">
+            <Users className="h-4 w-4 mr-1 sm:mr-2 flex-shrink-0" />
+            <span className="truncate">Students</span>
+            <span className="ml-1 flex-shrink-0">({activeEnrollments.length})</span>
           </TabsTrigger>
-          <TabsTrigger value="pending">
-            <ClipboardList className="h-4 w-4 mr-2" />
-            Pending ({pendingEnrollments.length})
+          <TabsTrigger value="pending" className="flex-1 sm:flex-initial min-w-0">
+            <ClipboardList className="h-4 w-4 mr-1 sm:mr-2 flex-shrink-0" />
+            <span className="truncate">Pending</span>
+            <span className="ml-1 flex-shrink-0">({pendingEnrollments.length})</span>
           </TabsTrigger>
-          <TabsTrigger value="tasks">
-            <ClipboardList className="h-4 w-4 mr-2" />
-            Tasks ({tasks.length})
+          <TabsTrigger value="tasks" className="flex-1 sm:flex-initial min-w-0">
+            <ClipboardList className="h-4 w-4 mr-1 sm:mr-2 flex-shrink-0" />
+            <span className="truncate">Tasks</span>
+            <span className="ml-1 flex-shrink-0">({tasks.length})</span>
           </TabsTrigger>
         </TabsList>
 
@@ -324,25 +328,29 @@ export default function BatchDetailsPage() {
         <TabsContent value="tasks" className="space-y-4">
           <Card>
             <CardHeader>
-              <div className="flex items-center justify-between">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                 <div>
                   <CardTitle>Tasks</CardTitle>
                   <CardDescription>All tasks for this batch</CardDescription>
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
                   <Button
                     onClick={() => router.push(`/teacher/batches/${batchId}/daily-listening-analytics`)}
                     variant="outline"
+                    className="w-full sm:w-auto"
                   >
                     <ClipboardList className="h-4 w-4 mr-2" />
-                    Daily Listening Analytics
+                    <span className="hidden sm:inline">Daily Listening Analytics</span>
+                    <span className="sm:hidden">Analytics</span>
                   </Button>
                   <Button
                     onClick={() => router.push(`/teacher/batches/${batchId}/submissions`)}
                     variant="outline"
+                    className="w-full sm:w-auto"
                   >
                     <ClipboardList className="h-4 w-4 mr-2" />
-                    View All Submissions
+                    <span className="hidden sm:inline">View All Submissions</span>
+                    <span className="sm:hidden">Submissions</span>
                   </Button>
                 </div>
               </div>
@@ -413,19 +421,19 @@ function StudentCard({
   return (
     <Card>
       <CardContent className="py-4">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+          <div className="flex items-center gap-3 min-w-0 flex-1">
+            <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
               <span className="text-primary font-medium">
                 {student.name.charAt(0).toUpperCase()}
               </span>
             </div>
-            <div>
-              <p className="font-medium">{student.name}</p>
-              <p className="text-sm text-muted-foreground">{student.email}</p>
+            <div className="min-w-0 flex-1">
+              <p className="font-medium truncate">{student.name}</p>
+              <p className="text-sm text-muted-foreground truncate">{student.email}</p>
             </div>
           </div>
-          <Button variant="outline" size="sm" onClick={onRemove}>
+          <Button variant="outline" size="sm" onClick={onRemove} className="w-full sm:w-auto">
             Remove
           </Button>
         </div>
@@ -478,27 +486,27 @@ function PendingEnrollmentCard({
   return (
     <Card>
       <CardContent className="py-4">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+          <div className="flex items-center gap-3 min-w-0 flex-1">
+            <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
               <span className="text-primary font-medium">
                 {student.name.charAt(0).toUpperCase()}
               </span>
             </div>
-            <div>
-              <p className="font-medium">{student.name}</p>
-              <p className="text-sm text-muted-foreground">{student.email}</p>
+            <div className="min-w-0 flex-1">
+              <p className="font-medium truncate">{student.name}</p>
+              <p className="text-sm text-muted-foreground truncate">{student.email}</p>
               <p className="text-xs text-muted-foreground">
                 Requested {new Date(enrollment.enrolledAt).toLocaleDateString()}
               </p>
             </div>
           </div>
-          <div className="flex gap-2">
-            <Button variant="outline" size="sm" onClick={onDecline}>
+          <div className="flex gap-2 w-full sm:w-auto">
+            <Button variant="outline" size="sm" onClick={onDecline} className="flex-1 sm:flex-initial">
               <XCircle className="h-4 w-4 mr-2" />
               Decline
             </Button>
-            <Button size="sm" onClick={onApprove}>
+            <Button size="sm" onClick={onApprove} className="flex-1 sm:flex-initial">
               <CheckCircle className="h-4 w-4 mr-2" />
               Approve
             </Button>
@@ -516,31 +524,29 @@ function TaskCard({ task, submissionCount }: { task: Task; submissionCount: numb
   return (
     <Card>
       <CardContent className="py-4">
-        <div className="flex items-start justify-between">
-          <div className="flex items-start gap-3 flex-1">
-            <div
-              className="h-10 w-10 rounded-lg flex items-center justify-center"
-              style={{ backgroundColor: `${taskColor}20`, color: taskColor }}
-            >
-              <TaskIcon className="h-5 w-5" />
+        <div className="flex items-start gap-3">
+          <div
+            className="h-10 w-10 rounded-lg flex items-center justify-center flex-shrink-0"
+            style={{ backgroundColor: `${taskColor}20`, color: taskColor }}
+          >
+            <TaskIcon className="h-5 w-5" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <div className="flex flex-wrap items-center gap-2 mb-1">
+              <p className="font-medium break-words">{task.title}</p>
+              <Badge variant="outline" className="flex-shrink-0">{task.status}</Badge>
             </div>
-            <div className="flex-1">
-              <div className="flex items-center gap-2 mb-1">
-                <p className="font-medium">{task.title}</p>
-                <Badge variant="outline">{task.status}</Badge>
-              </div>
-              <p className="text-sm text-muted-foreground mb-2">
-                <LinkifiedText text={task.description} />
-              </p>
-              <div className="flex items-center gap-4 text-xs text-muted-foreground">
-                {task.dueDate && (
-                  <span>
-                    Due: {new Date(task.dueDate).toLocaleDateString()}
-                  </span>
-                )}
-                {task.maxPoints > 0 && <span>{task.maxPoints} points</span>}
-                <span>{submissionCount} submissions</span>
-              </div>
+            <p className="text-sm text-muted-foreground mb-2 line-clamp-2">
+              <LinkifiedText text={task.description} />
+            </p>
+            <div className="flex flex-wrap items-center gap-2 sm:gap-4 text-xs text-muted-foreground">
+              {task.dueDate && (
+                <span className="whitespace-nowrap">
+                  Due: {new Date(task.dueDate).toLocaleDateString()}
+                </span>
+              )}
+              {task.maxPoints > 0 && <span className="whitespace-nowrap">{task.maxPoints} points</span>}
+              <span className="whitespace-nowrap">{submissionCount} submissions</span>
             </div>
           </div>
         </div>

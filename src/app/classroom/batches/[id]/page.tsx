@@ -287,11 +287,11 @@ export default function BatchTasksPage() {
           <ArrowLeft className="h-4 w-4 mr-2" />
           Back to Classroom
         </Button>
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <h1 className="text-4xl font-bold mb-2">{batch.name} - Tasks</h1>
+            <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-2 break-words">{batch.name} - Tasks</h1>
           </div>
-          <Button variant="outline" onClick={refreshData}>
+          <Button variant="outline" onClick={refreshData} className="w-full sm:w-auto">
             <RefreshCw className="h-4 w-4 mr-2" />
             Refresh
           </Button>
@@ -301,7 +301,7 @@ export default function BatchTasksPage() {
       {/* Batch Info Card */}
       <Card className="mb-8">
         <CardContent className="pt-6">
-          <div className="flex items-start gap-4">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-start">
             <div className="h-16 w-16 rounded-full bg-primary text-primary-foreground flex items-center justify-center font-bold text-xl">
               {batch.name.charAt(0).toUpperCase()}
             </div>
@@ -319,7 +319,7 @@ export default function BatchTasksPage() {
 
       {/* Tasks List */}
       <div>
-        <div className="flex items-center justify-between mb-4">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-4">
           <h2 className="text-2xl font-bold">
             {showBookmarkedOnly ? "Bookmarked Tasks" : "Tasks"} ({filteredTasks.length})
           </h2>
@@ -370,9 +370,9 @@ export default function BatchTasksPage() {
                   }}
                 >
                   <CardHeader>
-                    <div className="flex items-start justify-between">
+                    <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                       <div
-                        className="flex items-center gap-3 flex-1"
+                        className="flex items-start gap-3 flex-1"
                         onClick={(e) => {
                           if (!isClickable) {
                             e.stopPropagation();

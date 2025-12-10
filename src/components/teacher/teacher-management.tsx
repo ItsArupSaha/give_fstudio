@@ -134,7 +134,7 @@ export function TeacherManagement() {
   return (
     <Card>
       <CardHeader>
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
             <CardTitle className="flex items-center gap-2">
               <Users className="h-5 w-5" />
@@ -146,12 +146,12 @@ export function TeacherManagement() {
           </div>
           <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
             <DialogTrigger asChild>
-              <Button>
+              <Button className="w-full sm:w-auto">
                 <Plus className="h-4 w-4 mr-2" />
                 Add Teacher
               </Button>
             </DialogTrigger>
-            <DialogContent>
+            <DialogContent className="w-[95vw] sm:w-full">
               <form onSubmit={handleAddTeacher}>
                 <DialogHeader>
                   <DialogTitle>Add New Teacher</DialogTitle>
@@ -204,10 +204,10 @@ export function TeacherManagement() {
             {teachers.map((teacher) => (
               <div
                 key={teacher.email}
-                className="flex items-center justify-between p-3 border rounded-lg"
+                className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 p-3 border rounded-lg"
               >
-                <div>
-                  <p className="font-medium">{teacher.email}</p>
+                <div className="min-w-0 flex-1">
+                  <p className="font-medium truncate">{teacher.email}</p>
                   {teacher.createdAt && (
                     <p className="text-sm text-muted-foreground">
                       Added:{" "}
@@ -223,7 +223,7 @@ export function TeacherManagement() {
                   variant="ghost"
                   size="icon"
                   onClick={() => handleRemoveTeacher(teacher.email)}
-                  className="text-destructive hover:text-destructive"
+                  className="text-destructive hover:text-destructive self-start sm:self-center"
                 >
                   <Trash2 className="h-4 w-4" />
                 </Button>

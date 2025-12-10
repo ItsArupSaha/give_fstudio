@@ -280,16 +280,16 @@ export default function TaskSubmissionPage() {
       {/* Task Info Card */}
       <Card className="mb-6">
         <CardHeader>
-          <div className="flex items-start justify-between">
-            <div className="flex items-center gap-3 flex-1">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+            <div className="flex items-start gap-3 flex-1">
               <div
                 className="p-2 rounded-lg"
                 style={{ backgroundColor: `${taskColor}20`, color: taskColor }}
               >
                 <TaskIcon className="h-6 w-6" />
               </div>
-              <div className="flex-1">
-                <CardTitle className="text-2xl">{task.title}</CardTitle>
+              <div className="flex-1 min-w-0">
+                <CardTitle className="text-xl sm:text-2xl break-words">{task.title}</CardTitle>
                 <CardDescription className="mt-1">
                   {getTaskTypeLabel(task.type)}
                 </CardDescription>
