@@ -58,6 +58,8 @@ interface StudentFile {
   fileUrl: string;
   fileName: string;
   studentId: string;
+  taskId?: string; // Optional: only needed for combined daily listening tasks
+  taskTitle?: string; // Optional: only needed for combined daily listening tasks
 }
 
 interface StudentSubmission {
@@ -168,11 +170,17 @@ export default function BatchSubmissionsPage() {
               if (fileUrl && typeof fileUrl === 'string' && fileUrl.trim() !== '') {
                 try {
                   const fileName = getFileNameFromUrl(fileUrl);
+                  // For daily listening tasks, include task info for later display
+                  const isDailyListening = taskFiles.task.type === "dailyListening";
                   studentSubmission.files.push({
                     submissionId: submission.id,
                     fileUrl,
                     fileName,
                     studentId: submission.studentId,
+                    ...(isDailyListening && {
+                      taskId: submission.taskId,
+                      taskTitle: taskFiles.task.title,
+                    }),
                   });
                 } catch (error) {
                   console.error(`Error processing file URL ${index + 1} in submission ${submission.id}:`, error, fileUrl);
@@ -653,7 +661,7 @@ export default function BatchSubmissionsPage() {
                                 {studentSub.files.map((file: StudentFile, index: number) => (
                                   <div
                                     key={index}
-                                    className="flex items-center justify-between p-3 bg-muted rounded-lg border"
+                                    className="flex flex-col p-3 bg-muted rounded-lg border gap-2"
                                   >
                                     <div className="flex items-center gap-2 flex-1 min-w-0">
                                       <FileText className="h-4 w-4 text-muted-foreground flex-shrink-0" />
@@ -661,7 +669,14 @@ export default function BatchSubmissionsPage() {
                                         {file.fileName}
                                       </span>
                                     </div>
-                                    <div className="flex items-center gap-1 flex-shrink-0">
+                                    {file.taskTitle && (
+                                      <div className="flex items-center gap-1">
+                                        <Badge variant="outline" className="text-xs">
+                                          {file.taskTitle}
+                                        </Badge>
+                                      </div>
+                                    )}
+                                    <div className="flex items-center gap-1 flex-shrink-0 self-end">
                                       <Button
                                         variant="ghost"
                                         size="icon"
