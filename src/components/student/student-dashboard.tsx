@@ -85,18 +85,24 @@ export function StudentDashboard() {
 
       // Load batch details for each enrollment
       const batchMap = new Map<string, Batch>();
-      for (const enrollment of enrollmentsList) {
+      const batchLoadPromises = enrollmentsList.map(async (enrollment) => {
         if (!batchMap.has(enrollment.batchId)) {
           try {
             const batch = await getBatchById(enrollment.batchId);
             if (batch) {
               batchMap.set(enrollment.batchId, batch);
             }
+            // If batch is null (deleted), we simply don't add it to the map
+            // This will be handled in the render section
           } catch (error) {
             console.error(`Error loading batch ${enrollment.batchId}:`, error);
+            // Continue loading other batches even if one fails
           }
         }
-      }
+      });
+
+      // Wait for all batch loads to complete (including failures)
+      await Promise.allSettled(batchLoadPromises);
       setBatches(batchMap);
       setLoading(false);
     });
@@ -266,8 +272,6 @@ export function StudentDashboard() {
     );
   }
 
-  const activeEnrollments = enrollments.filter((e) => e.status === "active");
-
   return (
     <div className="space-y-8">
       {/* Welcome Section */}
@@ -350,47 +354,6 @@ export function StudentDashboard() {
             </Dialog>
           </CardContent>
         </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <BookOpen className="h-5 w-5" />
-              View Tasks
-            </CardTitle>
-            <CardDescription>
-              Check your assignments
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Button
-              variant="outline"
-              className="w-full"
-              onClick={() => {
-                if (activeEnrollments.length > 0) {
-                  const firstBatch = batches.get(activeEnrollments[0].batchId);
-                  if (firstBatch) {
-                    router.push(`/classroom/batches/${firstBatch.id}`);
-                  } else {
-                    toast({
-                      title: "Error",
-                      description: "Batch not found",
-                      variant: "destructive",
-                    });
-                  }
-                } else {
-                  toast({
-                    title: "No Active Batches",
-                    description: "You need to be enrolled in an active batch to view tasks.",
-                    variant: "destructive",
-                  });
-                }
-              }}
-            >
-              <BookOpen className="h-4 w-4 mr-2" />
-              View Tasks
-            </Button>
-          </CardContent>
-        </Card>
       </div>
 
       {/* Bookmarked Tasks Section */}
@@ -403,70 +366,72 @@ export function StudentDashboard() {
             </h3>
           </div>
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {bookmarks.map((bookmark) => {
-              const task = bookmarkedTasks.get(bookmark.taskId);
-              const batch = batches.get(bookmark.batchId);
+            {bookmarks
+              .filter((bookmark) => {
+                // Only show bookmarks where both task and batch exist
+                const task = bookmarkedTasks.get(bookmark.taskId);
+                const batch = batches.get(bookmark.batchId);
+                return task && batch;
+              })
+              .map((bookmark) => {
+                const task = bookmarkedTasks.get(bookmark.taskId);
+                const batch = batches.get(bookmark.batchId);
 
-              if (!task) {
+                // At this point, both should exist due to filter above
+                if (!task || !batch) {
+                  return null;
+                }
+
+                const TaskIcon = getTaskTypeIcon(task.type);
+                const taskColor = getTaskTypeColor(task.type);
+
                 return (
-                  <Card key={bookmark.id}>
-                    <CardContent className="py-4">
-                      <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                  <Card
+                    key={bookmark.id}
+                    className="cursor-pointer transition-colors hover:bg-accent"
+                    onClick={() => {
+                      if (batch) {
+                        router.push(`/classroom/batches/${batch.id}`);
+                      }
+                    }}
+                  >
+                    <CardHeader>
+                      <div className="flex items-start justify-between">
+                        <div className="flex items-center gap-3 flex-1">
+                          <div
+                            className="p-2 rounded-lg"
+                            style={{ backgroundColor: `${taskColor}20`, color: taskColor }}
+                          >
+                            <TaskIcon className="h-4 w-4" />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <CardTitle className="text-base line-clamp-2">{task.title}</CardTitle>
+                            {batch && (
+                              <CardDescription className="mt-1">
+                                {batch.name}
+                              </CardDescription>
+                            )}
+                          </div>
+                        </div>
+                        <Bookmark className="h-4 w-4 fill-yellow-500 text-yellow-500 flex-shrink-0" />
+                      </div>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="flex flex-wrap gap-2">
+                        <Badge variant="outline" className="bg-purple-50 text-purple-700 border-purple-200 text-xs">
+                          {getTaskTypeLabel(task.type)}
+                        </Badge>
+                        {task.dueDate && (
+                          <Badge variant="outline" className="bg-gray-50 text-gray-700 border-gray-200 text-xs">
+                            <Calendar className="h-3 w-3 mr-1" />
+                            {new Date(task.dueDate).toLocaleDateString()}
+                          </Badge>
+                        )}
+                      </div>
                     </CardContent>
                   </Card>
                 );
-              }
-
-              const TaskIcon = getTaskTypeIcon(task.type);
-              const taskColor = getTaskTypeColor(task.type);
-
-              return (
-                <Card
-                  key={bookmark.id}
-                  className="cursor-pointer transition-colors hover:bg-accent"
-                  onClick={() => {
-                    if (batch) {
-                      router.push(`/classroom/batches/${batch.id}`);
-                    }
-                  }}
-                >
-                  <CardHeader>
-                    <div className="flex items-start justify-between">
-                      <div className="flex items-center gap-3 flex-1">
-                        <div
-                          className="p-2 rounded-lg"
-                          style={{ backgroundColor: `${taskColor}20`, color: taskColor }}
-                        >
-                          <TaskIcon className="h-4 w-4" />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <CardTitle className="text-base line-clamp-2">{task.title}</CardTitle>
-                          {batch && (
-                            <CardDescription className="mt-1">
-                              {batch.name}
-                            </CardDescription>
-                          )}
-                        </div>
-                      </div>
-                      <Bookmark className="h-4 w-4 fill-yellow-500 text-yellow-500 flex-shrink-0" />
-                    </div>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="flex flex-wrap gap-2">
-                      <Badge variant="outline" className="bg-purple-50 text-purple-700 border-purple-200 text-xs">
-                        {getTaskTypeLabel(task.type)}
-                      </Badge>
-                      {task.dueDate && (
-                        <Badge variant="outline" className="bg-gray-50 text-gray-700 border-gray-200 text-xs">
-                          <Calendar className="h-3 w-3 mr-1" />
-                          {new Date(task.dueDate).toLocaleDateString()}
-                        </Badge>
-                      )}
-                    </div>
-                  </CardContent>
-                </Card>
-              );
-            })}
+              })}
           </div>
         </div>
       )}
@@ -474,87 +439,87 @@ export function StudentDashboard() {
       {/* Enrolled Batches */}
       <div>
         <h3 className="text-2xl font-bold mb-4">My Batches</h3>
-        {enrollments.length === 0 ? (
-          <Card>
-            <CardContent className="py-12 text-center">
-              <BookOpen className="h-16 w-16 mx-auto mb-4 text-muted-foreground opacity-50" />
-              <h4 className="text-xl font-semibold mb-2">No Batches Yet</h4>
-              <p className="text-muted-foreground mb-4">
-                Join a batch using a class code to start learning
-              </p>
-              <Button onClick={() => setIsJoinDialogOpen(true)}>
-                <Plus className="h-4 w-4 mr-2" />
-                Join Batch
-              </Button>
-            </CardContent>
-          </Card>
-        ) : (
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {enrollments.map((enrollment) => {
-              const batch = batches.get(enrollment.batchId);
-              if (!batch) {
+        {(() => {
+          const validEnrollments = enrollments.filter((enrollment) =>
+            batches.has(enrollment.batchId)
+          );
+          return validEnrollments.length === 0 ? (
+            <Card>
+              <CardContent className="py-12 text-center">
+                <BookOpen className="h-16 w-16 mx-auto mb-4 text-muted-foreground opacity-50" />
+                <h4 className="text-xl font-semibold mb-2">No Batches Yet</h4>
+                <p className="text-muted-foreground mb-4">
+                  Join a batch using a class code to start learning
+                </p>
+                <Button onClick={() => setIsJoinDialogOpen(true)}>
+                  <Plus className="h-4 w-4 mr-2" />
+                  Join Batch
+                </Button>
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+              {validEnrollments.map((enrollment) => {
+                const batch = batches.get(enrollment.batchId);
+                // At this point, batch should always exist due to filter above
+                if (!batch) {
+                  return null;
+                }
+
                 return (
                   <Card key={enrollment.id}>
-                    <CardContent className="py-4">
-                      <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                    <CardHeader>
+                      <div className="flex items-start justify-between">
+                        <div className="flex items-center gap-3">
+                          <div className="h-10 w-10 rounded-full bg-primary text-primary-foreground flex items-center justify-center font-bold">
+                            {batch.name.charAt(0).toUpperCase()}
+                          </div>
+                          <div>
+                            <CardTitle className="text-lg">{batch.name}</CardTitle>
+                            <CardDescription>
+                              Class Code: {batch.classCode}
+                            </CardDescription>
+                          </div>
+                        </div>
+                        {getStatusBadge(enrollment.status)}
+                      </div>
+                    </CardHeader>
+                    <CardContent>
+                      {batch.description && (
+                        <p className="text-sm text-black mb-4 whitespace-pre-wrap leading-relaxed">
+                          <LinkifiedText text={batch.description} className="whitespace-pre-wrap" />
+                        </p>
+                      )}
+                      <div className="flex items-center gap-4 text-xs text-muted-foreground">
+                        <div className="flex items-center gap-1">
+                          <Calendar className="h-3 w-3" />
+                          <span>
+                            Enrolled: {new Date(enrollment.enrolledAt).toLocaleDateString()}
+                          </span>
+                        </div>
+                      </div>
+                      {enrollment.status === "active" && (
+                        <Button
+                          variant="outline"
+                          className="w-full mt-4"
+                          onClick={() => router.push(`/classroom/batches/${batch.id}`)}
+                        >
+                          <BookOpen className="h-4 w-4 mr-2" />
+                          View Tasks
+                        </Button>
+                      )}
+                      {enrollment.status === "pending" && (
+                        <p className="text-sm text-orange-600 mt-4 text-center">
+                          Waiting for approval
+                        </p>
+                      )}
                     </CardContent>
                   </Card>
                 );
-              }
-
-              return (
-                <Card key={enrollment.id}>
-                  <CardHeader>
-                    <div className="flex items-start justify-between">
-                      <div className="flex items-center gap-3">
-                        <div className="h-10 w-10 rounded-full bg-primary text-primary-foreground flex items-center justify-center font-bold">
-                          {batch.name.charAt(0).toUpperCase()}
-                        </div>
-                        <div>
-                          <CardTitle className="text-lg">{batch.name}</CardTitle>
-                          <CardDescription>
-                            Class Code: {batch.classCode}
-                          </CardDescription>
-                        </div>
-                      </div>
-                      {getStatusBadge(enrollment.status)}
-                    </div>
-                  </CardHeader>
-                  <CardContent>
-                    {batch.description && (
-                      <p className="text-sm text-black mb-4 whitespace-pre-wrap leading-relaxed">
-                        <LinkifiedText text={batch.description} className="whitespace-pre-wrap" />
-                      </p>
-                    )}
-                    <div className="flex items-center gap-4 text-xs text-muted-foreground">
-                      <div className="flex items-center gap-1">
-                        <Calendar className="h-3 w-3" />
-                        <span>
-                          Enrolled: {new Date(enrollment.enrolledAt).toLocaleDateString()}
-                        </span>
-                      </div>
-                    </div>
-                    {enrollment.status === "active" && (
-                      <Button
-                        variant="outline"
-                        className="w-full mt-4"
-                        onClick={() => router.push(`/classroom/batches/${batch.id}`)}
-                      >
-                        <BookOpen className="h-4 w-4 mr-2" />
-                        View Tasks
-                      </Button>
-                    )}
-                    {enrollment.status === "pending" && (
-                      <p className="text-sm text-orange-600 mt-4 text-center">
-                        Waiting for approval
-                      </p>
-                    )}
-                  </CardContent>
-                </Card>
-              );
-            })}
-          </div>
-        )}
+              })}
+            </div>
+          );
+        })()}
       </div>
 
       {/* Success Dialog */}
