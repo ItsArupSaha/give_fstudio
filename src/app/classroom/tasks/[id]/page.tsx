@@ -299,7 +299,7 @@ export default function TaskSubmissionPage() {
               variant="outline"
               className={
                 task.status === "published"
-                  ? "bg-green-50 text-green-700 border-green-200"
+                  ? "bg-orange-50 text-orange-700 border-orange-200"
                   : task.status === "closed"
                     ? "bg-red-50 text-red-700 border-red-200"
                     : "bg-gray-50 text-gray-700 border-gray-200"
@@ -357,7 +357,7 @@ export default function TaskSubmissionPage() {
       {alreadySubmitted ? (
         <Card>
           <CardContent className="py-12 text-center">
-            <div className="text-green-600 mb-4">
+            <div className="text-orange-600 mb-4">
               <CheckCircle2 className="h-12 w-12 mx-auto" />
             </div>
             <h3 className="text-xl font-semibold mb-2">Already Submitted</h3>

@@ -17,8 +17,8 @@ export default {
     },
     extend: {
       fontFamily: {
-        body: ['Georgia', 'Times New Roman', 'serif'],
-        headline: ['Georgia', 'Times New Roman', 'serif'],
+        body: ['Ubuntu', 'sans-serif'],
+        headline: ['Rubik', 'sans-serif'],
         code: ['monospace'],
       },
       colors: {

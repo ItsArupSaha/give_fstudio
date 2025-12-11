@@ -21,6 +21,12 @@ export default function RootLayout({
     <html lang="en" className="scroll-smooth">
       <head>
         <link rel="icon" href="/GIVE_logo.png" />
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        <link
+          href="https://fonts.googleapis.com/css2?family=Ubuntu:wght@400&family=Rubik:wght@400&display=swap"
+          rel="stylesheet"
+        />
       </head>
       <body className={cn('font-body antialiased flex flex-col min-h-screen')}>
         <Header />

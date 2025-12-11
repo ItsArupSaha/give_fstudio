@@ -12,17 +12,22 @@ export function Prabhupada() {
 
       <div className="relative container max-w-screen-md text-center">
         <div className="flex flex-col items-center">
-          <h2 className="text-2xl md:text-3xl font-headline text-secondary-foreground/80 mb-6">
+          <h2 className="text-2xl md:text-3xl font-headline font-bold text-secondary-foreground/80 mb-6">
             Dedicated to the loving service of
           </h2>
-          <div className="relative w-48 h-48 md:w-56 md:h-56 rounded-full overflow-hidden shadow-2xl mb-6 border-4 border-white">
-            <Image
-              src="/SP_1.png"
-              alt="Srila Prabhupada smiling."
-              fill
-              className="object-cover object-top"
-              data-ai-hint="elderly monk"
-            />
+          <div className="relative w-full max-w-sm md:max-w-md mb-8 mx-auto">
+            {/* subtle glow behind the portrait */}
+            <div className="pointer-events-none absolute -inset-4 bg-primary/25 blur-3xl opacity-70" aria-hidden />
+            <div className="relative aspect-[1085/1536] w-full overflow-hidden shadow-2xl">
+              <Image
+                src="/prabhupada-1085x1536.jpg"
+                alt="Srila Prabhupada"
+                fill
+                className="object-cover"
+                data-ai-hint="Srila Prabhupada portrait"
+                priority
+              />
+            </div>
           </div>
           <h1 className="text-3xl md:text-4xl font-headline font-bold text-secondary-foreground">
             His Divine Grace A.C Bhaktivedānta Swāmi Prabhupāda

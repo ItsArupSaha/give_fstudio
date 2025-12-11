@@ -352,7 +352,7 @@ export function StudentDashboard() {
         );
       case "active":
         return (
-          <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200 text-xs sm:text-sm">
+          <Badge variant="outline" className="bg-orange-50 text-orange-700 border-orange-200 text-xs sm:text-sm">
             <CheckCircle2 className="h-2.5 w-2.5 sm:h-3 sm:w-3 mr-0.5 sm:mr-1" />
             Active
           </Badge>
@@ -822,8 +822,8 @@ export function StudentDashboard() {
         <AlertDialogContent>
           <AlertDialogHeader>
             <div className="flex items-center gap-3 mb-2">
-              <div className="h-10 w-10 rounded-full bg-green-100 flex items-center justify-center">
-                <CheckCircle2 className="h-6 w-6 text-green-600" />
+              <div className="h-10 w-10 rounded-full bg-orange-100 flex items-center justify-center">
+                <CheckCircle2 className="h-6 w-6 text-orange-600" />
               </div>
               <AlertDialogTitle>Request Sent Successfully!</AlertDialogTitle>
             </div>

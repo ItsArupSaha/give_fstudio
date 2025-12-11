@@ -52,7 +52,7 @@ export function getTaskTypeColor(type: TaskType): string {
     case "slokaMemorization":
       return "#14b8a6"; // teal
     case "announcement":
-      return "#22c55e"; // green
+      return "#f97316"; // orange
     default:
       return "#6b7280"; // gray
   }

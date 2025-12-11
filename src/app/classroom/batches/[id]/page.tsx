@@ -155,7 +155,7 @@ export default function BatchTasksPage() {
       case "draft":
         return { status: "draft", label: "Draft", color: "orange" };
       case "submitted":
-        return { status: "submitted", label: "Submitted", color: "green" };
+        return { status: "submitted", label: "Submitted", color: "orange" };
       case "graded":
         return { status: "graded", label: "Graded", color: "blue" };
       default:
@@ -173,7 +173,7 @@ export default function BatchTasksPage() {
         );
       case "published":
         return (
-          <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
+          <Badge variant="outline" className="bg-orange-50 text-orange-700 border-orange-200">
             Published
           </Badge>
         );
@@ -430,7 +430,7 @@ export default function BatchTasksPage() {
                             : submissionStatus.color === "orange"
                               ? "bg-orange-50 text-orange-700 border-orange-200"
                               : submissionStatus.color === "green"
-                                ? "bg-green-50 text-green-700 border-green-200"
+                                ? "bg-orange-50 text-orange-700 border-orange-200"
                                 : "bg-blue-50 text-blue-700 border-blue-200"
                             }`}
                         >
