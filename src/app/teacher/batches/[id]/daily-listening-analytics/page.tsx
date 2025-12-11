@@ -254,7 +254,9 @@ export default function DailyListeningAnalyticsPage() {
 
       // Define columns
       worksheet.columns = [
-        { header: "Student Name", key: "studentName", width: 20 },
+        { header: "Student Name", key: "studentName", width: 25 },
+        { header: "Diksha Name", key: "dikshaName", width: 25 },
+        { header: "WhatsApp Number", key: "whatsappNumber", width: 18 },
         { header: "Student Email", key: "studentEmail", width: 30 },
         { header: "Total Daily Listening Tasks", key: "totalTasks", width: 25 },
         { header: "Submitted Count", key: "submittedCount", width: 18 },
@@ -273,7 +275,9 @@ export default function DailyListeningAnalyticsPage() {
       // Add data rows
       analytics.forEach((item) => {
         worksheet.addRow({
-          studentName: item.student.name || "Unknown",
+          studentName: item.enrollment.studentName || item.student.name || "Unknown",
+          dikshaName: item.enrollment.dikshaName || "",
+          whatsappNumber: item.enrollment.whatsappNumber || "",
           studentEmail: item.student.email || "No email",
           totalTasks: item.totalDailyListeningTasks,
           submittedCount: item.submittedCount,
