@@ -415,6 +415,12 @@ function StudentCard({
   const [showDetails, setShowDetails] = useState(false);
   const [showEditDialog, setShowEditDialog] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [originalValues, setOriginalValues] = useState({
+    studentName: "",
+    dikshaName: "",
+    whatsappNumber: "",
+    address: "",
+  });
   const [editForm, setEditForm] = useState({
     studentName: enrollment.studentName || "",
     dikshaName: enrollment.dikshaName || "",
@@ -456,12 +462,19 @@ function StudentCard({
   const hasAdditionalInfo = enrollment.studentName || enrollment.dikshaName || enrollment.whatsappNumber || enrollment.address;
 
   const handleEdit = () => {
-    setEditForm({
+    const initialValues = {
+      studentName: enrollment.studentName || "",
+      dikshaName: enrollment.dikshaName || "",
+      whatsappNumber: enrollment.whatsappNumber || "",
+      address: enrollment.address || "",
+    };
+    setOriginalValues({
       studentName: enrollment.studentName || "",
       dikshaName: enrollment.dikshaName || "",
       whatsappNumber: enrollment.whatsappNumber || "",
       address: enrollment.address || "",
     });
+    setEditForm(initialValues);
     setShowEditDialog(true);
   };
 
@@ -486,12 +499,37 @@ function StudentCard({
 
     setIsSaving(true);
     try {
-      await updateEnrollment(enrollment.id, {
-        studentName: editForm.studentName.trim(),
-        dikshaName: editForm.dikshaName.trim() || "",
-        whatsappNumber: editForm.whatsappNumber.trim(),
-        address: editForm.address.trim() || "",
-      });
+      const trimmedStudentName = editForm.studentName.trim();
+      const trimmedDikshaName = editForm.dikshaName.trim();
+      const trimmedWhatsapp = editForm.whatsappNumber.trim();
+      const trimmedAddress = editForm.address.trim();
+
+      // Build update object - only include fields that changed
+      const updates: Partial<Enrollment> = {};
+
+      // Apply change detection to all fields for consistency
+      // Trim original values for comparison to avoid false positives from whitespace
+      const originalStudentName = (originalValues.studentName || "").trim();
+      if (trimmedStudentName !== originalStudentName) {
+        updates.studentName = trimmedStudentName;
+      }
+
+      const originalWhatsapp = (originalValues.whatsappNumber || "").trim();
+      if (trimmedWhatsapp !== originalWhatsapp) {
+        updates.whatsappNumber = trimmedWhatsapp;
+      }
+
+      const originalDikshaName = (originalValues.dikshaName || "").trim();
+      if (trimmedDikshaName !== originalDikshaName) {
+        updates.dikshaName = trimmedDikshaName || "";
+      }
+
+      const originalAddress = (originalValues.address || "").trim();
+      if (trimmedAddress !== originalAddress) {
+        updates.address = trimmedAddress || "";
+      }
+
+      await updateEnrollment(enrollment.id, updates);
       toast({
         title: "Success",
         description: "Student information updated successfully",
@@ -711,6 +749,12 @@ function PendingEnrollmentCard({
   const [showDetails, setShowDetails] = useState(false);
   const [showEditDialog, setShowEditDialog] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [originalValues, setOriginalValues] = useState({
+    studentName: "",
+    dikshaName: "",
+    whatsappNumber: "",
+    address: "",
+  });
   const [editForm, setEditForm] = useState({
     studentName: enrollment.studentName || "",
     dikshaName: enrollment.dikshaName || "",
@@ -752,12 +796,19 @@ function PendingEnrollmentCard({
   const hasAdditionalInfo = enrollment.studentName || enrollment.dikshaName || enrollment.whatsappNumber || enrollment.address;
 
   const handleEdit = () => {
-    setEditForm({
+    const initialValues = {
+      studentName: enrollment.studentName || "",
+      dikshaName: enrollment.dikshaName || "",
+      whatsappNumber: enrollment.whatsappNumber || "",
+      address: enrollment.address || "",
+    };
+    setOriginalValues({
       studentName: enrollment.studentName || "",
       dikshaName: enrollment.dikshaName || "",
       whatsappNumber: enrollment.whatsappNumber || "",
       address: enrollment.address || "",
     });
+    setEditForm(initialValues);
     setShowEditDialog(true);
   };
 
@@ -782,12 +833,37 @@ function PendingEnrollmentCard({
 
     setIsSaving(true);
     try {
-      await updateEnrollment(enrollment.id, {
-        studentName: editForm.studentName.trim(),
-        dikshaName: editForm.dikshaName.trim() || "",
-        whatsappNumber: editForm.whatsappNumber.trim(),
-        address: editForm.address.trim() || "",
-      });
+      const trimmedStudentName = editForm.studentName.trim();
+      const trimmedDikshaName = editForm.dikshaName.trim();
+      const trimmedWhatsapp = editForm.whatsappNumber.trim();
+      const trimmedAddress = editForm.address.trim();
+
+      // Build update object - only include fields that changed
+      const updates: Partial<Enrollment> = {};
+
+      // Apply change detection to all fields for consistency
+      // Trim original values for comparison to avoid false positives from whitespace
+      const originalStudentName = (originalValues.studentName || "").trim();
+      if (trimmedStudentName !== originalStudentName) {
+        updates.studentName = trimmedStudentName;
+      }
+
+      const originalWhatsapp = (originalValues.whatsappNumber || "").trim();
+      if (trimmedWhatsapp !== originalWhatsapp) {
+        updates.whatsappNumber = trimmedWhatsapp;
+      }
+
+      const originalDikshaName = (originalValues.dikshaName || "").trim();
+      if (trimmedDikshaName !== originalDikshaName) {
+        updates.dikshaName = trimmedDikshaName || "";
+      }
+
+      const originalAddress = (originalValues.address || "").trim();
+      if (trimmedAddress !== originalAddress) {
+        updates.address = trimmedAddress || "";
+      }
+
+      await updateEnrollment(enrollment.id, updates);
       toast({
         title: "Success",
         description: "Student information updated successfully",
