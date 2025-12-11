@@ -40,8 +40,12 @@ const quotes = [
 ];
 
 export function QuoteCarousel() {
-  const plugin = React.useRef(
-    Autoplay({ delay: 5000, stopOnInteraction: true })
+  const autoplayPlugin = React.useRef(
+    Autoplay({
+      delay: 3000,
+      stopOnInteraction: true,
+      stopOnMouseEnter: true,
+    })
   );
 
   return (
@@ -57,10 +61,8 @@ export function QuoteCarousel() {
           </h2>
         </div>
         <Carousel
-          plugins={[plugin.current]}
+          plugins={[autoplayPlugin.current]}
           className="w-full"
-          onMouseEnter={plugin.current.stop}
-          onMouseLeave={plugin.current.reset}
           opts={{
             align: "start",
             loop: true,
