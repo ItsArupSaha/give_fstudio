@@ -1029,6 +1029,32 @@ export async function updateEnrollment(
   }
 }
 
+export async function deleteEnrollment(
+  enrollmentId: string
+): Promise<void> {
+  try {
+    const enrollmentRef = doc(db, "enrollments", enrollmentId);
+    const enrollmentDoc = await getDoc(enrollmentRef);
+    
+    if (!enrollmentDoc.exists()) {
+      throw new Error("Enrollment not found");
+    }
+
+    const enrollmentData = enrollmentDoc.data() as EnrollmentFirestore;
+    
+    // Safety check: Only allow deletion of declined or dropped enrollments
+    // Students should not be able to delete active, pending, or completed enrollments
+    if (enrollmentData.status !== "declined" && enrollmentData.status !== "dropped") {
+      throw new Error(`Cannot delete enrollment with status "${enrollmentData.status}". Only declined or dropped enrollments can be removed.`);
+    }
+    
+    // Delete the enrollment document
+    await deleteDoc(enrollmentRef);
+  } catch (error) {
+    throw new Error(`Failed to delete enrollment: ${error}`);
+  }
+}
+
 export async function getEnrollmentsByStudent(
   studentId: string
 ): Promise<Enrollment[]> {
