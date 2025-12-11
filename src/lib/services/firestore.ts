@@ -38,6 +38,7 @@ import { assignStudentRole, isTeacherEmail, setUserRole } from "@/lib/user-roles
 import {
   collection,
   deleteDoc,
+  deleteField,
   doc,
   getDoc,
   getDocs,
@@ -957,9 +958,25 @@ export async function updateEnrollment(
       updates.droppedAt = Timestamp.fromDate(enrollment.droppedAt);
     if (enrollment.notes !== undefined) updates.notes = enrollment.notes;
     if (enrollment.studentName !== undefined) updates.studentName = enrollment.studentName;
-    if (enrollment.dikshaName !== undefined) updates.dikshaName = enrollment.dikshaName;
+    // Handle dikshaName: if explicitly provided (including empty string), update it
+    // Empty string means clear the field, undefined means don't change it
+    if (enrollment.dikshaName !== undefined) {
+      if (enrollment.dikshaName === "") {
+        (updates as any).dikshaName = deleteField();
+      } else {
+        updates.dikshaName = enrollment.dikshaName;
+      }
+    }
     if (enrollment.whatsappNumber !== undefined) updates.whatsappNumber = enrollment.whatsappNumber;
-    if (enrollment.address !== undefined) updates.address = enrollment.address;
+    // Handle address: if explicitly provided (including empty string), update it
+    // Empty string means clear the field, undefined means don't change it
+    if (enrollment.address !== undefined) {
+      if (enrollment.address === "") {
+        (updates as any).address = deleteField();
+      } else {
+        updates.address = enrollment.address;
+      }
+    }
 
     const batchWrite = writeBatch(db);
     batchWrite.update(enrollmentRef, updates);

@@ -488,9 +488,9 @@ function StudentCard({
     try {
       await updateEnrollment(enrollment.id, {
         studentName: editForm.studentName.trim(),
-        dikshaName: editForm.dikshaName.trim() || undefined,
+        dikshaName: editForm.dikshaName.trim() || "",
         whatsappNumber: editForm.whatsappNumber.trim(),
-        address: editForm.address.trim() || undefined,
+        address: editForm.address.trim() || "",
       });
       toast({
         title: "Success",
@@ -784,9 +784,9 @@ function PendingEnrollmentCard({
     try {
       await updateEnrollment(enrollment.id, {
         studentName: editForm.studentName.trim(),
-        dikshaName: editForm.dikshaName.trim() || undefined,
+        dikshaName: editForm.dikshaName.trim() || "",
         whatsappNumber: editForm.whatsappNumber.trim(),
-        address: editForm.address.trim() || undefined,
+        address: editForm.address.trim() || "",
       });
       toast({
         title: "Success",
