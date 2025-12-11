@@ -529,12 +529,12 @@ function StudentCard({
                 <p className="text-sm text-muted-foreground truncate">{student.email}</p>
               </div>
             </div>
-            <div className="flex gap-2 w-full sm:w-auto">
+            <div className="flex gap-2 justify-center">
               <Button
                 variant="outline"
                 size="sm"
                 onClick={handleEdit}
-                className="flex-1 bg-background hover:bg-accent"
+                className="bg-background hover:bg-accent"
               >
                 <Edit className="h-4 w-4 mr-1" />
                 Edit
@@ -544,7 +544,7 @@ function StudentCard({
                   variant="outline"
                   size="sm"
                   onClick={() => setShowDetails(!showDetails)}
-                  className="flex-1 bg-background hover:bg-accent"
+                  className="bg-background hover:bg-accent"
                 >
                   {showDetails ? (
                     <>
@@ -559,7 +559,7 @@ function StudentCard({
                   )}
                 </Button>
               )}
-              <Button variant="outline" size="sm" onClick={onRemove} className="flex-1 bg-background hover:bg-accent">
+              <Button variant="outline" size="sm" onClick={onRemove} className="bg-background hover:bg-accent">
                 Remove
               </Button>
             </div>
@@ -828,12 +828,12 @@ function PendingEnrollmentCard({
                 </p>
               </div>
             </div>
-            <div className="flex gap-2 w-full sm:w-auto">
+            <div className="flex gap-2 justify-center">
               <Button
                 variant="outline"
                 size="sm"
                 onClick={handleEdit}
-                className="flex-1 bg-background hover:bg-accent"
+                className="bg-background hover:bg-accent"
               >
                 <Edit className="h-4 w-4 mr-1" />
                 Edit
@@ -843,7 +843,7 @@ function PendingEnrollmentCard({
                   variant="outline"
                   size="sm"
                   onClick={() => setShowDetails(!showDetails)}
-                  className="flex-1 bg-background hover:bg-accent"
+                  className="bg-background hover:bg-accent"
                 >
                   {showDetails ? (
                     <>
@@ -858,11 +858,11 @@ function PendingEnrollmentCard({
                   )}
                 </Button>
               )}
-              <Button variant="outline" size="sm" onClick={onDecline} className="flex-1 bg-background hover:bg-accent">
+              <Button variant="outline" size="sm" onClick={onDecline} className="bg-background hover:bg-accent">
                 <XCircle className="h-4 w-4 mr-2" />
                 Decline
               </Button>
-              <Button size="sm" onClick={onApprove} className="flex-1 bg-primary hover:bg-primary/90">
+              <Button size="sm" onClick={onApprove} className="bg-primary hover:bg-primary/90">
                 <CheckCircle className="h-4 w-4 mr-2" />
                 Approve
               </Button>
