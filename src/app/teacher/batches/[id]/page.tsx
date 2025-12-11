@@ -430,8 +430,8 @@ function StudentCard({
     return null;
   }
 
-  // Use enrollment student name if available, otherwise fall back to Google name
-  const displayName = enrollment.studentName || student.name;
+  // Prioritize diksha name for spiritual platform, then student name, then Google name
+  const displayName = enrollment.dikshaName || enrollment.studentName || student.name;
   const hasAdditionalInfo = enrollment.studentName || enrollment.dikshaName || enrollment.whatsappNumber || enrollment.address;
 
   return (
@@ -447,9 +447,9 @@ function StudentCard({
               </div>
               <div className="min-w-0 flex-1">
                 <p className="font-medium truncate">{displayName}</p>
-                {enrollment.dikshaName && (
+                {enrollment.dikshaName && enrollment.studentName && enrollment.dikshaName !== enrollment.studentName && (
                   <p className="text-sm text-muted-foreground truncate">
-                    Diksha: {enrollment.dikshaName}
+                    Certificate: {enrollment.studentName}
                   </p>
                 )}
                 <p className="text-sm text-muted-foreground truncate">{student.email}</p>
@@ -570,8 +570,8 @@ function PendingEnrollmentCard({
     return null;
   }
 
-  // Use enrollment student name if available, otherwise fall back to Google name
-  const displayName = enrollment.studentName || student.name;
+  // Prioritize diksha name for spiritual platform, then student name, then Google name
+  const displayName = enrollment.dikshaName || enrollment.studentName || student.name;
   const hasAdditionalInfo = enrollment.studentName || enrollment.dikshaName || enrollment.whatsappNumber || enrollment.address;
 
   return (
@@ -587,9 +587,9 @@ function PendingEnrollmentCard({
               </div>
               <div className="min-w-0 flex-1">
                 <p className="font-medium truncate">{displayName}</p>
-                {enrollment.dikshaName && (
+                {enrollment.dikshaName && enrollment.studentName && enrollment.dikshaName !== enrollment.studentName && (
                   <p className="text-sm text-muted-foreground truncate">
-                    Diksha: {enrollment.dikshaName}
+                    Certificate: {enrollment.studentName}
                   </p>
                 )}
                 <p className="text-sm text-muted-foreground truncate">{student.email}</p>
