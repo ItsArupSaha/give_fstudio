@@ -1,3 +1,6 @@
+"use client";
+
+
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Card, CardContent } from '@/components/ui/card';
 import {
@@ -7,6 +10,8 @@ import {
   CarouselNext,
   CarouselPrevious,
 } from '@/components/ui/carousel';
+import Autoplay from 'embla-carousel-autoplay';
+import React from 'react';
 
 const testimonials = [
   {
@@ -45,6 +50,14 @@ const testimonials = [
 ];
 
 export function Testimonials() {
+  const autoplayPlugin = React.useRef(
+    Autoplay({
+      delay: 3000,
+      stopOnInteraction: true,
+      stopOnMouseEnter: true,
+    })
+  );
+
   return (
     <section
       id="testimonials"
@@ -58,6 +71,7 @@ export function Testimonials() {
           </p>
         </div>
         <Carousel
+          plugins={[autoplayPlugin.current]}
           opts={{
             align: 'start',
             loop: true,
