@@ -26,6 +26,12 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle
+} from "@/components/ui/dialog";
 import { useTeacher } from "@/hooks/use-teacher";
 import { useToast } from "@/hooks/use-toast";
 import type { Batch } from "@/lib/models/batch";
@@ -49,6 +55,7 @@ import {
 import {
   ArrowLeft,
   Download,
+  Eye,
   FileText,
   Loader2,
   Trash2,
@@ -86,6 +93,11 @@ export default function BatchSubmissionsPage() {
   const [tasksWithFiles, setTasksWithFiles] = useState<TaskFiles[]>([]);
   const [studentsMap, setStudentsMap] = useState<Map<string, User>>(new Map());
   const [enrollmentsMap, setEnrollmentsMap] = useState<Map<string, Enrollment>>(new Map());
+  const [previewFile, setPreviewFile] = useState<{
+    url: string;
+    name: string;
+    type: "pdf" | "video" | "audio" | "image" | "other";
+  } | null>(null);
   const [loading, setLoading] = useState(true);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deleteAllDialogOpen, setDeleteAllDialogOpen] = useState(false);
@@ -375,6 +387,27 @@ export default function BatchSubmissionsPage() {
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+  };
+
+  const getFileType = (fileName: string): "pdf" | "video" | "audio" | "image" | "other" => {
+    const ext = fileName.split(".").pop()?.toLowerCase() || "";
+    const videoExts = ["mp4", "webm", "mov", "m4v", "avi", "mkv"];
+    const audioExts = ["mp3", "wav", "m4a", "aac", "ogg", "flac"];
+    const imageExts = ["jpg", "jpeg", "png", "gif", "webp", "bmp"];
+    if (ext === "pdf") return "pdf";
+    if (videoExts.includes(ext)) return "video";
+    if (audioExts.includes(ext)) return "audio";
+    if (imageExts.includes(ext)) return "image";
+    return "other";
+  };
+
+  const handlePreview = (fileUrl: string, fileName: string) => {
+    const type = getFileType(fileName);
+    if (type === "other") {
+      window.open(fileUrl, "_blank", "noopener,noreferrer");
+      return;
+    }
+    setPreviewFile({ url: fileUrl, name: fileName, type });
   };
 
   const handleDeleteClick = (
@@ -953,6 +986,15 @@ export default function BatchSubmissionsPage() {
                                           variant="ghost"
                                           size="icon"
                                           className="h-8 w-8"
+                                          onClick={() => handlePreview(file.fileUrl, file.fileName)}
+                                          title="Preview file"
+                                        >
+                                          <Eye className="h-4 w-4" />
+                                        </Button>
+                                        <Button
+                                          variant="ghost"
+                                          size="icon"
+                                          className="h-8 w-8"
                                           onClick={() =>
                                             handleDownload(file.fileUrl, file.fileName)
                                           }
@@ -993,6 +1035,48 @@ export default function BatchSubmissionsPage() {
           })}
         </div>
       )}
+
+      {/* Preview dialog */}
+      <Dialog open={!!previewFile} onOpenChange={(open) => !open && setPreviewFile(null)}>
+        <DialogContent className="w-[96vw] sm:w-[90vw] max-w-4xl p-2 sm:p-4">
+          <DialogHeader className="p-0">
+            <DialogTitle className="text-base sm:text-lg">Preview</DialogTitle>
+          </DialogHeader>
+          <div className="mt-2 w-full max-h-[80vh]">
+            {previewFile?.type === "pdf" && (
+              <iframe
+                src={`${previewFile.url}#toolbar=1&navpanes=0`}
+                className="w-full h-[70vh] sm:h-[75vh] rounded border"
+                title="PDF preview"
+              />
+            )}
+            {previewFile?.type === "video" && (
+              <video
+                controls
+                className="w-full max-h-[75vh] rounded border bg-black"
+                src={previewFile.url}
+              />
+            )}
+            {previewFile?.type === "audio" && (
+              <audio controls className="w-full" src={previewFile.url} />
+            )}
+            {previewFile?.type === "image" && (
+              <img
+                src={previewFile.url}
+                alt="preview"
+                className="max-h-[75vh] w-full object-contain rounded border"
+              />
+            )}
+            {previewFile?.type === "other" && previewFile?.url && (
+              <div className="flex flex-col gap-2">
+                <Button onClick={() => window.open(previewFile.url, "_blank", "noopener,noreferrer")}>
+                  Open in new tab
+                </Button>
+              </div>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Delete Single File Dialog */}
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
