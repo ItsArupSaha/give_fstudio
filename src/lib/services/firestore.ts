@@ -956,6 +956,10 @@ export async function updateEnrollment(
     if (enrollment.droppedAt !== undefined)
       updates.droppedAt = Timestamp.fromDate(enrollment.droppedAt);
     if (enrollment.notes !== undefined) updates.notes = enrollment.notes;
+    if (enrollment.studentName !== undefined) updates.studentName = enrollment.studentName;
+    if (enrollment.dikshaName !== undefined) updates.dikshaName = enrollment.dikshaName;
+    if (enrollment.whatsappNumber !== undefined) updates.whatsappNumber = enrollment.whatsappNumber;
+    if (enrollment.address !== undefined) updates.address = enrollment.address;
 
     const batchWrite = writeBatch(db);
     batchWrite.update(enrollmentRef, updates);

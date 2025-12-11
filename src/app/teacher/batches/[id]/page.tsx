@@ -10,9 +10,20 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { ExpandableDescription } from "@/components/ui/expandable-description";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { LinkifiedText } from "@/components/ui/linkified-text";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import type { Batch } from "@/lib/models/batch";
 import type { Enrollment } from "@/lib/models/enrollment";
@@ -38,6 +49,7 @@ import {
   ChevronUp,
   ClipboardList,
   Copy,
+  Edit,
   Loader2,
   MapPin,
   Phone,
@@ -397,9 +409,18 @@ function StudentCard({
   enrollment: Enrollment;
   onRemove: () => void;
 }) {
+  const { toast } = useToast();
   const [student, setStudent] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [showDetails, setShowDetails] = useState(false);
+  const [showEditDialog, setShowEditDialog] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [editForm, setEditForm] = useState({
+    studentName: enrollment.studentName || "",
+    dikshaName: enrollment.dikshaName || "",
+    whatsappNumber: enrollment.whatsappNumber || "",
+    address: enrollment.address || "",
+  });
 
   useEffect(() => {
     loadStudent();
@@ -434,6 +455,59 @@ function StudentCard({
   const displayName = enrollment.dikshaName || enrollment.studentName || student.name;
   const hasAdditionalInfo = enrollment.studentName || enrollment.dikshaName || enrollment.whatsappNumber || enrollment.address;
 
+  const handleEdit = () => {
+    setEditForm({
+      studentName: enrollment.studentName || "",
+      dikshaName: enrollment.dikshaName || "",
+      whatsappNumber: enrollment.whatsappNumber || "",
+      address: enrollment.address || "",
+    });
+    setShowEditDialog(true);
+  };
+
+  const handleSaveEdit = async () => {
+    if (!editForm.studentName.trim()) {
+      toast({
+        title: "Validation Error",
+        description: "Certificate name is required",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!editForm.whatsappNumber.trim()) {
+      toast({
+        title: "Validation Error",
+        description: "WhatsApp number is required",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsSaving(true);
+    try {
+      await updateEnrollment(enrollment.id, {
+        studentName: editForm.studentName.trim(),
+        dikshaName: editForm.dikshaName.trim() || undefined,
+        whatsappNumber: editForm.whatsappNumber.trim(),
+        address: editForm.address.trim() || undefined,
+      });
+      toast({
+        title: "Success",
+        description: "Student information updated successfully",
+      });
+      setShowEditDialog(false);
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to update student information",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
   return (
     <Card>
       <CardContent className="py-4">
@@ -456,12 +530,21 @@ function StudentCard({
               </div>
             </div>
             <div className="flex gap-2 w-full sm:w-auto">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleEdit}
+                className="flex-1 bg-background hover:bg-accent"
+              >
+                <Edit className="h-4 w-4 mr-1" />
+                Edit
+              </Button>
               {hasAdditionalInfo && (
                 <Button
-                  variant="ghost"
+                  variant="outline"
                   size="sm"
                   onClick={() => setShowDetails(!showDetails)}
-                  className="flex-1 sm:flex-initial"
+                  className="flex-1 bg-background hover:bg-accent"
                 >
                   {showDetails ? (
                     <>
@@ -476,7 +559,7 @@ function StudentCard({
                   )}
                 </Button>
               )}
-              <Button variant="outline" size="sm" onClick={onRemove} className="w-full sm:w-auto">
+              <Button variant="outline" size="sm" onClick={onRemove} className="flex-1 bg-background hover:bg-accent">
                 Remove
               </Button>
             </div>
@@ -524,6 +607,91 @@ function StudentCard({
           )}
         </div>
       </CardContent>
+
+      {/* Edit Dialog */}
+      <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
+        <DialogContent className="w-[90%] max-w-md sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Edit Student Information</DialogTitle>
+            <DialogDescription>
+              Update the student's information. Changes will be saved immediately.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="edit-studentName">
+                Certificate Name <span className="text-red-500">*</span>
+              </Label>
+              <Input
+                id="edit-studentName"
+                placeholder="Enter certificate name"
+                value={editForm.studentName}
+                onChange={(e) => setEditForm({ ...editForm, studentName: e.target.value })}
+                required
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="edit-dikshaName">Diksha Name (Optional)</Label>
+              <Input
+                id="edit-dikshaName"
+                placeholder="Enter diksha name"
+                value={editForm.dikshaName}
+                onChange={(e) => setEditForm({ ...editForm, dikshaName: e.target.value })}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="edit-whatsappNumber">
+                WhatsApp Number <span className="text-red-500">*</span>
+              </Label>
+              <Input
+                id="edit-whatsappNumber"
+                placeholder="Enter WhatsApp number with country code"
+                value={editForm.whatsappNumber}
+                onChange={(e) => setEditForm({ ...editForm, whatsappNumber: e.target.value })}
+                type="tel"
+                required
+              />
+              <p className="text-xs text-muted-foreground">
+                Example: +1234567890
+              </p>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="edit-address">Address (Optional)</Label>
+              <Textarea
+                id="edit-address"
+                placeholder="Enter address"
+                value={editForm.address}
+                onChange={(e) => setEditForm({ ...editForm, address: e.target.value })}
+                rows={3}
+              />
+            </div>
+          </div>
+          <DialogFooter className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end sm:space-x-2">
+            <Button
+              variant="outline"
+              onClick={() => setShowEditDialog(false)}
+              disabled={isSaving}
+              className="w-full sm:w-auto"
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleSaveEdit}
+              disabled={isSaving || !editForm.studentName.trim() || !editForm.whatsappNumber.trim()}
+              className="w-full sm:w-auto"
+            >
+              {isSaving ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Saving...
+                </>
+              ) : (
+                "Save Changes"
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </Card>
   );
 }
@@ -537,9 +705,18 @@ function PendingEnrollmentCard({
   onApprove: () => void;
   onDecline: () => void;
 }) {
+  const { toast } = useToast();
   const [student, setStudent] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [showDetails, setShowDetails] = useState(false);
+  const [showEditDialog, setShowEditDialog] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [editForm, setEditForm] = useState({
+    studentName: enrollment.studentName || "",
+    dikshaName: enrollment.dikshaName || "",
+    whatsappNumber: enrollment.whatsappNumber || "",
+    address: enrollment.address || "",
+  });
 
   useEffect(() => {
     loadStudent();
@@ -574,6 +751,59 @@ function PendingEnrollmentCard({
   const displayName = enrollment.dikshaName || enrollment.studentName || student.name;
   const hasAdditionalInfo = enrollment.studentName || enrollment.dikshaName || enrollment.whatsappNumber || enrollment.address;
 
+  const handleEdit = () => {
+    setEditForm({
+      studentName: enrollment.studentName || "",
+      dikshaName: enrollment.dikshaName || "",
+      whatsappNumber: enrollment.whatsappNumber || "",
+      address: enrollment.address || "",
+    });
+    setShowEditDialog(true);
+  };
+
+  const handleSaveEdit = async () => {
+    if (!editForm.studentName.trim()) {
+      toast({
+        title: "Validation Error",
+        description: "Certificate name is required",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!editForm.whatsappNumber.trim()) {
+      toast({
+        title: "Validation Error",
+        description: "WhatsApp number is required",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsSaving(true);
+    try {
+      await updateEnrollment(enrollment.id, {
+        studentName: editForm.studentName.trim(),
+        dikshaName: editForm.dikshaName.trim() || undefined,
+        whatsappNumber: editForm.whatsappNumber.trim(),
+        address: editForm.address.trim() || undefined,
+      });
+      toast({
+        title: "Success",
+        description: "Student information updated successfully",
+      });
+      setShowEditDialog(false);
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to update student information",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
   return (
     <Card>
       <CardContent className="py-4">
@@ -599,12 +829,21 @@ function PendingEnrollmentCard({
               </div>
             </div>
             <div className="flex gap-2 w-full sm:w-auto">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleEdit}
+                className="flex-1 bg-background hover:bg-accent"
+              >
+                <Edit className="h-4 w-4 mr-1" />
+                Edit
+              </Button>
               {hasAdditionalInfo && (
                 <Button
-                  variant="ghost"
+                  variant="outline"
                   size="sm"
                   onClick={() => setShowDetails(!showDetails)}
-                  className="flex-1 sm:flex-initial"
+                  className="flex-1 bg-background hover:bg-accent"
                 >
                   {showDetails ? (
                     <>
@@ -619,11 +858,11 @@ function PendingEnrollmentCard({
                   )}
                 </Button>
               )}
-              <Button variant="outline" size="sm" onClick={onDecline} className="flex-1 sm:flex-initial">
+              <Button variant="outline" size="sm" onClick={onDecline} className="flex-1 bg-background hover:bg-accent">
                 <XCircle className="h-4 w-4 mr-2" />
                 Decline
               </Button>
-              <Button size="sm" onClick={onApprove} className="flex-1 sm:flex-initial">
+              <Button size="sm" onClick={onApprove} className="flex-1 bg-primary hover:bg-primary/90">
                 <CheckCircle className="h-4 w-4 mr-2" />
                 Approve
               </Button>
@@ -672,6 +911,91 @@ function PendingEnrollmentCard({
           )}
         </div>
       </CardContent>
+
+      {/* Edit Dialog */}
+      <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
+        <DialogContent className="w-[90%] max-w-md sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Edit Student Information</DialogTitle>
+            <DialogDescription>
+              Update the student's information. Changes will be saved immediately.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="edit-pending-studentName">
+                Certificate Name <span className="text-red-500">*</span>
+              </Label>
+              <Input
+                id="edit-pending-studentName"
+                placeholder="Enter certificate name"
+                value={editForm.studentName}
+                onChange={(e) => setEditForm({ ...editForm, studentName: e.target.value })}
+                required
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="edit-pending-dikshaName">Diksha Name (Optional)</Label>
+              <Input
+                id="edit-pending-dikshaName"
+                placeholder="Enter diksha name"
+                value={editForm.dikshaName}
+                onChange={(e) => setEditForm({ ...editForm, dikshaName: e.target.value })}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="edit-pending-whatsappNumber">
+                WhatsApp Number <span className="text-red-500">*</span>
+              </Label>
+              <Input
+                id="edit-pending-whatsappNumber"
+                placeholder="Enter WhatsApp number with country code"
+                value={editForm.whatsappNumber}
+                onChange={(e) => setEditForm({ ...editForm, whatsappNumber: e.target.value })}
+                type="tel"
+                required
+              />
+              <p className="text-xs text-muted-foreground">
+                Example: +1234567890
+              </p>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="edit-pending-address">Address (Optional)</Label>
+              <Textarea
+                id="edit-pending-address"
+                placeholder="Enter address"
+                value={editForm.address}
+                onChange={(e) => setEditForm({ ...editForm, address: e.target.value })}
+                rows={3}
+              />
+            </div>
+          </div>
+          <DialogFooter className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end sm:space-x-2">
+            <Button
+              variant="outline"
+              onClick={() => setShowEditDialog(false)}
+              disabled={isSaving}
+              className="w-full sm:w-auto"
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleSaveEdit}
+              disabled={isSaving || !editForm.studentName.trim() || !editForm.whatsappNumber.trim()}
+              className="w-full sm:w-auto"
+            >
+              {isSaving ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Saving...
+                </>
+              ) : (
+                "Save Changes"
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </Card>
   );
 }
