@@ -29,10 +29,12 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { useTeacher } from "@/hooks/use-teacher";
 import { useToast } from "@/hooks/use-toast";
 import type { Batch } from "@/lib/models/batch";
+import type { Enrollment } from "@/lib/models/enrollment";
 import type { Task } from "@/lib/models/task";
 import type { User } from "@/lib/models/user";
 import {
   getBatchById,
+  getEnrollmentsByBatch,
   getSubmissionsByBatch,
   getTasksByBatch,
   getUserById,
@@ -83,6 +85,7 @@ export default function BatchSubmissionsPage() {
   const [batch, setBatch] = useState<Batch | null>(null);
   const [tasksWithFiles, setTasksWithFiles] = useState<TaskFiles[]>([]);
   const [studentsMap, setStudentsMap] = useState<Map<string, User>>(new Map());
+  const [enrollmentsMap, setEnrollmentsMap] = useState<Map<string, Enrollment>>(new Map());
   const [loading, setLoading] = useState(true);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deleteAllDialogOpen, setDeleteAllDialogOpen] = useState(false);
@@ -116,11 +119,12 @@ export default function BatchSubmissionsPage() {
     try {
       setLoading(true);
 
-      // Load batch, all tasks, and all submissions in parallel
-      const [batchData, tasks, submissions] = await Promise.all([
+      // Load batch, all tasks, submissions, and enrollments in parallel
+      const [batchData, tasks, submissions, enrollments] = await Promise.all([
         getBatchById(batchId),
         getTasksByBatch(batchId),
         getSubmissionsByBatch(batchId),
+        getEnrollmentsByBatch(batchId),
       ]);
 
       setBatch(batchData);
@@ -212,13 +216,32 @@ export default function BatchSubmissionsPage() {
       await Promise.all(studentLoadPromises);
       setStudentsMap(studentsMap);
 
+      // Map enrollments by studentId for display name priority (diksha -> certificate -> google)
+      const enrollmentMap = new Map<string, Enrollment>();
+      enrollments.forEach((enrollment) => {
+        if (enrollment.studentId && !enrollmentMap.has(enrollment.studentId)) {
+          enrollmentMap.set(enrollment.studentId, enrollment);
+        }
+      });
+      setEnrollmentsMap(enrollmentMap);
+
       // Sort student submissions by student name for each task
       taskFilesMap.forEach((taskFiles) => {
         taskFiles.studentSubmissions.sort((a, b) => {
           const studentA = studentsMap.get(a.studentId);
           const studentB = studentsMap.get(b.studentId);
-          const nameA = studentA?.name || "Unknown Student";
-          const nameB = studentB?.name || "Unknown Student";
+          const enrollmentA = enrollmentMap.get(a.studentId);
+          const enrollmentB = enrollmentMap.get(b.studentId);
+          const nameA =
+            enrollmentA?.dikshaName ||
+            enrollmentA?.studentName ||
+            studentA?.name ||
+            "Unknown Student";
+          const nameB =
+            enrollmentB?.dikshaName ||
+            enrollmentB?.studentName ||
+            studentB?.name ||
+            "Unknown Student";
           return nameA.localeCompare(nameB);
         });
       });
@@ -855,9 +878,19 @@ export default function BatchSubmissionsPage() {
                     <Accordion type="multiple" className="w-full">
                       {studentSubmissions.map((studentSub) => {
                         const student = studentsMap.get(studentSub.studentId);
-                        const studentName = student?.name || "Unknown Student";
-                        const studentEmail = student?.email || "";
+                        const enrollment = enrollmentsMap.get(studentSub.studentId);
+                        const studentName =
+                          enrollment?.dikshaName ||
+                          enrollment?.studentName ||
+                          student?.name ||
+                          "Unknown Student";
                         const fileCount = studentSub.files.length;
+                        const certificateName =
+                          enrollment?.studentName &&
+                            enrollment?.dikshaName &&
+                            enrollment.dikshaName !== enrollment.studentName
+                            ? enrollment.studentName
+                            : null;
 
                         return (
                           <AccordionItem
@@ -866,14 +899,14 @@ export default function BatchSubmissionsPage() {
                             className="border-b"
                           >
                             <AccordionTrigger className="hover:no-underline">
-                              <div className="flex items-center justify-between w-full pr-4 gap-2">
+                              <div className="flex flex-wrap items-center justify-between w-full gap-2 sm:gap-3">
                                 <div className="flex flex-col items-start min-w-0 flex-1">
                                   <span className="font-medium text-base break-words">
                                     {studentName}
                                   </span>
-                                  {studentEmail && (
-                                    <span className="text-sm text-muted-foreground break-all">
-                                      {studentEmail}
+                                  {certificateName && (
+                                    <span className="text-sm text-muted-foreground break-words">
+                                      Certificate: {certificateName}
                                     </span>
                                   )}
                                 </div>
@@ -883,7 +916,7 @@ export default function BatchSubmissionsPage() {
                               </div>
                             </AccordionTrigger>
                             <AccordionContent>
-                              <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3 pt-2">
+                              <div className="grid gap-2 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 pt-2">
                                 {studentSub.files.map((file: StudentFile, index: number) => {
                                   const isDailyListening = task.type === "dailyListening";
                                   const isSelected = selectedFiles.has(file.fileUrl);
@@ -891,7 +924,7 @@ export default function BatchSubmissionsPage() {
                                   return (
                                     <div
                                       key={index}
-                                      className={`flex flex-col p-3 bg-muted rounded-lg border gap-2 ${isSelected && !isDailyListening ? 'ring-2 ring-primary' : ''}`}
+                                      className={`flex flex-col p-3 bg-muted rounded-lg border gap-2 w-full ${isSelected && !isDailyListening ? 'ring-2 ring-primary' : ''}`}
                                     >
                                       <div className="flex items-center gap-2 flex-1 min-w-0">
                                         {!isDailyListening && (
@@ -904,7 +937,7 @@ export default function BatchSubmissionsPage() {
                                           />
                                         )}
                                         <FileText className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-                                        <span className="text-sm truncate" title={file.fileName}>
+                                        <span className="text-sm break-words" title={file.fileName}>
                                           {file.fileName}
                                         </span>
                                       </div>
