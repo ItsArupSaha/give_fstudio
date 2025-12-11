@@ -127,17 +127,18 @@ export default function DailyListeningAnalyticsPage() {
       if (appliedDateRange.from || appliedDateRange.to) {
         dailyListeningTasks = dailyListeningTasks.filter((task) => {
           const taskDate = new Date(task.createdAt);
-          taskDate.setHours(0, 0, 0, 0);
 
           if (appliedDateRange.from) {
             const fromDate = new Date(appliedDateRange.from);
             fromDate.setHours(0, 0, 0, 0);
+            // Exclude tasks created before 12:00 AM of start date
             if (taskDate < fromDate) return false;
           }
 
           if (appliedDateRange.to) {
             const toDate = new Date(appliedDateRange.to);
             toDate.setHours(23, 59, 59, 999);
+            // Include tasks created up to and including 11:59:59 PM of end date
             if (taskDate > toDate) return false;
           }
 
@@ -178,17 +179,18 @@ export default function DailyListeningAnalyticsPage() {
                 if (!submissionDate) return false;
 
                 const subDate = new Date(submissionDate);
-                subDate.setHours(0, 0, 0, 0);
 
                 if (appliedDateRange.from) {
                   const fromDate = new Date(appliedDateRange.from);
                   fromDate.setHours(0, 0, 0, 0);
+                  // Exclude submissions before the start date (before 12:00 AM of start date)
                   if (subDate < fromDate) return false;
                 }
 
                 if (appliedDateRange.to) {
                   const toDate = new Date(appliedDateRange.to);
                   toDate.setHours(23, 59, 59, 999);
+                  // Include submissions up to and including 11:59:59 PM of end date
                   if (subDate > toDate) return false;
                 }
 
@@ -252,7 +254,7 @@ export default function DailyListeningAnalyticsPage() {
       const workbook = new ExcelJS.Workbook();
       const worksheet = workbook.addWorksheet("Daily Listening Analytics");
 
-      // Define columns
+      // Define columns (headers will be in row 2 after we insert date range row)
       worksheet.columns = [
         { header: "Student Name", key: "studentName", width: 25 },
         { header: "Diksha Name", key: "dikshaName", width: 25 },
@@ -264,15 +266,42 @@ export default function DailyListeningAnalyticsPage() {
         { header: "Status", key: "status", width: 20 },
       ];
 
-      // Style the header row
-      worksheet.getRow(1).font = { bold: true };
-      worksheet.getRow(1).fill = {
+      // Insert a row at the beginning for date range info
+      worksheet.insertRow(1, []);
+
+      // Add date range info row (row 1)
+      let dateRangeText = "Date Range: All Time";
+      if (appliedDateRange.from || appliedDateRange.to) {
+        if (appliedDateRange.from && appliedDateRange.to) {
+          dateRangeText = `Date Range: ${format(appliedDateRange.from, "MMM dd, yyyy")} to ${format(appliedDateRange.to, "MMM dd, yyyy")}`;
+        } else if (appliedDateRange.from) {
+          dateRangeText = `Date Range: From ${format(appliedDateRange.from, "MMM dd, yyyy")}`;
+        } else if (appliedDateRange.to) {
+          dateRangeText = `Date Range: Up to ${format(appliedDateRange.to, "MMM dd, yyyy")}`;
+        }
+      }
+
+      worksheet.mergeCells(1, 1, 1, worksheet.columns.length);
+      const dateRangeRow = worksheet.getRow(1);
+      dateRangeRow.getCell(1).value = dateRangeText;
+      dateRangeRow.getCell(1).font = { bold: true };
+      dateRangeRow.getCell(1).fill = {
+        type: "pattern",
+        pattern: "solid",
+        fgColor: { argb: "FFF0F0F0" },
+      };
+      dateRangeRow.getCell(1).alignment = { horizontal: "left", vertical: "middle" };
+      dateRangeRow.height = 20;
+
+      // Style the header row (row 2) - column headers
+      worksheet.getRow(2).font = { bold: true };
+      worksheet.getRow(2).fill = {
         type: "pattern",
         pattern: "solid",
         fgColor: { argb: "FFE0E0E0" },
       };
 
-      // Add data rows
+      // Add data rows - uses filtered analytics based on date range
       analytics.forEach((item) => {
         worksheet.addRow({
           studentName: item.enrollment.studentName || item.student.name || "Unknown",
@@ -293,11 +322,29 @@ export default function DailyListeningAnalyticsPage() {
         });
       });
 
-      // Generate filename with batch name and date
+      // Generate filename with batch name, date range, and export date
       const batchName = batch?.name || "Batch";
       const sanitizedBatchName = batchName.replace(/[^a-zA-Z0-9]/g, "_");
-      const date = new Date().toISOString().split("T")[0];
-      const filename = `Daily_Listening_Analytics_${sanitizedBatchName}_${date}.xlsx`;
+      const exportDate = new Date().toISOString().split("T")[0];
+
+      let dateRangeSuffix = "";
+      if (appliedDateRange.from || appliedDateRange.to) {
+        if (appliedDateRange.from && appliedDateRange.to) {
+          const fromStr = format(appliedDateRange.from, "yyyy-MM-dd");
+          const toStr = format(appliedDateRange.to, "yyyy-MM-dd");
+          dateRangeSuffix = `_${fromStr}_to_${toStr}`;
+        } else if (appliedDateRange.from) {
+          const fromStr = format(appliedDateRange.from, "yyyy-MM-dd");
+          dateRangeSuffix = `_from_${fromStr}`;
+        } else if (appliedDateRange.to) {
+          const toStr = format(appliedDateRange.to, "yyyy-MM-dd");
+          dateRangeSuffix = `_to_${toStr}`;
+        }
+      } else {
+        dateRangeSuffix = "_All_Time";
+      }
+
+      const filename = `Daily_Listening_Analytics_${sanitizedBatchName}${dateRangeSuffix}_exported_${exportDate}.xlsx`;
 
       // Write file
       const buffer = await workbook.xlsx.writeBuffer();
