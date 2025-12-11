@@ -1044,11 +1044,20 @@ export default function BatchSubmissionsPage() {
           </DialogHeader>
           <div className="mt-2 w-full max-h-[80vh]">
             {previewFile?.type === "pdf" && (
-              <iframe
-                src={`${previewFile.url}#toolbar=1&navpanes=0`}
-                className="w-full h-[70vh] sm:h-[75vh] rounded border"
-                title="PDF preview"
-              />
+              <div className="w-full h-[70vh] sm:h-[75vh]">
+                <object
+                  data={`${previewFile.url}#toolbar=0&navpanes=0&scrollbar=1`}
+                  type="application/pdf"
+                  className="w-full h-full rounded border"
+                  aria-label="PDF preview"
+                >
+                  <iframe
+                    src={`${previewFile.url}#toolbar=0&navpanes=0&scrollbar=1`}
+                    className="w-full h-full rounded border"
+                    title="PDF preview"
+                  />
+                </object>
+              </div>
             )}
             {previewFile?.type === "video" && (
               <video
