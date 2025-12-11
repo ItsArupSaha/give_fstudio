@@ -30,6 +30,7 @@ import {
 import { ExpandableDescription } from "@/components/ui/expandable-description";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { useAuthUser } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
 import type { Batch } from "@/lib/models/batch";
@@ -75,6 +76,13 @@ export function StudentDashboard() {
   const [classCode, setClassCode] = useState("");
   const [showSuccessDialog, setShowSuccessDialog] = useState(false);
   const [successBatchName, setSuccessBatchName] = useState("");
+  // Information collection dialog state
+  const [showInfoDialog, setShowInfoDialog] = useState(false);
+  const [validatedBatchInfo, setValidatedBatchInfo] = useState<{ batchId: string; courseGroupId: string; classCode: string } | null>(null);
+  const [studentName, setStudentName] = useState("");
+  const [dikshaName, setDikshaName] = useState("");
+  const [whatsappNumber, setWhatsappNumber] = useState("");
+  const [address, setAddress] = useState("");
 
   useEffect(() => {
     if (!user?.uid) return;
@@ -168,30 +176,92 @@ export function StudentDashboard() {
         return;
       }
 
-      // Check if already enrolled
+      // Check if already enrolled (only check active or pending enrollments)
+      // Allow rejoining if status is "dropped" or "declined"
       const isAlreadyEnrolled = enrollments.some(
-        (e) => e.batchId === batchInfo.batchId
+        (e) => e.batchId === batchInfo.batchId &&
+          (e.status === "active" || e.status === "pending" || e.status === "completed")
       );
 
       if (isAlreadyEnrolled) {
+        const existingEnrollment = enrollments.find(e => e.batchId === batchInfo.batchId);
+        let message = "You are already enrolled in this batch.";
+        if (existingEnrollment?.status === "pending") {
+          message = "You have a pending enrollment request for this batch.";
+        } else if (existingEnrollment?.status === "completed") {
+          message = "You have already completed this batch.";
+        }
         toast({
           title: "Already Enrolled",
-          description: "You are already enrolled in this batch.",
+          description: message,
           variant: "destructive",
         });
         setIsJoining(false);
         return;
       }
 
-      // Create enrollment request (student doesn't need to see batch details)
-      console.log("Creating enrollment for batch:", batchInfo.batchId);
+      // Store validated batch info and show information collection dialog
+      setValidatedBatchInfo({
+        ...batchInfo,
+        classCode: classCode.trim().toUpperCase(),
+      });
+      setIsJoinDialogOpen(false);
+      setShowInfoDialog(true);
+    } catch (error) {
+      console.error("Error validating class code:", error);
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to validate class code",
+        variant: "destructive",
+      });
+    } finally {
+      setIsJoining(false);
+    }
+  };
+
+  const handleSubmitEnrollmentInfo = async () => {
+    if (!user?.uid || !user?.email || !validatedBatchInfo) {
+      toast({
+        title: "Error",
+        description: "Missing required information",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!studentName.trim()) {
+      toast({
+        title: "Validation Error",
+        description: "Please enter your name",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!whatsappNumber.trim()) {
+      toast({
+        title: "Validation Error",
+        description: "Please enter your WhatsApp number",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsJoining(true);
+    try {
+      // Create enrollment request with student information
+      console.log("Creating enrollment for batch:", validatedBatchInfo.batchId);
       const enrollmentId = await createEnrollment({
         studentId: user.uid,
-        batchId: batchInfo.batchId,
-        courseGroupId: batchInfo.courseGroupId,
+        batchId: validatedBatchInfo.batchId,
+        courseGroupId: validatedBatchInfo.courseGroupId,
         status: "pending",
         enrolledAt: new Date(),
-        classCode: classCode.trim().toUpperCase(),
+        classCode: validatedBatchInfo.classCode,
+        studentName: studentName.trim(),
+        dikshaName: dikshaName.trim() || undefined,
+        whatsappNumber: whatsappNumber.trim(),
+        address: address.trim() || undefined,
       }, user.email || "");
 
       console.log("Enrollment created with ID:", enrollmentId);
@@ -199,24 +269,31 @@ export function StudentDashboard() {
       // Assign student role if not already assigned
       await assignStudentRole(user.uid, user.email);
 
-      // Show success dialog and toast (use class code instead of batch name since we don't have it)
-      setSuccessBatchName(`Class Code: ${classCode.trim().toUpperCase()}`);
-      setIsJoinDialogOpen(false);
+      // Reset form
+      setStudentName("");
+      setDikshaName("");
+      setWhatsappNumber("");
+      setAddress("");
       setClassCode("");
+      setValidatedBatchInfo(null);
+      setShowInfoDialog(false);
+
+      // Show success dialog and toast
+      setSuccessBatchName(`Class Code: ${validatedBatchInfo.classCode}`);
 
       // Show toast notification
       toast({
         title: "Request Sent",
-        description: `Your enrollment request for class code "${classCode.trim().toUpperCase()}" has been sent. Waiting for teacher approval.`,
+        description: `Your enrollment request for class code "${validatedBatchInfo.classCode}" has been sent. Waiting for teacher approval.`,
       });
 
       // Show success dialog
       setShowSuccessDialog(true);
     } catch (error) {
-      console.error("Error joining batch:", error);
+      console.error("Error creating enrollment:", error);
       toast({
         title: "Error",
-        description: error instanceof Error ? error.message : "Failed to join batch",
+        description: error instanceof Error ? error.message : "Failed to create enrollment",
         variant: "destructive",
       });
     } finally {
@@ -309,7 +386,7 @@ export function StudentDashboard() {
                   Join Batch
                 </Button>
               </DialogTrigger>
-              <DialogContent>
+              <DialogContent className="w-[90%] max-w-md sm:max-w-lg left-[50%] top-[50%] translate-x-[-50%] translate-y-[-50%] mx-auto">
                 <DialogHeader>
                   <DialogTitle>Join Batch</DialogTitle>
                   <DialogDescription>
@@ -329,17 +406,23 @@ export function StudentDashboard() {
                     />
                   </div>
                 </div>
-                <DialogFooter>
+                <DialogFooter className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end sm:space-x-2">
                   <Button
                     variant="outline"
                     onClick={() => {
                       setIsJoinDialogOpen(false);
                       setClassCode("");
                     }}
+                    className="w-full sm:w-auto"
+                    disabled={isJoining}
                   >
                     Cancel
                   </Button>
-                  <Button onClick={handleJoinBatch} disabled={isJoining}>
+                  <Button
+                    onClick={handleJoinBatch}
+                    disabled={isJoining}
+                    className="w-full sm:w-auto"
+                  >
                     {isJoining ? (
                       <>
                         <Loader2 className="h-4 w-4 mr-2 animate-spin" />
@@ -355,6 +438,110 @@ export function StudentDashboard() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Student Information Collection Dialog */}
+      <Dialog open={showInfoDialog} onOpenChange={(open) => {
+        if (!open && !isJoining) {
+          setShowInfoDialog(false);
+          setValidatedBatchInfo(null);
+          setStudentName("");
+          setDikshaName("");
+          setWhatsappNumber("");
+          setAddress("");
+        }
+      }}>
+        <DialogContent className="w-[90%] max-w-md sm:max-w-2xl left-[50%] top-[50%] translate-x-[-50%] translate-y-[-50%] mx-auto max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Student Information</DialogTitle>
+            <DialogDescription>
+              Please provide your information for enrollment. This information will be used for certificates and communication.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="studentName">
+                Full Name <span className="text-red-500">*</span>
+              </Label>
+              <Input
+                id="studentName"
+                placeholder="Enter your full name (as it should appear on certificate)"
+                value={studentName}
+                onChange={(e) => setStudentName(e.target.value)}
+                required
+              />
+              <p className="text-xs text-muted-foreground">
+                This name will be used on your completion certificate
+              </p>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="dikshaName">Diksha Name (Optional)</Label>
+              <Input
+                id="dikshaName"
+                placeholder="Enter your diksha name if you have one"
+                value={dikshaName}
+                onChange={(e) => setDikshaName(e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="whatsappNumber">
+                WhatsApp Number <span className="text-red-500">*</span>
+              </Label>
+              <Input
+                id="whatsappNumber"
+                placeholder="Enter your WhatsApp number with country code"
+                value={whatsappNumber}
+                onChange={(e) => setWhatsappNumber(e.target.value)}
+                type="tel"
+                required
+              />
+              <p className="text-xs text-muted-foreground">
+                Example: +1234567890
+              </p>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="address">Address (Optional)</Label>
+              <Textarea
+                id="address"
+                placeholder="Enter your address"
+                value={address}
+                onChange={(e) => setAddress(e.target.value)}
+                rows={3}
+              />
+            </div>
+          </div>
+          <DialogFooter className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end sm:space-x-2">
+            <Button
+              variant="outline"
+              onClick={() => {
+                setShowInfoDialog(false);
+                setValidatedBatchInfo(null);
+                setStudentName("");
+                setDikshaName("");
+                setWhatsappNumber("");
+                setAddress("");
+              }}
+              disabled={isJoining}
+              className="w-full sm:w-auto"
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleSubmitEnrollmentInfo}
+              disabled={isJoining || !studentName.trim() || !whatsappNumber.trim()}
+              className="w-full sm:w-auto"
+            >
+              {isJoining ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Submitting...
+                </>
+              ) : (
+                "Submit Enrollment Request"
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Bookmarked Tasks Section */}
       {bookmarks.length > 0 && (

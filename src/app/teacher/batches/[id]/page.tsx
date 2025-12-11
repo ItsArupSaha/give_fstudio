@@ -34,11 +34,16 @@ import {
   ArrowLeft,
   Check,
   CheckCircle,
+  ChevronDown,
+  ChevronUp,
   ClipboardList,
   Copy,
   Loader2,
+  MapPin,
+  Phone,
+  User as UserIcon,
   Users,
-  XCircle,
+  XCircle
 } from "lucide-react";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -394,6 +399,7 @@ function StudentCard({
 }) {
   const [student, setStudent] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const [showDetails, setShowDetails] = useState(false);
 
   useEffect(() => {
     loadStudent();
@@ -424,24 +430,98 @@ function StudentCard({
     return null;
   }
 
+  // Use enrollment student name if available, otherwise fall back to Google name
+  const displayName = enrollment.studentName || student.name;
+  const hasAdditionalInfo = enrollment.studentName || enrollment.dikshaName || enrollment.whatsappNumber || enrollment.address;
+
   return (
     <Card>
       <CardContent className="py-4">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-          <div className="flex items-center gap-3 min-w-0 flex-1">
-            <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
-              <span className="text-primary font-medium">
-                {student.name.charAt(0).toUpperCase()}
-              </span>
+        <div className="space-y-3">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <div className="flex items-center gap-3 min-w-0 flex-1">
+              <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
+                <span className="text-primary font-medium">
+                  {displayName.charAt(0).toUpperCase()}
+                </span>
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="font-medium truncate">{displayName}</p>
+                {enrollment.dikshaName && (
+                  <p className="text-sm text-muted-foreground truncate">
+                    Diksha: {enrollment.dikshaName}
+                  </p>
+                )}
+                <p className="text-sm text-muted-foreground truncate">{student.email}</p>
+              </div>
             </div>
-            <div className="min-w-0 flex-1">
-              <p className="font-medium truncate">{student.name}</p>
-              <p className="text-sm text-muted-foreground truncate">{student.email}</p>
+            <div className="flex gap-2 w-full sm:w-auto">
+              {hasAdditionalInfo && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setShowDetails(!showDetails)}
+                  className="flex-1 sm:flex-initial"
+                >
+                  {showDetails ? (
+                    <>
+                      <ChevronUp className="h-4 w-4 mr-1" />
+                      Hide
+                    </>
+                  ) : (
+                    <>
+                      <ChevronDown className="h-4 w-4 mr-1" />
+                      Details
+                    </>
+                  )}
+                </Button>
+              )}
+              <Button variant="outline" size="sm" onClick={onRemove} className="w-full sm:w-auto">
+                Remove
+              </Button>
             </div>
           </div>
-          <Button variant="outline" size="sm" onClick={onRemove} className="w-full sm:w-auto">
-            Remove
-          </Button>
+
+          {showDetails && hasAdditionalInfo && (
+            <div className="pt-3 border-t space-y-2">
+              {enrollment.studentName && (
+                <div className="flex items-start gap-2 text-sm">
+                  <UserIcon className="h-4 w-4 text-muted-foreground mt-0.5 flex-shrink-0" />
+                  <div>
+                    <span className="font-medium text-muted-foreground">Certificate Name:</span>
+                    <span className="ml-2">{enrollment.studentName}</span>
+                  </div>
+                </div>
+              )}
+              {enrollment.dikshaName && (
+                <div className="flex items-start gap-2 text-sm">
+                  <UserIcon className="h-4 w-4 text-muted-foreground mt-0.5 flex-shrink-0" />
+                  <div>
+                    <span className="font-medium text-muted-foreground">Diksha Name:</span>
+                    <span className="ml-2">{enrollment.dikshaName}</span>
+                  </div>
+                </div>
+              )}
+              {enrollment.whatsappNumber && (
+                <div className="flex items-start gap-2 text-sm">
+                  <Phone className="h-4 w-4 text-muted-foreground mt-0.5 flex-shrink-0" />
+                  <div>
+                    <span className="font-medium text-muted-foreground">WhatsApp:</span>
+                    <span className="ml-2">{enrollment.whatsappNumber}</span>
+                  </div>
+                </div>
+              )}
+              {enrollment.address && (
+                <div className="flex items-start gap-2 text-sm">
+                  <MapPin className="h-4 w-4 text-muted-foreground mt-0.5 flex-shrink-0" />
+                  <div>
+                    <span className="font-medium text-muted-foreground">Address:</span>
+                    <span className="ml-2 whitespace-pre-wrap">{enrollment.address}</span>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
         </div>
       </CardContent>
     </Card>
@@ -459,6 +539,7 @@ function PendingEnrollmentCard({
 }) {
   const [student, setStudent] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const [showDetails, setShowDetails] = useState(false);
 
   useEffect(() => {
     loadStudent();
@@ -489,34 +570,106 @@ function PendingEnrollmentCard({
     return null;
   }
 
+  // Use enrollment student name if available, otherwise fall back to Google name
+  const displayName = enrollment.studentName || student.name;
+  const hasAdditionalInfo = enrollment.studentName || enrollment.dikshaName || enrollment.whatsappNumber || enrollment.address;
+
   return (
     <Card>
       <CardContent className="py-4">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-          <div className="flex items-center gap-3 min-w-0 flex-1">
-            <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
-              <span className="text-primary font-medium">
-                {student.name.charAt(0).toUpperCase()}
-              </span>
+        <div className="space-y-3">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <div className="flex items-center gap-3 min-w-0 flex-1">
+              <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
+                <span className="text-primary font-medium">
+                  {displayName.charAt(0).toUpperCase()}
+                </span>
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="font-medium truncate">{displayName}</p>
+                {enrollment.dikshaName && (
+                  <p className="text-sm text-muted-foreground truncate">
+                    Diksha: {enrollment.dikshaName}
+                  </p>
+                )}
+                <p className="text-sm text-muted-foreground truncate">{student.email}</p>
+                <p className="text-xs text-muted-foreground">
+                  Requested {new Date(enrollment.enrolledAt).toLocaleDateString()}
+                </p>
+              </div>
             </div>
-            <div className="min-w-0 flex-1">
-              <p className="font-medium truncate">{student.name}</p>
-              <p className="text-sm text-muted-foreground truncate">{student.email}</p>
-              <p className="text-xs text-muted-foreground">
-                Requested {new Date(enrollment.enrolledAt).toLocaleDateString()}
-              </p>
+            <div className="flex gap-2 w-full sm:w-auto">
+              {hasAdditionalInfo && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setShowDetails(!showDetails)}
+                  className="flex-1 sm:flex-initial"
+                >
+                  {showDetails ? (
+                    <>
+                      <ChevronUp className="h-4 w-4 mr-1" />
+                      Hide
+                    </>
+                  ) : (
+                    <>
+                      <ChevronDown className="h-4 w-4 mr-1" />
+                      Details
+                    </>
+                  )}
+                </Button>
+              )}
+              <Button variant="outline" size="sm" onClick={onDecline} className="flex-1 sm:flex-initial">
+                <XCircle className="h-4 w-4 mr-2" />
+                Decline
+              </Button>
+              <Button size="sm" onClick={onApprove} className="flex-1 sm:flex-initial">
+                <CheckCircle className="h-4 w-4 mr-2" />
+                Approve
+              </Button>
             </div>
           </div>
-          <div className="flex gap-2 w-full sm:w-auto">
-            <Button variant="outline" size="sm" onClick={onDecline} className="flex-1 sm:flex-initial">
-              <XCircle className="h-4 w-4 mr-2" />
-              Decline
-            </Button>
-            <Button size="sm" onClick={onApprove} className="flex-1 sm:flex-initial">
-              <CheckCircle className="h-4 w-4 mr-2" />
-              Approve
-            </Button>
-          </div>
+
+          {showDetails && hasAdditionalInfo && (
+            <div className="pt-3 border-t space-y-2">
+              {enrollment.studentName && (
+                <div className="flex items-start gap-2 text-sm">
+                  <UserIcon className="h-4 w-4 text-muted-foreground mt-0.5 flex-shrink-0" />
+                  <div>
+                    <span className="font-medium text-muted-foreground">Certificate Name:</span>
+                    <span className="ml-2">{enrollment.studentName}</span>
+                  </div>
+                </div>
+              )}
+              {enrollment.dikshaName && (
+                <div className="flex items-start gap-2 text-sm">
+                  <UserIcon className="h-4 w-4 text-muted-foreground mt-0.5 flex-shrink-0" />
+                  <div>
+                    <span className="font-medium text-muted-foreground">Diksha Name:</span>
+                    <span className="ml-2">{enrollment.dikshaName}</span>
+                  </div>
+                </div>
+              )}
+              {enrollment.whatsappNumber && (
+                <div className="flex items-start gap-2 text-sm">
+                  <Phone className="h-4 w-4 text-muted-foreground mt-0.5 flex-shrink-0" />
+                  <div>
+                    <span className="font-medium text-muted-foreground">WhatsApp:</span>
+                    <span className="ml-2">{enrollment.whatsappNumber}</span>
+                  </div>
+                </div>
+              )}
+              {enrollment.address && (
+                <div className="flex items-start gap-2 text-sm">
+                  <MapPin className="h-4 w-4 text-muted-foreground mt-0.5 flex-shrink-0" />
+                  <div>
+                    <span className="font-medium text-muted-foreground">Address:</span>
+                    <span className="ml-2 whitespace-pre-wrap">{enrollment.address}</span>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
         </div>
       </CardContent>
     </Card>

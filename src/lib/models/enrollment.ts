@@ -18,6 +18,11 @@ export interface Enrollment {
   droppedAt?: Date;
   classCode?: string;
   notes?: string;
+  // Student information for certificates and contact
+  studentName?: string;
+  dikshaName?: string;
+  whatsappNumber?: string;
+  address?: string;
 }
 
 export interface EnrollmentFirestore {
@@ -30,6 +35,11 @@ export interface EnrollmentFirestore {
   droppedAt?: Timestamp;
   classCode?: string;
   notes?: string;
+  // Student information for certificates and contact
+  studentName?: string;
+  dikshaName?: string;
+  whatsappNumber?: string;
+  address?: string;
 }
 
 export function enrollmentFromFirestore(
@@ -47,6 +57,10 @@ export function enrollmentFromFirestore(
     droppedAt: data.droppedAt?.toDate(),
     classCode: data.classCode,
     notes: data.notes,
+    studentName: data.studentName,
+    dikshaName: data.dikshaName,
+    whatsappNumber: data.whatsappNumber,
+    address: data.address,
   };
 }
 
@@ -73,6 +87,18 @@ export function enrollmentToFirestore(
   }
   if (enrollment.notes !== undefined) {
     data.notes = enrollment.notes;
+  }
+  if (enrollment.studentName !== undefined) {
+    data.studentName = enrollment.studentName;
+  }
+  if (enrollment.dikshaName !== undefined) {
+    data.dikshaName = enrollment.dikshaName;
+  }
+  if (enrollment.whatsappNumber !== undefined) {
+    data.whatsappNumber = enrollment.whatsappNumber;
+  }
+  if (enrollment.address !== undefined) {
+    data.address = enrollment.address;
   }
   
   return data;
