@@ -23,6 +23,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { useTeacher } from "@/hooks/use-teacher";
 import { useToast } from "@/hooks/use-toast";
 import type { Batch } from "@/lib/models/batch";
@@ -58,6 +59,7 @@ export default function DailyListeningAnalyticsPage() {
   const batchId = params.id as string;
   const { toast } = useToast();
   const { isTeacher, initializing: teacherInitializing } = useTeacher();
+  const isMobile = useIsMobile();
 
   const [batch, setBatch] = useState<Batch | null>(null);
   const [analytics, setAnalytics] = useState<StudentAnalytics[]>([]);
@@ -397,8 +399,8 @@ export default function DailyListeningAnalyticsPage() {
           <Card>
             <CardContent className="pt-6">
               <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center">
-                <div className="flex items-center gap-2">
-                  <span className="text-sm font-medium">Filter by Date:</span>
+                <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 w-full sm:w-auto">
+                  <span className="text-sm font-medium whitespace-nowrap">Filter by Date:</span>
                   <Popover open={popoverOpen} onOpenChange={(open) => {
                     // Prevent closing if only start date is selected
                     if (!open && dateRange.from && !dateRange.to) {
@@ -411,39 +413,45 @@ export default function DailyListeningAnalyticsPage() {
                         id="date"
                         variant={"outline"}
                         className={cn(
-                          "w-[300px] justify-start text-left font-normal",
+                          "w-full sm:w-[280px] md:w-[300px] justify-start text-left font-normal",
                           !appliedDateRange.from && !dateRange.from && "text-muted-foreground"
                         )}
                       >
-                        <CalendarIcon className="mr-2 h-4 w-4" />
-                        {appliedDateRange.from ? (
-                          appliedDateRange.to ? (
-                            <>
-                              {format(appliedDateRange.from, "LLL dd, y")} -{" "}
-                              {format(appliedDateRange.to, "LLL dd, y")}
-                            </>
+                        <CalendarIcon className="mr-2 h-4 w-4 flex-shrink-0" />
+                        <span className="truncate">
+                          {appliedDateRange.from ? (
+                            appliedDateRange.to ? (
+                              <>
+                                {format(appliedDateRange.from, "LLL dd, y")} -{" "}
+                                {format(appliedDateRange.to, "LLL dd, y")}
+                              </>
+                            ) : (
+                              format(appliedDateRange.from, "LLL dd, y")
+                            )
+                          ) : dateRange.from ? (
+                            dateRange.to ? (
+                              <>
+                                {format(dateRange.from, "LLL dd, y")} -{" "}
+                                {format(dateRange.to, "LLL dd, y")}
+                              </>
+                            ) : (
+                              <>
+                                {format(dateRange.from, "LLL dd, y")} - Select end date
+                              </>
+                            )
                           ) : (
-                            format(appliedDateRange.from, "LLL dd, y")
-                          )
-                        ) : dateRange.from ? (
-                          dateRange.to ? (
-                            <>
-                              {format(dateRange.from, "LLL dd, y")} -{" "}
-                              {format(dateRange.to, "LLL dd, y")}
-                            </>
-                          ) : (
-                            <>
-                              {format(dateRange.from, "LLL dd, y")} - Select end date
-                            </>
-                          )
-                        ) : (
-                          <span>Pick a date range</span>
-                        )}
+                            <span>Pick a date range</span>
+                          )}
+                        </span>
                       </Button>
                     </PopoverTrigger>
                     <PopoverContent
                       className="w-auto p-0"
-                      align="start"
+                      align="center"
+                      alignOffset={0}
+                      sideOffset={8}
+                      side="bottom"
+                      collisionPadding={16}
                       onEscapeKeyDown={(e) => {
                         // Allow closing with Escape even if only start date is selected
                       }}
@@ -500,7 +508,7 @@ export default function DailyListeningAnalyticsPage() {
                             setDateRangePreset("all");
                           }
                         }}
-                        numberOfMonths={2}
+                        numberOfMonths={isMobile ? 1 : 2}
                         classNames={{
                           day_selected:
                             "bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground focus:bg-primary focus:text-primary-foreground rounded-md",
@@ -520,6 +528,7 @@ export default function DailyListeningAnalyticsPage() {
                   variant={dateRangePreset === "all" ? "default" : "outline"}
                   size="sm"
                   onClick={() => handleDatePreset("all")}
+                  className="w-full sm:w-auto"
                 >
                   All Time
                 </Button>
