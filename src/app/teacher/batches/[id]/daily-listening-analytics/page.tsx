@@ -673,7 +673,10 @@ export default function DailyListeningAnalyticsPage() {
                       {analytics.map((item) => (
                         <TableRow key={item.student.id}>
                           <TableCell className="font-medium">
-                            {item.student.name || "Unknown Student"}
+                            {item.enrollment.dikshaName ||
+                              item.enrollment.studentName ||
+                              item.student.name ||
+                              "Unknown Student"}
                           </TableCell>
                           <TableCell>{item.student.email || "No email"}</TableCell>
                           <TableCell className="text-center">
