@@ -15,7 +15,7 @@ import Autoplay from 'embla-carousel-autoplay';
 import { BookOpen, Loader2 } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
-import React from 'react';
+import * as React from 'react';
 
 export function Courses() {
   const [courses, setCourses] = React.useState<Course[]>([]);
@@ -39,7 +39,7 @@ export function Courses() {
 
   const autoplayPlugin = React.useRef(
     Autoplay({
-      delay: 4000,
+      delay: 3000,
       stopOnInteraction: true,
       stopOnMouseEnter: true,
     })

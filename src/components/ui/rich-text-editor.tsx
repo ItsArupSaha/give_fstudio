@@ -1,7 +1,7 @@
 "use client";
 
 import { cn } from "@/lib/utils";
-import { Bold, Italic, Link as LinkIcon, List, ListOrdered, Underline, X } from "lucide-react";
+import { Bold, CheckSquare, Italic, Link as LinkIcon, List, ListOrdered, Underline, X } from "lucide-react";
 import { useEffect, useRef } from "react";
 
 type RichTextEditorProps = {
@@ -45,6 +45,50 @@ export function RichTextEditor({ value, onChange, placeholder, className }: Rich
         }
     };
 
+    const insertChecklist = () => {
+        if (!editorRef.current) return;
+
+        const selection = window.getSelection();
+        if (!selection || selection.rangeCount === 0) return;
+
+        const range = selection.getRangeAt(0);
+        let node: Node | null = range.commonAncestorContainer;
+
+        // Check if we're inside a checklist
+        while (node && node !== editorRef.current) {
+            if (node.nodeType === Node.ELEMENT_NODE) {
+                const element = node as HTMLElement;
+                if (element.tagName === "UL" && element.classList.contains("checklist")) {
+                    // We're in a checklist, remove it (convert to normal text)
+                    document.execCommand("outdent");
+                    editorRef.current?.focus();
+                    handleInput();
+                    return;
+                }
+                if (element.tagName === "LI" && element.closest("ul.checklist")) {
+                    // We're in a checklist item, remove it
+                    document.execCommand("outdent");
+                    editorRef.current?.focus();
+                    handleInput();
+                    return;
+                }
+            }
+            node = node.parentNode;
+        }
+
+        // Not in a checklist, create one
+        const selectedText = selection.toString().trim();
+        const items = selectedText
+            ? selectedText.split(/\n+/).map((line) => line.trim()).filter(Boolean)
+            : ["Checklist item"];
+
+        const listHtml = `<ul class="checklist">${items.map((item) => `<li>${item}</li>`).join("")}</ul>`;
+
+        document.execCommand("insertHTML", false, listHtml);
+        editorRef.current?.focus();
+        handleInput();
+    };
+
     return (
         <div className={cn("border rounded-md bg-white", className)}>
             <div className="flex flex-wrap gap-2 px-3 py-2 border-b bg-muted/50">
@@ -56,6 +100,9 @@ export function RichTextEditor({ value, onChange, placeholder, className }: Rich
                 </button>
                 <button type="button" className="p-1 hover:text-primary" onClick={() => exec("underline")} aria-label="Underline">
                     <Underline className="h-4 w-4" />
+                </button>
+                <button type="button" className="p-1 hover:text-primary" onClick={insertChecklist} aria-label="Checklist">
+                    <CheckSquare className="h-4 w-4" />
                 </button>
                 <button
                     type="button"
@@ -88,7 +135,7 @@ export function RichTextEditor({ value, onChange, placeholder, className }: Rich
             </div>
             <div
                 ref={editorRef}
-                className="min-h-[200px] px-3 py-3 outline-none prose prose-sm max-w-none [&_ul]:list-disc [&_ul]:ml-6 [&_ul]:my-2 [&_ol]:list-decimal [&_ol]:ml-6 [&_ol]:my-2 [&_li]:my-1 [&_a]:text-primary [&_a]:underline [&_strong]:font-bold [&_em]:italic [&_u]:underline"
+                className="min-h-[200px] px-3 py-3 outline-none prose prose-sm max-w-none [&_ul]:list-disc [&_ul]:ml-6 [&_ul]:my-2 [&_ol]:list-decimal [&_ol]:ml-6 [&_ol]:my-2 [&_li]:my-1 [&_a]:text-primary [&_a]:underline [&_strong]:font-bold [&_em]:italic [&_u]:underline [&_ul.checklist]:list-none [&_ul.checklist]:pl-0 [&_ul.checklist>li]:relative [&_ul.checklist>li]:ps-6 [&_ul.checklist>li]:my-2 [&_ul.checklist>li]:before:content-['✔'] [&_ul.checklist>li]:before:text-primary [&_ul.checklist>li]:before:absolute [&_ul.checklist>li]:before:left-0 [&_ul.checklist>li]:before:top-0"
                 contentEditable
                 onInput={handleInput}
                 suppressContentEditableWarning

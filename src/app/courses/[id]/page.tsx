@@ -96,7 +96,8 @@ export default function CourseDetailPage() {
                        [&_strong]:font-bold [&_em]:italic [&_u]:underline
                        [&_p]:mb-4 [&_h1]:text-2xl [&_h1]:font-bold [&_h1]:mb-4
                        [&_h2]:text-xl [&_h2]:font-bold [&_h2]:mb-3
-                       [&_h3]:text-lg [&_h3]:font-bold [&_h3]:mb-2"
+                       [&_h3]:text-lg [&_h3]:font-bold [&_h3]:mb-2
+                       [&_ul.checklist]:list-none [&_ul.checklist]:pl-0 [&_ul.checklist>li]:relative [&_ul.checklist>li]:ps-6 [&_ul.checklist>li]:my-2 [&_ul.checklist>li]:before:content-['✔'] [&_ul.checklist>li]:before:text-primary [&_ul.checklist>li]:before:absolute [&_ul.checklist>li]:before:left-0 [&_ul.checklist>li]:before:top-0"
                         dangerouslySetInnerHTML={{ __html: course.description }}
                     />
                 </CardContent>
