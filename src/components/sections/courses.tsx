@@ -70,54 +70,68 @@ export function Courses() {
               </p>
             </CardContent>
           </Card>
-        ) : (
-          <Carousel
-            plugins={[autoplayPlugin.current]}
-            className="w-full"
-            opts={{
-              align: "start",
-              loop: courses.length > 1,
-            }}
-          >
-            <CarouselContent className="-ml-2 md:-ml-4">
-              {courses.map((course) => (
-                <CarouselItem key={course.id} className="pl-2 md:pl-4 basis-full sm:basis-1/2 lg:basis-1/3">
-                  <div className="p-2 sm:p-4 h-full">
-                    <Card className="flex flex-col overflow-hidden h-full transition-all duration-300 hover:shadow-xl hover:-translate-y-2">
-                      <div className="relative h-48 w-full">
-                        <Image
-                          src={course.imageUrl}
-                          alt={course.title}
-                          fill
-                          className="object-cover"
-                        />
-                      </div>
-                      <CardHeader>
-                        <CardTitle className="font-headline text-lg sm:text-xl">{course.title}</CardTitle>
-                      </CardHeader>
-                      <CardFooter>
-                        <Button
-                          asChild
-                          className="w-full text-sm sm:text-base"
-                        >
-                          <Link
-                            href={`/courses/${course.id}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
+        ) : (() => {
+          const count = courses.length;
+          const isSingle = count === 1;
+          const isDouble = count === 2;
+
+          const itemClass = isSingle
+            ? "pl-2 md:pl-4 basis-full sm:basis-1/2 lg:basis-1/3"
+            : isDouble
+              ? "pl-2 md:pl-4 basis-full sm:basis-1/2 lg:basis-1/3"
+              : "pl-2 md:pl-4 basis-full sm:basis-1/2 lg:basis-1/3";
+
+          const contentClass = `-ml-2 md:-ml-4 ${isSingle ? "justify-center" : isDouble ? "md:justify-between" : ""}`;
+
+          return (
+            <Carousel
+              plugins={[autoplayPlugin.current]}
+              className="w-full"
+              opts={{
+                align: isSingle ? "center" : "start",
+                loop: count > 1,
+              }}
+            >
+              <CarouselContent className={contentClass}>
+                {courses.map((course) => (
+                  <CarouselItem key={course.id} className={itemClass}>
+                    <div className="p-2 sm:p-4 h-full">
+                      <Card className="flex flex-col overflow-hidden h-full transition-all duration-300 hover:shadow-xl hover:-translate-y-2">
+                        <div className="relative h-48 w-full">
+                          <Image
+                            src={course.imageUrl}
+                            alt={course.title}
+                            fill
+                            className="object-cover"
+                          />
+                        </div>
+                        <CardHeader>
+                          <CardTitle className="font-headline text-lg sm:text-xl">{course.title}</CardTitle>
+                        </CardHeader>
+                        <CardFooter>
+                          <Button
+                            asChild
+                            className="w-full text-sm sm:text-base"
                           >
-                            Learn More
-                          </Link>
-                        </Button>
-                      </CardFooter>
-                    </Card>
-                  </div>
-                </CarouselItem>
-              ))}
-            </CarouselContent>
-            <CarouselPrevious className="hidden sm:flex" />
-            <CarouselNext className="hidden sm:flex" />
-          </Carousel>
-        )}
+                            <Link
+                              href={`/courses/${course.id}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                            >
+                              Learn More
+                            </Link>
+                          </Button>
+                        </CardFooter>
+                      </Card>
+                    </div>
+                  </CarouselItem>
+                ))}
+              </CarouselContent>
+              <CarouselPrevious className="hidden sm:flex" />
+              <CarouselNext className="hidden sm:flex" />
+            </Carousel>
+          );
+        })()}
       </div>
     </section>
   );
