@@ -38,8 +38,8 @@ export function QuoteCarousel() {
   const autoplayPlugin = React.useRef(
     Autoplay({
       delay: 3000,
-      stopOnInteraction: true,
-      stopOnMouseEnter: true,
+      stopOnInteraction: false,
+      stopOnMouseEnter: false,
     })
   );
 
