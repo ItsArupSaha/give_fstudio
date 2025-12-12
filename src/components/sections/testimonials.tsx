@@ -155,7 +155,7 @@ export function Testimonials() {
                           <CardFooter className="mt-auto flex-shrink-0 pt-2">
                             <Button
                               variant="outline"
-                              className="w-full text-sm sm:text-base"
+                              className="w-full text-sm sm:text-base border-primary hover:bg-primary hover:text-primary-foreground"
                               onClick={() => handleReadMore(testimonial)}
                             >
                               Read More
