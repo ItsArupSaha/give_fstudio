@@ -11,35 +11,30 @@ import {
   CarouselNext,
   CarouselPrevious,
 } from "@/components/ui/carousel";
-
-const quotes = [
-  {
-    quote: "Religion without philosophy is sentiment, or sometimes fanaticism, while philosophy without religion is mental speculation.",
-    author: "Srila Prabhupada",
-  },
-  {
-    quote: "A grain of devotion is more valuable thank tons of faithlessness.",
-    author: "Srila Prabhupada",
-  },
-  {
-    quote: "To be controlled by the senses is to be a fool. To control the senses is to be a master.",
-    author: "Srila Prabhupada",
-  },
-  {
-    quote: "The purpose of human life is to inquire about the Absolute Truth.",
-    author: "Srila Prabhupada",
-  },
-  {
-    quote: "First-class religion is that which teaches you to love God. It doesn't matter what the name of the religion is.",
-    author: "Srila Prabhupada",
-  },
-  {
-    quote: "Books are the basis; purity is the force; preaching is the essence; utility is the principle.",
-    author: "Srila Prabhupada",
-  },
-];
+import type { Quote } from "@/lib/models/quote";
+import { subscribeQuotes } from "@/lib/services/firestore";
+import { Loader2, MessageSquare } from "lucide-react";
 
 export function QuoteCarousel() {
+  const [quotes, setQuotes] = React.useState<Quote[]>([]);
+  const [loading, setLoading] = React.useState(true);
+
+  React.useEffect(() => {
+    const unsubscribe = subscribeQuotes(
+      (quotesList) => {
+        setQuotes(quotesList);
+        setLoading(false);
+      },
+      (error) => {
+        console.error("Error subscribing to quotes:", error);
+        setQuotes([]);
+        setLoading(false);
+      }
+    );
+
+    return () => unsubscribe();
+  }, []);
+
   const autoplayPlugin = React.useRef(
     Autoplay({
       delay: 3000,
@@ -49,46 +44,123 @@ export function QuoteCarousel() {
   );
 
   return (
-    <section className="relative py-16 md:py-24 bg-gradient-to-b from-muted/95 via-muted to-background border-t border-border/40 overflow-hidden">
+    <section className="relative py-12 sm:py-16 md:py-24 bg-gradient-to-b from-muted/95 via-muted to-background border-t border-border/40 overflow-hidden">
       {/* subtle background accents, distinct band after Prabhupada section */}
       <div className="pointer-events-none absolute -top-24 left-0 h-64 w-64 -translate-x-1/3 rounded-full bg-primary/5 blur-3xl" />
       <div className="pointer-events-none absolute bottom-0 right-0 h-72 w-72 translate-x-1/3 translate-y-1/4 rounded-full bg-primary/10 blur-3xl" />
 
-      <div className="relative container max-w-screen-2xl">
-        <div className="mb-10 text-center">
-          <h2 className="text-3xl md:text-4xl font-headline font-bold text-secondary-foreground">
+      <div className="relative container max-w-screen-2xl px-4 sm:px-6">
+        <div className="mb-6 sm:mb-10 text-center">
+          <h2 className="text-2xl sm:text-3xl md:text-4xl font-headline font-bold text-secondary-foreground">
             Ācārya Vākya
           </h2>
         </div>
-        <Carousel
-          plugins={[autoplayPlugin.current]}
-          className="w-full"
-          opts={{
-            align: "start",
-            loop: true,
-          }}
-        >
-          <CarouselContent>
-            {quotes.map((item, index) => (
-              <CarouselItem key={index} className="md:basis-1/2 lg:basis-1/3">
-                <div className="p-2 h-full">
-                  <Card className="h-full flex flex-col justify-center bg-card shadow-sm hover:shadow-lg transition-shadow duration-300">
-                    <CardContent className="flex flex-col items-center justify-center p-6 text-center">
-                      <p className="text-lg font-body text-card-foreground/80 italic flex-grow">
+        {loading ? (
+          <div className="flex items-center justify-center py-12">
+            <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+          </div>
+        ) : quotes.length === 0 ? (
+          <Card className="max-w-2xl mx-auto">
+            <CardContent className="flex flex-col items-center justify-center py-12">
+              <MessageSquare className="h-12 w-12 text-muted-foreground mb-4" />
+              <p className="text-muted-foreground text-center">
+                Nothing is added yet.
+              </p>
+            </CardContent>
+          </Card>
+        ) : quotes.length === 1 ? (
+          // Single quote: centered
+          <div className="flex justify-center px-4">
+            <div className="w-full max-w-2xl p-2 sm:p-4">
+              <div className="relative bg-white p-1 border border-primary shadow-[0_0_15px_rgba(255,102,0,0.2)]">
+                <div className="border border-primary p-3 sm:p-5">
+                  <div className="flex flex-col h-full min-h-[150px] sm:min-h-[200px]">
+                    <p className="text-base sm:text-lg md:text-xl font-body font-semibold text-card-foreground/90 text-center flex-grow pt-2 sm:pt-4">
+                      "{quotes[0].quote}"
+                    </p>
+                    <div className="mt-4 sm:mt-6 text-left">
+                      {quotes[0].date && (
+                        <p className="text-xs sm:text-sm text-muted-foreground mb-1 font-normal font-body">
+                          {quotes[0].date}
+                        </p>
+                      )}
+                      <p className="text-sm sm:text-base font-normal text-primary font-body">
+                        — {quotes[0].author}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        ) : quotes.length === 2 ? (
+          // Two quotes: justify-between on desktop, stacked on mobile
+          <div className="flex flex-col md:flex-row justify-between gap-4 w-full px-4">
+            {quotes.map((item) => (
+              <div key={item.id} className="flex-1 w-full md:w-auto p-2 sm:p-4">
+                <div className="relative bg-white p-1 border border-primary h-full min-h-[200px] sm:min-h-[250px] shadow-[0_0_15px_rgba(255,102,0,0.2)]">
+                  <div className="border border-primary p-3 sm:p-5 h-full">
+                    <div className="flex flex-col h-full">
+                      <p className="text-base sm:text-lg md:text-xl font-body font-semibold text-card-foreground/90 text-center flex-grow pt-2 sm:pt-4">
                         "{item.quote}"
                       </p>
-                      <p className="mt-4 text-base font-semibold text-primary">
-                        — {item.author}
-                      </p>
-                    </CardContent>
-                  </Card>
+                      <div className="mt-4 sm:mt-6 text-left">
+                        {item.date && (
+                          <p className="text-xs sm:text-sm text-muted-foreground mb-1 font-normal font-body">
+                            {item.date}
+                          </p>
+                        )}
+                        <p className="text-sm sm:text-base font-normal text-primary font-body">
+                          — {item.author}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
                 </div>
-              </CarouselItem>
+              </div>
             ))}
-          </CarouselContent>
-          <CarouselPrevious className="hidden sm:flex" />
-          <CarouselNext className="hidden sm:flex" />
-        </Carousel>
+          </div>
+        ) : (
+          // Three or more quotes: carousel
+          <Carousel
+            plugins={[autoplayPlugin.current]}
+            className="w-full"
+            opts={{
+              align: "start",
+              loop: quotes.length > 1,
+            }}
+          >
+            <CarouselContent className="-ml-2 md:-ml-4">
+              {quotes.map((item) => (
+                <CarouselItem key={item.id} className="pl-2 md:pl-4 basis-full sm:basis-1/2 lg:basis-1/3">
+                  <div className="p-2 sm:p-4 h-full">
+                    <div className="relative bg-white p-1 border border-primary h-full min-h-[200px] sm:min-h-[250px]">
+                      <div className="border border-primary p-3 sm:p-5 h-full">
+                        <div className="flex flex-col h-full">
+                          <p className="text-base sm:text-lg md:text-xl font-body font-semibold text-card-foreground/90 text-center flex-grow pt-2 sm:pt-4">
+                            "{item.quote}"
+                          </p>
+                          <div className="mt-4 sm:mt-6 text-left">
+                            {item.date && (
+                              <p className="text-xs sm:text-sm text-muted-foreground mb-1 font-normal font-body">
+                                {item.date}
+                              </p>
+                            )}
+                            <p className="text-sm sm:text-base font-normal text-primary font-body">
+                              — {item.author}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </CarouselItem>
+              ))}
+            </CarouselContent>
+            <CarouselPrevious className="hidden sm:flex" />
+            <CarouselNext className="hidden sm:flex" />
+          </Carousel>
+        )}
       </div>
     </section>
   );

@@ -1,6 +1,5 @@
 "use client";
 
-
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Card, CardContent } from '@/components/ui/card';
 import {
@@ -10,46 +9,32 @@ import {
   CarouselNext,
   CarouselPrevious,
 } from '@/components/ui/carousel';
+import type { Testimonial } from '@/lib/models/testimonial';
+import { subscribeTestimonials } from '@/lib/services/firestore';
 import Autoplay from 'embla-carousel-autoplay';
+import { Loader2, User } from 'lucide-react';
 import React from 'react';
 
-const testimonials = [
-  {
-    id: "testimonial-1",
-    name: "Arjuna Dasa",
-    role: "Bhagavad-gītā Student",
-    quote: "The course transformed my understanding of life. The teachers are not just knowledgeable, but truly live the teachings. It has been a life-changing experience.",
-    avatar: {
-      src: 'https://picsum.photos/seed/avatar-1/100/100',
-      alt: 'Profile picture of a smiling man in his 30s.',
-      hint: 'man smiling',
-    }
-  },
-  {
-    id: "testimonial-2",
-    name: "Radhika Devi Dasi",
-    role: "Bhakti Sastri Graduate",
-    quote: "I'm so grateful for the systematic and deep study provided by GIVE. It has given me the confidence and clarity to share this knowledge with others.",
-    avatar: {
-      src: 'https://picsum.photos/seed/avatar-2/100/100',
-      alt: 'Profile picture of a smiling woman in her 40s.',
-      hint: 'woman smiling',
-    }
-  },
-  {
-    id: "testimonial-3",
-    name: "Krishna Sharma",
-    role: "Introductory Course Attendee",
-    quote: "As someone new to the philosophy, I felt completely welcomed. The concepts were explained with such patience and clarity. I can't wait to learn more!",
-    avatar: {
-      src: 'https://picsum.photos/seed/avatar-3/100/100',
-      alt: 'Profile picture of a young man in his 20s, looking thoughtful.',
-      hint: 'young man',
-    }
-  },
-];
-
 export function Testimonials() {
+  const [testimonials, setTestimonials] = React.useState<Testimonial[]>([]);
+  const [loading, setLoading] = React.useState(true);
+
+  React.useEffect(() => {
+    const unsubscribe = subscribeTestimonials(
+      (testimonialsList) => {
+        setTestimonials(testimonialsList);
+        setLoading(false);
+      },
+      (error) => {
+        console.error("Error subscribing to testimonials:", error);
+        setTestimonials([]);
+        setLoading(false);
+      }
+    );
+
+    return () => unsubscribe();
+  }, []);
+
   const autoplayPlugin = React.useRef(
     Autoplay({
       delay: 3000,
@@ -70,40 +55,58 @@ export function Testimonials() {
             See how studying at GIVE has impacted the lives of our community members.
           </p>
         </div>
-        <Carousel
-          plugins={[autoplayPlugin.current]}
-          opts={{
-            align: 'start',
-            loop: true,
-          }}
-          className="w-full max-w-4xl mx-auto"
-        >
-          <CarouselContent>
-            {testimonials.map((testimonial) => (
-              <CarouselItem key={testimonial.id} className="md:basis-1/2 lg:basis-1/3">
-                <div className="p-1 h-full">
-                  <Card className="flex flex-col justify-between h-full p-6 shadow-md hover:shadow-xl transition-shadow duration-300">
-                    <CardContent className="p-0 flex-grow">
-                      <p className="italic text-muted-foreground">"{testimonial.quote}"</p>
-                    </CardContent>
-                    <div className="flex items-center gap-4 mt-6">
-                      <Avatar>
-                        <AvatarImage src={testimonial.avatar.src} alt={testimonial.avatar.alt} data-ai-hint={testimonial.avatar.hint} />
-                        <AvatarFallback>{testimonial.name.charAt(0)}</AvatarFallback>
-                      </Avatar>
-                      <div>
-                        <p className="font-semibold font-headline">{testimonial.name}</p>
-                        <p className="text-sm text-muted-foreground">{testimonial.role}</p>
+        {loading ? (
+          <div className="flex items-center justify-center py-12">
+            <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+          </div>
+        ) : testimonials.length === 0 ? (
+          <Card className="max-w-2xl mx-auto">
+            <CardContent className="flex flex-col items-center justify-center py-12">
+              <User className="h-12 w-12 text-muted-foreground mb-4" />
+              <p className="text-muted-foreground text-center">
+                Nothing is added yet.
+              </p>
+            </CardContent>
+          </Card>
+        ) : (
+          <Carousel
+            plugins={[autoplayPlugin.current]}
+            opts={{
+              align: 'start',
+              loop: testimonials.length > 1,
+            }}
+            className="w-full max-w-4xl mx-auto"
+          >
+            <CarouselContent>
+              {testimonials.map((testimonial) => (
+                <CarouselItem key={testimonial.id} className="md:basis-1/2 lg:basis-1/3">
+                  <div className="p-1 h-full">
+                    <Card className="flex flex-col justify-between h-full p-6 shadow-md hover:shadow-xl transition-shadow duration-300">
+                      <CardContent className="p-0 flex-grow">
+                        <p className="italic text-muted-foreground">"{testimonial.quote}"</p>
+                      </CardContent>
+                      <div className="flex items-center gap-4 mt-6">
+                        <Avatar>
+                          <AvatarImage
+                            src={testimonial.avatarUrl}
+                            alt={`${testimonial.name}'s profile picture`}
+                          />
+                          <AvatarFallback>{testimonial.name.charAt(0)}</AvatarFallback>
+                        </Avatar>
+                        <div>
+                          <p className="font-semibold font-headline">{testimonial.name}</p>
+                          <p className="text-sm text-muted-foreground">{testimonial.role}</p>
+                        </div>
                       </div>
-                    </div>
-                  </Card>
-                </div>
-              </CarouselItem>
-            ))}
-          </CarouselContent>
-          <CarouselPrevious />
-          <CarouselNext />
-        </Carousel>
+                    </Card>
+                  </div>
+                </CarouselItem>
+              ))}
+            </CarouselContent>
+            <CarouselPrevious />
+            <CarouselNext />
+          </Carousel>
+        )}
       </div>
     </section>
   );

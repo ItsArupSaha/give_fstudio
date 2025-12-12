@@ -3,14 +3,16 @@
 import { AllStudentsView } from "@/components/teacher/all-students-view";
 import { BatchManagement } from "@/components/teacher/batch-management";
 import { CourseGroupsManagement } from "@/components/teacher/course-groups";
+import { QuoteManagement } from "@/components/teacher/quote-management";
 import { TeacherManagement } from "@/components/teacher/teacher-management";
+import { TestimonialManagement } from "@/components/teacher/testimonial-management";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuthUser } from "@/hooks/use-auth";
 import { useTeacher } from "@/hooks/use-teacher";
 import { getBatchesByCourseGroup, getCourseGroups, getEnrollmentsByBatch } from "@/lib/services/firestore";
-import { FileText, Folder, Users } from "lucide-react";
+import { FileText, Folder, MessageSquare, Users } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
@@ -178,6 +180,14 @@ export default function TeacherDashboardPage() {
             <Users className="h-4 w-4 mr-1 sm:mr-2 flex-shrink-0" />
             <span className="truncate">Teachers</span>
           </TabsTrigger>
+          <TabsTrigger value="quotes" className="flex-1 sm:flex-initial min-w-0">
+            <MessageSquare className="h-4 w-4 mr-1 sm:mr-2 flex-shrink-0" />
+            <span className="truncate">Quotes</span>
+          </TabsTrigger>
+          <TabsTrigger value="testimonials" className="flex-1 sm:flex-initial min-w-0">
+            <MessageSquare className="h-4 w-4 mr-1 sm:mr-2 flex-shrink-0" />
+            <span className="truncate">Testimonials</span>
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="course-groups">
@@ -190,6 +200,14 @@ export default function TeacherDashboardPage() {
 
         <TabsContent value="teachers">
           <TeacherManagement />
+        </TabsContent>
+
+        <TabsContent value="quotes">
+          <QuoteManagement />
+        </TabsContent>
+
+        <TabsContent value="testimonials">
+          <TestimonialManagement />
         </TabsContent>
       </Tabs>
 

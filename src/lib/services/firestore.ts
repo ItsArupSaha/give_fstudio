@@ -80,7 +80,9 @@ import {
 import {
   userFromFirestore,
 } from "@/lib/models/user";
+import { Quote, QuoteFirestore, quoteFromFirestore, quoteToFirestore } from "../models/quote";
 import { TaskBookmark, TaskBookmarkFirestore, taskBookmarkFromFirestore, taskBookmarkToFirestore } from "../models/task-bookmark";
+import { Testimonial, TestimonialFirestore, testimonialFromFirestore, testimonialToFirestore } from "../models/testimonial";
 
 // ==================== Course Group Operations ====================
 
@@ -1255,6 +1257,177 @@ export async function updateUser(user: Partial<User> & { id: string }): Promise<
   } catch (error) {
     throw new Error(`Failed to update user: ${error}`);
   }
+}
+
+// ==================== Quote Operations ====================
+
+export async function createQuote(quote: Omit<Quote, "id" | "createdAt" | "updatedAt">): Promise<string> {
+  try {
+    const quoteRef = doc(collection(db, "quotes"));
+    const now = new Date();
+    const fullQuote: Quote = {
+      ...quote,
+      id: quoteRef.id,
+      createdAt: now,
+      updatedAt: now,
+    };
+    const quoteData: QuoteFirestore = quoteToFirestore(fullQuote);
+    await setDoc(quoteRef, quoteData);
+    return quoteRef.id;
+  } catch (error) {
+    throw new Error(`Failed to create quote: ${error}`);
+  }
+}
+
+export async function updateQuote(id: string, quote: Partial<Quote>): Promise<void> {
+  try {
+    const quoteRef = doc(db, "quotes", id);
+    const updates: Partial<QuoteFirestore> = {
+      updatedAt: Timestamp.now(),
+    };
+
+    if (quote.quote !== undefined) updates.quote = quote.quote;
+    if (quote.author !== undefined) updates.author = quote.author;
+    if (quote.date !== undefined) updates.date = quote.date;
+
+    await updateDoc(quoteRef, updates);
+  } catch (error) {
+    throw new Error(`Failed to update quote: ${error}`);
+  }
+}
+
+export async function deleteQuote(id: string): Promise<void> {
+  try {
+    await deleteDoc(doc(db, "quotes", id));
+  } catch (error) {
+    throw new Error(`Failed to delete quote: ${error}`);
+  }
+}
+
+export async function getQuotes(): Promise<Quote[]> {
+  try {
+    const snapshot = await getDocs(collection(db, "quotes"));
+    const quotes = snapshot.docs.map((doc) =>
+      quoteFromFirestore(doc.id, doc.data() as QuoteFirestore)
+    );
+    // Sort by createdAt ascending (oldest first)
+    quotes.sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime());
+    return quotes;
+  } catch (error) {
+    throw new Error(`Failed to get quotes: ${error}`);
+  }
+}
+
+export function subscribeQuotes(
+  callback: (quotes: Quote[]) => void,
+  onError?: (error: Error) => void
+): () => void {
+  const q = query(collection(db, "quotes"));
+
+  return onSnapshot(
+    q,
+    (snapshot) => {
+      const quotes = snapshot.docs.map((doc) =>
+        quoteFromFirestore(doc.id, doc.data() as QuoteFirestore)
+      );
+      quotes.sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime());
+      callback(quotes);
+    },
+    (error) => {
+      console.error("Error in quotes subscription:", error);
+      if (onError) {
+        onError(error);
+      }
+      // Still call callback with empty array on error so UI can show empty state
+      callback([]);
+    }
+  );
+}
+
+// ==================== Testimonial Operations ====================
+
+export async function createTestimonial(testimonial: Omit<Testimonial, "id" | "createdAt" | "updatedAt">): Promise<string> {
+  try {
+    const testimonialRef = doc(collection(db, "testimonials"));
+    const now = new Date();
+    const fullTestimonial: Testimonial = {
+      ...testimonial,
+      id: testimonialRef.id,
+      createdAt: now,
+      updatedAt: now,
+    };
+    const testimonialData: TestimonialFirestore = testimonialToFirestore(fullTestimonial);
+    await setDoc(testimonialRef, testimonialData);
+    return testimonialRef.id;
+  } catch (error) {
+    throw new Error(`Failed to create testimonial: ${error}`);
+  }
+}
+
+export async function updateTestimonial(id: string, testimonial: Partial<Testimonial>): Promise<void> {
+  try {
+    const testimonialRef = doc(db, "testimonials", id);
+    const updates: Partial<TestimonialFirestore> = {
+      updatedAt: Timestamp.now(),
+    };
+
+    if (testimonial.name !== undefined) updates.name = testimonial.name;
+    if (testimonial.role !== undefined) updates.role = testimonial.role;
+    if (testimonial.quote !== undefined) updates.quote = testimonial.quote;
+    if (testimonial.avatarUrl !== undefined) updates.avatarUrl = testimonial.avatarUrl;
+
+    await updateDoc(testimonialRef, updates);
+  } catch (error) {
+    throw new Error(`Failed to update testimonial: ${error}`);
+  }
+}
+
+export async function deleteTestimonial(id: string): Promise<void> {
+  try {
+    await deleteDoc(doc(db, "testimonials", id));
+  } catch (error) {
+    throw new Error(`Failed to delete testimonial: ${error}`);
+  }
+}
+
+export async function getTestimonials(): Promise<Testimonial[]> {
+  try {
+    const snapshot = await getDocs(collection(db, "testimonials"));
+    const testimonials = snapshot.docs.map((doc) =>
+      testimonialFromFirestore(doc.id, doc.data() as TestimonialFirestore)
+    );
+    // Sort by createdAt descending (newest first)
+    testimonials.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+    return testimonials;
+  } catch (error) {
+    throw new Error(`Failed to get testimonials: ${error}`);
+  }
+}
+
+export function subscribeTestimonials(
+  callback: (testimonials: Testimonial[]) => void,
+  onError?: (error: Error) => void
+): () => void {
+  const q = query(collection(db, "testimonials"));
+
+  return onSnapshot(
+    q,
+    (snapshot) => {
+      const testimonials = snapshot.docs.map((doc) =>
+        testimonialFromFirestore(doc.id, doc.data() as TestimonialFirestore)
+      );
+      testimonials.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+      callback(testimonials);
+    },
+    (error) => {
+      console.error("Error in testimonials subscription:", error);
+      if (onError) {
+        onError(error);
+      }
+      // Still call callback with empty array on error so UI can show empty state
+      callback([]);
+    }
+  );
 }
 
 // ==================== Helper Functions ====================
