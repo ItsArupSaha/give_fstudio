@@ -140,7 +140,7 @@ export function Testimonials() {
                             <div className="flex flex-col flex-1 min-w-0">
                               <CardTitle className="font-headline text-base sm:text-lg font-semibold leading-tight">{testimonial.name}</CardTitle>
                               {testimonial.designation && (
-                                <p className="text-xs sm:text-sm text-muted-foreground font-normal mt-0.5 leading-tight">{testimonial.designation}</p>
+                                <p className="text-xs sm:text-sm text-muted-foreground font-normal mt-0.5 leading-tight whitespace-pre-line">{testimonial.designation}</p>
                               )}
                               {testimonial.address && (
                                 <p className="text-xs sm:text-sm text-muted-foreground font-normal leading-tight">{testimonial.address}</p>
@@ -179,7 +179,7 @@ export function Testimonials() {
                         {(selectedTestimonial.designation || selectedTestimonial.address) && (
                           <DialogDescription className="text-xs sm:text-base">
                             {selectedTestimonial.designation && (
-                              <span className="font-normal block">{selectedTestimonial.designation}</span>
+                              <span className="font-normal block whitespace-pre-line">{selectedTestimonial.designation}</span>
                             )}
                             {selectedTestimonial.address && (
                               <span className="font-normal block">{selectedTestimonial.address}</span>

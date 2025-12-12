@@ -19,6 +19,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import type { Testimonial } from "@/lib/models/testimonial";
 import {
@@ -339,13 +340,14 @@ export function TestimonialManagement() {
                                 </div>
                                 <div className="space-y-2">
                                     <Label htmlFor="designation">Designation</Label>
-                                    <Input
+                                    <Textarea
                                         id="designation"
-                                        placeholder="Enter designation (optional)..."
+                                        placeholder="Enter designation (optional)... Press Enter for new line"
                                         value={formData.designation}
-                                        onChange={(e) =>
+                                        onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) =>
                                             setFormData({ ...formData, designation: e.target.value })
                                         }
+                                        rows={3}
                                     />
                                 </div>
                                 <div className="space-y-2">
@@ -472,7 +474,7 @@ export function TestimonialManagement() {
                             <CardHeader>
                                 <CardTitle className="text-base font-bold">{testimonial.name}</CardTitle>
                                 {testimonial.designation && (
-                                    <CardDescription className="font-normal">{testimonial.designation}</CardDescription>
+                                    <CardDescription className="font-normal whitespace-pre-line">{testimonial.designation}</CardDescription>
                                 )}
                                 {testimonial.address && (
                                     <CardDescription className="font-normal">{testimonial.address}</CardDescription>
