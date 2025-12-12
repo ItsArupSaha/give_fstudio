@@ -68,99 +68,60 @@ export function QuoteCarousel() {
               </p>
             </CardContent>
           </Card>
-        ) : quotes.length === 1 ? (
-          // Single quote: centered
-          <div className="flex justify-center px-4">
-            <div className="w-full max-w-2xl p-2 sm:p-4">
-              <div className="relative bg-white p-1 border border-primary shadow-[0_0_15px_rgba(255,102,0,0.2)]">
-                <div className="border border-primary p-3 sm:p-5">
-                  <div className="flex flex-col h-full min-h-[150px] sm:min-h-[200px]">
-                    <p className="text-base sm:text-lg md:text-xl font-body font-semibold text-card-foreground/90 text-center flex-grow pt-2 sm:pt-4">
-                      "{quotes[0].quote}"
-                    </p>
-                    <div className="mt-4 sm:mt-6 text-left">
-                      {quotes[0].date && (
-                        <p className="text-xs sm:text-sm text-muted-foreground mb-1 font-normal font-body">
-                          {quotes[0].date}
-                        </p>
-                      )}
-                      <p className="text-sm sm:text-base font-normal text-primary font-body">
-                        — {quotes[0].author}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        ) : quotes.length === 2 ? (
-          // Two quotes: justify-between on desktop, stacked on mobile
-          <div className="flex flex-col md:flex-row justify-between gap-4 w-full px-4">
-            {quotes.map((item) => (
-              <div key={item.id} className="flex-1 w-full md:w-auto p-2 sm:p-4">
-                <div className="relative bg-white p-1 border border-primary h-full min-h-[200px] sm:min-h-[250px] shadow-[0_0_15px_rgba(255,102,0,0.2)]">
-                  <div className="border border-primary p-3 sm:p-5 h-full">
-                    <div className="flex flex-col h-full">
-                      <p className="text-base sm:text-lg md:text-xl font-body font-semibold text-card-foreground/90 text-center flex-grow pt-2 sm:pt-4">
-                        "{item.quote}"
-                      </p>
-                      <div className="mt-4 sm:mt-6 text-left">
-                        {item.date && (
-                          <p className="text-xs sm:text-sm text-muted-foreground mb-1 font-normal font-body">
-                            {item.date}
-                          </p>
-                        )}
-                        <p className="text-sm sm:text-base font-normal text-primary font-body">
-                          — {item.author}
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        ) : (
-          // Three or more quotes: carousel
-          <Carousel
-            plugins={[autoplayPlugin.current]}
-            className="w-full"
-            opts={{
-              align: "start",
-              loop: quotes.length > 1,
-            }}
-          >
-            <CarouselContent className="-ml-2 md:-ml-4">
-              {quotes.map((item) => (
-                <CarouselItem key={item.id} className="pl-2 md:pl-4 basis-full sm:basis-1/2 lg:basis-1/3">
-                  <div className="p-2 sm:p-4 h-full">
-                    <div className="relative bg-white p-1 border border-primary h-full min-h-[200px] sm:min-h-[250px]">
-                      <div className="border border-primary p-3 sm:p-5 h-full">
-                        <div className="flex flex-col h-full">
-                          <p className="text-base sm:text-lg md:text-xl font-body font-semibold text-card-foreground/90 text-center flex-grow pt-2 sm:pt-4">
-                            "{item.quote}"
-                          </p>
-                          <div className="mt-4 sm:mt-6 text-left">
-                            {item.date && (
-                              <p className="text-xs sm:text-sm text-muted-foreground mb-1 font-normal font-body">
-                                {item.date}
-                              </p>
-                            )}
-                            <p className="text-sm sm:text-base font-normal text-primary font-body">
-                              — {item.author}
+        ) : (() => {
+          const count = quotes.length;
+          const isSingle = count === 1;
+          const isDouble = count === 2;
+
+          const itemClass = isSingle
+            ? "pl-2 md:pl-4 basis-full md:basis-1/2"
+            : isDouble
+              ? "pl-2 md:pl-4 basis-full md:basis-1/2"
+              : "pl-2 md:pl-4 basis-full md:basis-1/2";
+
+          const contentClass = `-ml-2 md:-ml-4 ${isSingle ? "justify-center" : isDouble ? "md:justify-center md:gap-0 lg:gap-0" : ""}`;
+
+          return (
+            <Carousel
+              plugins={[autoplayPlugin.current]}
+              className="w-full"
+              opts={{
+                align: isSingle ? "center" : "start",
+                loop: count > 1,
+              }}
+            >
+              <CarouselContent className={contentClass}>
+                {quotes.map((item) => (
+                  <CarouselItem key={item.id} className={itemClass}>
+                    <div className="p-2 sm:p-4 h-full">
+                      <div className="relative bg-white p-1 border border-primary h-full min-h-[200px] sm:min-h-[250px] shadow-[0_0_15px_rgba(255,102,0,0.2)]">
+                        <div className="border border-primary p-3 sm:p-5 h-full">
+                          <div className="flex flex-col h-full">
+                            <p className="text-base sm:text-lg md:text-xl font-body font-semibold text-card-foreground/90 text-center flex-grow pt-2 sm:pt-4">
+                              "{item.quote}"
                             </p>
+                            <div className="mt-4 sm:mt-6 text-left">
+                              {item.date && (
+                                <p className="text-xs sm:text-sm text-muted-foreground mb-1 font-normal font-body">
+                                  {item.date}
+                                </p>
+                              )}
+                              <p className="text-sm sm:text-base font-normal text-primary font-body">
+                                — {item.author}
+                              </p>
+                            </div>
                           </div>
                         </div>
                       </div>
                     </div>
-                  </div>
-                </CarouselItem>
-              ))}
-            </CarouselContent>
-            <CarouselPrevious className="hidden sm:flex" />
-            <CarouselNext className="hidden sm:flex" />
-          </Carousel>
-        )}
+                  </CarouselItem>
+                ))}
+              </CarouselContent>
+              <CarouselPrevious className="hidden sm:flex" />
+              <CarouselNext className="hidden sm:flex" />
+            </Carousel>
+          );
+        })()}
       </div>
     </section>
   );

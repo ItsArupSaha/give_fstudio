@@ -81,7 +81,7 @@ export function Courses() {
               ? "pl-2 md:pl-4 basis-full sm:basis-1/2 lg:basis-1/3"
               : "pl-2 md:pl-4 basis-full sm:basis-1/2 lg:basis-1/3";
 
-          const contentClass = `-ml-2 md:-ml-4 ${isSingle ? "justify-center" : isDouble ? "md:justify-between" : ""}`;
+          const contentClass = `-ml-2 md:-ml-4 ${isSingle ? "justify-center" : isDouble ? "md:justify-center" : ""}`;
 
           return (
             <Carousel
