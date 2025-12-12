@@ -47,7 +47,7 @@ export function Testimonials() {
 
   const autoplayPlugin = React.useRef(
     Autoplay({
-      delay: 3000,
+      delay: 5000,
       stopOnInteraction: false,
       stopOnMouseEnter: false,
     })
@@ -139,8 +139,12 @@ export function Testimonials() {
                             </div>
                             <div className="flex flex-col flex-1 min-w-0">
                               <CardTitle className="font-headline text-base sm:text-lg font-semibold leading-tight">{testimonial.name}</CardTitle>
-                              <p className="text-xs sm:text-sm text-muted-foreground font-normal mt-0.5 leading-tight">{testimonial.designation}</p>
-                              <p className="text-xs sm:text-sm text-muted-foreground font-normal leading-tight">{testimonial.address}</p>
+                              {testimonial.designation && (
+                                <p className="text-xs sm:text-sm text-muted-foreground font-normal mt-0.5 leading-tight">{testimonial.designation}</p>
+                              )}
+                              {testimonial.address && (
+                                <p className="text-xs sm:text-sm text-muted-foreground font-normal leading-tight">{testimonial.address}</p>
+                              )}
                             </div>
                           </CardHeader>
                           <CardContent className="flex-grow flex flex-col pt-2 pb-2">
@@ -172,11 +176,17 @@ export function Testimonials() {
                     <>
                       <DialogHeader>
                         <DialogTitle className="text-xl sm:text-2xl font-bold">{selectedTestimonial.name}</DialogTitle>
-                        <DialogDescription>
-                          <span className="font-normal">{selectedTestimonial.designation}</span>
-                          <br />
-                          <span className="font-normal">{selectedTestimonial.address}</span>
-                        </DialogDescription>
+                        {(selectedTestimonial.designation || selectedTestimonial.address) && (
+                          <DialogDescription>
+                            {selectedTestimonial.designation && (
+                              <span className="font-normal">{selectedTestimonial.designation}</span>
+                            )}
+                            {selectedTestimonial.designation && selectedTestimonial.address && <br />}
+                            {selectedTestimonial.address && (
+                              <span className="font-normal">{selectedTestimonial.address}</span>
+                            )}
+                          </DialogDescription>
+                        )}
                       </DialogHeader>
                       <div className="mt-4">
                         <div

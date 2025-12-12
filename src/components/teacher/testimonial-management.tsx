@@ -111,7 +111,7 @@ export function TestimonialManagement() {
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
 
-        if (!formData.name.trim() || !formData.designation.trim() || !formData.address.trim() || !formData.description.trim()) {
+        if (!formData.name.trim() || !formData.description.trim()) {
             toast({
                 title: "Validation Error",
                 description: "Please fill in all required fields",
@@ -338,27 +338,25 @@ export function TestimonialManagement() {
                                     />
                                 </div>
                                 <div className="space-y-2">
-                                    <Label htmlFor="designation">Designation *</Label>
+                                    <Label htmlFor="designation">Designation</Label>
                                     <Input
                                         id="designation"
-                                        placeholder="Enter designation..."
+                                        placeholder="Enter designation (optional)..."
                                         value={formData.designation}
                                         onChange={(e) =>
                                             setFormData({ ...formData, designation: e.target.value })
                                         }
-                                        required
                                     />
                                 </div>
                                 <div className="space-y-2">
-                                    <Label htmlFor="address">Address *</Label>
+                                    <Label htmlFor="address">Address</Label>
                                     <Input
                                         id="address"
-                                        placeholder="Enter address..."
+                                        placeholder="Enter address (optional)..."
                                         value={formData.address}
                                         onChange={(e) =>
                                             setFormData({ ...formData, address: e.target.value })
                                         }
-                                        required
                                     />
                                 </div>
                                 <div className="space-y-2">
@@ -473,8 +471,12 @@ export function TestimonialManagement() {
                             </div>
                             <CardHeader>
                                 <CardTitle className="text-base font-bold">{testimonial.name}</CardTitle>
-                                <CardDescription className="font-normal">{testimonial.designation}</CardDescription>
-                                <CardDescription className="font-normal">{testimonial.address}</CardDescription>
+                                {testimonial.designation && (
+                                    <CardDescription className="font-normal">{testimonial.designation}</CardDescription>
+                                )}
+                                {testimonial.address && (
+                                    <CardDescription className="font-normal">{testimonial.address}</CardDescription>
+                                )}
                             </CardHeader>
                             <CardContent>
                                 <p className="text-sm text-muted-foreground line-clamp-3 mb-4">
