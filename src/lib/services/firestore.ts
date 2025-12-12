@@ -1373,9 +1373,10 @@ export async function updateTestimonial(id: string, testimonial: Partial<Testimo
     };
 
     if (testimonial.name !== undefined) updates.name = testimonial.name;
-    if (testimonial.role !== undefined) updates.role = testimonial.role;
-    if (testimonial.quote !== undefined) updates.quote = testimonial.quote;
-    if (testimonial.avatarUrl !== undefined) updates.avatarUrl = testimonial.avatarUrl;
+    if (testimonial.designation !== undefined) updates.designation = testimonial.designation;
+    if (testimonial.address !== undefined) updates.address = testimonial.address;
+    if (testimonial.description !== undefined) updates.description = testimonial.description;
+    if (testimonial.imageUrl !== undefined) updates.imageUrl = testimonial.imageUrl;
 
     await updateDoc(testimonialRef, updates);
   } catch (error) {

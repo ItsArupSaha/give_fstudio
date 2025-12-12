@@ -1,7 +1,7 @@
 "use client";
 
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Card, CardContent } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import {
   Carousel,
   CarouselContent,
@@ -9,15 +9,25 @@ import {
   CarouselNext,
   CarouselPrevious,
 } from '@/components/ui/carousel';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import type { Testimonial } from '@/lib/models/testimonial';
 import { subscribeTestimonials } from '@/lib/services/firestore';
 import Autoplay from 'embla-carousel-autoplay';
 import { Loader2, User } from 'lucide-react';
-import React from 'react';
+import Image from 'next/image';
+import * as React from 'react';
 
 export function Testimonials() {
   const [testimonials, setTestimonials] = React.useState<Testimonial[]>([]);
   const [loading, setLoading] = React.useState(true);
+  const [selectedTestimonial, setSelectedTestimonial] = React.useState<Testimonial | null>(null);
+  const [isDialogOpen, setIsDialogOpen] = React.useState(false);
 
   React.useEffect(() => {
     const unsubscribe = subscribeTestimonials(
@@ -38,10 +48,27 @@ export function Testimonials() {
   const autoplayPlugin = React.useRef(
     Autoplay({
       delay: 3000,
-      stopOnInteraction: true,
-      stopOnMouseEnter: true,
+      stopOnInteraction: false,
+      stopOnMouseEnter: false,
     })
   );
+
+  const handleReadMore = (testimonial: Testimonial) => {
+    setSelectedTestimonial(testimonial);
+    setIsDialogOpen(true);
+  };
+
+  // Strip HTML tags for preview text
+  const stripHtml = (html: string): string => {
+    if (typeof window === 'undefined') {
+      // Server-side: use regex
+      return html.replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ').trim();
+    }
+    // Client-side: use DOM
+    const tmp = document.createElement('DIV');
+    tmp.innerHTML = html;
+    return tmp.textContent || tmp.innerText || '';
+  };
 
   return (
     <section
@@ -68,45 +95,109 @@ export function Testimonials() {
               </p>
             </CardContent>
           </Card>
-        ) : (
-          <Carousel
-            plugins={[autoplayPlugin.current]}
-            opts={{
-              align: 'start',
-              loop: testimonials.length > 1,
-            }}
-            className="w-full max-w-4xl mx-auto"
-          >
-            <CarouselContent>
-              {testimonials.map((testimonial) => (
-                <CarouselItem key={testimonial.id} className="md:basis-1/2 lg:basis-1/3">
-                  <div className="p-1 h-full">
-                    <Card className="flex flex-col justify-between h-full p-6 shadow-md hover:shadow-xl transition-shadow duration-300">
-                      <CardContent className="p-0 flex-grow">
-                        <p className="italic text-muted-foreground">"{testimonial.quote}"</p>
-                      </CardContent>
-                      <div className="flex items-center gap-4 mt-6">
-                        <Avatar>
-                          <AvatarImage
-                            src={testimonial.avatarUrl}
-                            alt={`${testimonial.name}'s profile picture`}
-                          />
-                          <AvatarFallback>{testimonial.name.charAt(0)}</AvatarFallback>
-                        </Avatar>
-                        <div>
-                          <p className="font-semibold font-headline">{testimonial.name}</p>
-                          <p className="text-sm text-muted-foreground">{testimonial.role}</p>
-                        </div>
+        ) : (() => {
+          const count = testimonials.length;
+          const isSingle = count === 1;
+          const isDouble = count === 2;
+
+          const itemClass = isSingle
+            ? "pl-2 md:pl-4 basis-full sm:basis-1/2 lg:basis-1/3"
+            : isDouble
+              ? "pl-2 md:pl-4 basis-full sm:basis-1/2 lg:basis-1/3"
+              : "pl-2 md:pl-4 basis-full sm:basis-1/2 lg:basis-1/3";
+
+          const contentClass = `-ml-2 md:-ml-4 ${isSingle ? "justify-center" : isDouble ? "md:justify-center" : ""}`;
+
+          return (
+            <>
+              <Carousel
+                plugins={[autoplayPlugin.current]}
+                className="w-full"
+                opts={{
+                  align: isSingle ? "center" : "start",
+                  loop: count > 1,
+                }}
+              >
+                <CarouselContent className={contentClass}>
+                  {testimonials.map((testimonial) => (
+                    <CarouselItem key={testimonial.id} className={itemClass}>
+                      <div className="p-2 sm:p-4 h-full">
+                        <Card className="flex flex-col overflow-hidden h-full transition-all duration-300 hover:shadow-xl hover:-translate-y-2">
+                          <CardHeader className="min-h-[4.5rem] flex flex-row items-start gap-3 flex-shrink-0 p-4">
+                            <div
+                              className="relative w-12 h-12 sm:w-14 sm:h-14 flex-shrink-0 rounded-full overflow-hidden"
+                              onContextMenu={(e) => e.preventDefault()}
+                              style={{ userSelect: 'none', pointerEvents: 'none' }}
+                            >
+                              <Image
+                                src={testimonial.imageUrl}
+                                alt={testimonial.name}
+                                fill
+                                className="object-cover"
+                                draggable={false}
+                              />
+                            </div>
+                            <div className="flex flex-col flex-1 min-w-0">
+                              <CardTitle className="font-headline text-base sm:text-lg font-semibold leading-tight">{testimonial.name}</CardTitle>
+                              <p className="text-xs sm:text-sm text-muted-foreground font-normal mt-0.5 leading-tight">{testimonial.designation}</p>
+                              <p className="text-xs sm:text-sm text-muted-foreground font-normal leading-tight">{testimonial.address}</p>
+                            </div>
+                          </CardHeader>
+                          <CardContent className="flex-grow flex flex-col pt-2 pb-2">
+                            <p className="text-sm sm:text-base text-muted-foreground line-clamp-4">
+                              {stripHtml(testimonial.description)}
+                            </p>
+                          </CardContent>
+                          <CardFooter className="mt-auto flex-shrink-0 pt-2">
+                            <Button
+                              variant="outline"
+                              className="w-full text-sm sm:text-base"
+                              onClick={() => handleReadMore(testimonial)}
+                            >
+                              Read More
+                            </Button>
+                          </CardFooter>
+                        </Card>
                       </div>
-                    </Card>
-                  </div>
-                </CarouselItem>
-              ))}
-            </CarouselContent>
-            <CarouselPrevious />
-            <CarouselNext />
-          </Carousel>
-        )}
+                    </CarouselItem>
+                  ))}
+                </CarouselContent>
+                <CarouselPrevious className="hidden sm:flex" />
+                <CarouselNext className="hidden sm:flex" />
+              </Carousel>
+
+              <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+                <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+                  {selectedTestimonial && (
+                    <>
+                      <DialogHeader>
+                        <DialogTitle className="text-xl sm:text-2xl font-bold">{selectedTestimonial.name}</DialogTitle>
+                        <DialogDescription>
+                          <span className="font-normal">{selectedTestimonial.designation}</span>
+                          <br />
+                          <span className="font-normal">{selectedTestimonial.address}</span>
+                        </DialogDescription>
+                      </DialogHeader>
+                      <div className="mt-4">
+                        <div
+                          className="prose prose-lg max-w-none text-sm sm:text-base
+                             [&_ul]:list-disc [&_ul]:ms-6 [&_ol]:list-decimal [&_ol]:ms-6
+                             [&_li]:my-2 [&_a]:text-primary [&_a]:underline [&_a]:font-medium
+                             [&_strong]:font-bold [&_em]:italic [&_u]:underline
+                             [&_p]:mb-4 [&_h1]:text-2xl [&_h1]:font-bold [&_h1]:mb-4
+                             [&_h2]:text-xl [&_h2]:font-bold [&_h2]:mb-3
+                             [&_h3]:text-lg [&_h3]:font-bold [&_h3]:mb-2
+                             [&_ul.checklist]:list-none [&_ul.checklist]:pl-0 [&_ul.checklist>li]:relative [&_ul.checklist>li]:ps-6 [&_ul.checklist>li]:my-2 [&_ul.checklist>li]:before:content-['✔'] [&_ul.checklist>li]:before:text-primary [&_ul.checklist>li]:before:absolute [&_ul.checklist>li]:before:left-0 [&_ul.checklist>li]:before:top-0"
+                          dangerouslySetInnerHTML={{ __html: selectedTestimonial.description }}
+                        />
+                      </div>
+                    </>
+                  )}
+                </DialogContent>
+              </Dialog>
+            </>
+          );
+        })()}
       </div>
     </section>
   );
