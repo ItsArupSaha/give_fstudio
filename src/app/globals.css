@@ -80,7 +80,10 @@
   * {
     @apply border-border;
   }
+  html {
+    @apply overflow-x-hidden;
+  }
   body {
-    @apply bg-background text-foreground font-normal;
+    @apply bg-background text-foreground font-normal overflow-x-hidden w-full max-w-full;
   }
 }
