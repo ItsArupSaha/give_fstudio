@@ -80,6 +80,7 @@ import {
 import {
   userFromFirestore,
 } from "@/lib/models/user";
+import { Course, CourseFirestore, courseFromFirestore, courseToFirestore } from "../models/course";
 import { Quote, QuoteFirestore, quoteFromFirestore, quoteToFirestore } from "../models/quote";
 import { TaskBookmark, TaskBookmarkFirestore, taskBookmarkFromFirestore, taskBookmarkToFirestore } from "../models/task-bookmark";
 import { Testimonial, TestimonialFirestore, testimonialFromFirestore, testimonialToFirestore } from "../models/testimonial";
@@ -1425,6 +1426,103 @@ export function subscribeTestimonials(
         onError(error);
       }
       // Still call callback with empty array on error so UI can show empty state
+      callback([]);
+    }
+  );
+}
+
+// ==================== Course Operations (for public display) ====================
+
+export async function createCourse(course: Omit<Course, "id" | "createdAt" | "updatedAt">): Promise<string> {
+  try {
+    const courseRef = doc(collection(db, "courses"));
+    const now = new Date();
+    const fullCourse: Course = {
+      ...course,
+      id: courseRef.id,
+      createdAt: now,
+      updatedAt: now,
+    };
+    const courseData: CourseFirestore = courseToFirestore(fullCourse);
+    await setDoc(courseRef, courseData);
+    return courseRef.id;
+  } catch (error) {
+    throw new Error(`Failed to create course: ${error}`);
+  }
+}
+
+export async function updateCourse(id: string, course: Partial<Course>): Promise<void> {
+  try {
+    const courseRef = doc(db, "courses", id);
+    const updates: Partial<CourseFirestore> = {
+      updatedAt: Timestamp.now(),
+    };
+
+    if (course.title !== undefined) updates.title = course.title;
+    if (course.description !== undefined) updates.description = course.description;
+    if (course.imageUrl !== undefined) updates.imageUrl = course.imageUrl;
+
+    await updateDoc(courseRef, updates);
+  } catch (error) {
+    throw new Error(`Failed to update course: ${error}`);
+  }
+}
+
+export async function deleteCourse(id: string): Promise<void> {
+  try {
+    await deleteDoc(doc(db, "courses", id));
+  } catch (error) {
+    throw new Error(`Failed to delete course: ${error}`);
+  }
+}
+
+export async function getCourseById(id: string): Promise<Course | null> {
+  try {
+    const courseRef = doc(db, "courses", id);
+    const courseSnap = await getDoc(courseRef);
+    if (courseSnap.exists()) {
+      return courseFromFirestore(courseSnap.id, courseSnap.data() as CourseFirestore);
+    }
+    return null;
+  } catch (error) {
+    throw new Error(`Failed to get course: ${error}`);
+  }
+}
+
+export async function getCourses(): Promise<Course[]> {
+  try {
+    const snapshot = await getDocs(collection(db, "courses"));
+    const courses = snapshot.docs.map((doc) =>
+      courseFromFirestore(doc.id, doc.data() as CourseFirestore)
+    );
+    // Sort by createdAt ascending (oldest first)
+    courses.sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime());
+    return courses;
+  } catch (error) {
+    throw new Error(`Failed to get courses: ${error}`);
+  }
+}
+
+export function subscribeCourses(
+  callback: (courses: Course[]) => void,
+  onError?: (error: Error) => void
+): () => void {
+  const q = query(collection(db, "courses"));
+
+  return onSnapshot(
+    q,
+    (snapshot) => {
+      const courses = snapshot.docs.map((doc) =>
+        courseFromFirestore(doc.id, doc.data() as CourseFirestore)
+      );
+      courses.sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime());
+      callback(courses);
+    },
+    (error) => {
+      console.error("Error in courses subscription:", error);
+      if (onError) {
+        onError(error);
+      }
       callback([]);
     }
   );

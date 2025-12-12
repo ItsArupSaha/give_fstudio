@@ -3,6 +3,7 @@
 import { AllStudentsView } from "@/components/teacher/all-students-view";
 import { BatchManagement } from "@/components/teacher/batch-management";
 import { CourseGroupsManagement } from "@/components/teacher/course-groups";
+import { CourseManagement } from "@/components/teacher/course-management";
 import { QuoteManagement } from "@/components/teacher/quote-management";
 import { TeacherManagement } from "@/components/teacher/teacher-management";
 import { TestimonialManagement } from "@/components/teacher/testimonial-management";
@@ -12,7 +13,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuthUser } from "@/hooks/use-auth";
 import { useTeacher } from "@/hooks/use-teacher";
 import { getBatchesByCourseGroup, getCourseGroups, getEnrollmentsByBatch } from "@/lib/services/firestore";
-import { FileText, Folder, MessageSquare, Users } from "lucide-react";
+import { BookOpen, FileText, Folder, MessageSquare, Users } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
@@ -166,47 +167,55 @@ export default function TeacherDashboardPage() {
       </div>
 
       {/* Main Management Tabs */}
-      <Tabs defaultValue="course-groups" className="space-y-4">
-        <TabsList className="flex flex-wrap w-full sm:w-auto gap-2">
-          <TabsTrigger value="course-groups" className="flex-1 sm:flex-initial min-w-0">
-            <Folder className="h-4 w-4 mr-1 sm:mr-2 flex-shrink-0" />
-            <span className="truncate">Groups</span>
+      <Tabs defaultValue="course-groups" className="w-full">
+        <TabsList className="grid grid-cols-3 gap-2 w-full mb-16">
+          <TabsTrigger value="course-groups" className="flex items-center justify-center">
+            <Folder className="h-4 w-4 mr-2 flex-shrink-0" />
+            <span>Groups</span>
           </TabsTrigger>
-          <TabsTrigger value="batches" className="flex-1 sm:flex-initial min-w-0">
-            <Users className="h-4 w-4 mr-1 sm:mr-2 flex-shrink-0" />
-            <span className="truncate">Batches</span>
+          <TabsTrigger value="batches" className="flex items-center justify-center">
+            <Users className="h-4 w-4 mr-2 flex-shrink-0" />
+            <span>Batches</span>
           </TabsTrigger>
-          <TabsTrigger value="teachers" className="flex-1 sm:flex-initial min-w-0">
-            <Users className="h-4 w-4 mr-1 sm:mr-2 flex-shrink-0" />
-            <span className="truncate">Teachers</span>
+          <TabsTrigger value="teachers" className="flex items-center justify-center">
+            <Users className="h-4 w-4 mr-2 flex-shrink-0" />
+            <span>Teachers</span>
           </TabsTrigger>
-          <TabsTrigger value="quotes" className="flex-1 sm:flex-initial min-w-0">
-            <MessageSquare className="h-4 w-4 mr-1 sm:mr-2 flex-shrink-0" />
-            <span className="truncate">Quotes</span>
+          <TabsTrigger value="courses" className="flex items-center justify-center">
+            <BookOpen className="h-4 w-4 mr-2 flex-shrink-0" />
+            <span>Courses</span>
           </TabsTrigger>
-          <TabsTrigger value="testimonials" className="flex-1 sm:flex-initial min-w-0">
-            <MessageSquare className="h-4 w-4 mr-1 sm:mr-2 flex-shrink-0" />
-            <span className="truncate">Testimonials</span>
+          <TabsTrigger value="quotes" className="flex items-center justify-center">
+            <MessageSquare className="h-4 w-4 mr-2 flex-shrink-0" />
+            <span>Quotes</span>
+          </TabsTrigger>
+          <TabsTrigger value="testimonials" className="flex items-center justify-center">
+            <MessageSquare className="h-4 w-4 mr-2 flex-shrink-0" />
+            <span>Testimonials</span>
           </TabsTrigger>
         </TabsList>
 
-        <TabsContent value="course-groups">
+        <TabsContent value="course-groups" className="mt-6">
           <CourseGroupsManagement />
         </TabsContent>
 
-        <TabsContent value="batches">
+        <TabsContent value="batches" className="mt-6">
           <BatchManagement />
         </TabsContent>
 
-        <TabsContent value="teachers">
+        <TabsContent value="teachers" className="mt-6">
           <TeacherManagement />
         </TabsContent>
 
-        <TabsContent value="quotes">
+        <TabsContent value="courses" className="mt-6">
+          <CourseManagement />
+        </TabsContent>
+
+        <TabsContent value="quotes" className="mt-6">
           <QuoteManagement />
         </TabsContent>
 
-        <TabsContent value="testimonials">
+        <TabsContent value="testimonials" className="mt-6">
           <TestimonialManagement />
         </TabsContent>
       </Tabs>

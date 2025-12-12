@@ -1,77 +1,123 @@
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import Image from 'next/image';
+"use client";
 
-const courses = [
-  {
-    id: "course-1",
-    title: 'Bhagavad-gītā As It Is',
-    description: 'An in-depth study of the foundational text of Vaiṣṇava philosophy, exploring its timeless wisdom and practical application.',
-    image: {
-      src: 'https://picsum.photos/seed/course-1/600/400',
-      alt: 'An ancient, beautifully illustrated manuscript of the Bhagavad-gita, open on a wooden table.',
-      hint: 'ancient book',
-    },
-  },
-  {
-    id: "course-2",
-    title: 'Śrī Īśopaniṣad',
-    description: 'Uncover the esoteric truths of the Vedas in this essential Upanishad, revealing the nature of the Supreme Being.',
-    image: {
-      src: 'https://picsum.photos/seed/course-2/600/400',
-      alt: 'A person meditating peacefully at dawn, with soft light illuminating their face.',
-      hint: 'peaceful meditation',
-    },
-  },
-  {
-    id: "course-3",
-    title: 'Bhakti-rasāmṛta-sindhu',
-    description: 'Dive deep into the ocean of devotional service with this masterpiece by Rupa Goswami, outlining the science of bhakti-yoga.',
-    image: {
-      src: 'https://picsum.photos/seed/course-3/600/400',
-      alt: 'A group of people sitting in a circle, engaged in a deep and friendly discussion.',
-      hint: 'group discussion',
-    },
-  },
-];
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import {
+  Carousel,
+  CarouselContent,
+  CarouselItem,
+  CarouselNext,
+  CarouselPrevious,
+} from "@/components/ui/carousel";
+import type { Course } from "@/lib/models/course";
+import { subscribeCourses } from "@/lib/services/firestore";
+import Autoplay from 'embla-carousel-autoplay';
+import { BookOpen, Loader2 } from 'lucide-react';
+import Image from 'next/image';
+import Link from 'next/link';
+import React from 'react';
 
 export function Courses() {
+  const [courses, setCourses] = React.useState<Course[]>([]);
+  const [loading, setLoading] = React.useState(true);
+
+  React.useEffect(() => {
+    const unsubscribe = subscribeCourses(
+      (coursesList) => {
+        setCourses(coursesList);
+        setLoading(false);
+      },
+      (error) => {
+        console.error("Error subscribing to courses:", error);
+        setCourses([]);
+        setLoading(false);
+      }
+    );
+
+    return () => unsubscribe();
+  }, []);
+
+  const autoplayPlugin = React.useRef(
+    Autoplay({
+      delay: 4000,
+      stopOnInteraction: true,
+      stopOnMouseEnter: true,
+    })
+  );
+
   return (
     <section
       id="courses"
-      className="relative py-16 md:py-24 bg-gradient-to-b from-secondary via-secondary/95 to-background overflow-hidden"
+      className="relative py-12 sm:py-16 md:py-24 bg-gradient-to-b from-secondary via-secondary/95 to-background overflow-hidden"
     >
-      <div className="relative container max-w-screen-2xl">
-        <div className="text-center max-w-2xl mx-auto mb-12">
-          <h2 className="text-3xl md:text-4xl font-headline font-bold text-secondary-foreground">Our Courses</h2>
-          <p className="mt-4 text-lg text-secondary-foreground/80">
+      <div className="relative container max-w-screen-2xl px-4 sm:px-6">
+        <div className="text-center max-w-2xl mx-auto mb-6 sm:mb-12">
+          <h2 className="text-2xl sm:text-3xl md:text-4xl font-headline font-bold text-secondary-foreground">Our Courses</h2>
+          <p className="mt-4 text-base sm:text-lg text-secondary-foreground/80">
             Deepen your understanding of Vaiṣṇava philosophy and practice with our structured courses.
           </p>
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-          {courses.map((course) => (
-            <Card key={course.id} className="flex flex-col overflow-hidden transition-all duration-300 hover:shadow-xl hover:-translate-y-2">
-              <div className="relative h-48 w-full">
-                <Image
-                  src={course.image.src}
-                  alt={course.image.alt}
-                  fill
-                  className="object-cover"
-                  data-ai-hint={course.image.hint}
-                />
-              </div>
-              <CardHeader>
-                <CardTitle className="font-headline text-xl">{course.title}</CardTitle>
-              </CardHeader>
-              <CardContent className="flex-grow">
-                <CardDescription>{course.description}</CardDescription>
-              </CardContent>
-              <CardFooter>
-                <Button className="w-full">Learn More & Register</Button>
-              </CardFooter>
-            </Card>
-          ))}
-        </div>
+        {loading ? (
+          <div className="flex items-center justify-center py-12">
+            <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+          </div>
+        ) : courses.length === 0 ? (
+          <Card className="max-w-2xl mx-auto">
+            <CardContent className="flex flex-col items-center justify-center py-12">
+              <BookOpen className="h-12 w-12 text-muted-foreground mb-4" />
+              <p className="text-muted-foreground text-center">
+                No courses added yet.
+              </p>
+            </CardContent>
+          </Card>
+        ) : (
+          <Carousel
+            plugins={[autoplayPlugin.current]}
+            className="w-full"
+            opts={{
+              align: "start",
+              loop: courses.length > 1,
+            }}
+          >
+            <CarouselContent className="-ml-2 md:-ml-4">
+              {courses.map((course) => (
+                <CarouselItem key={course.id} className="pl-2 md:pl-4 basis-full sm:basis-1/2 lg:basis-1/3">
+                  <div className="p-2 sm:p-4 h-full">
+                    <Card className="flex flex-col overflow-hidden h-full transition-all duration-300 hover:shadow-xl hover:-translate-y-2">
+                      <div className="relative h-48 w-full">
+                        <Image
+                          src={course.imageUrl}
+                          alt={course.title}
+                          fill
+                          className="object-cover"
+                        />
+                      </div>
+                      <CardHeader>
+                        <CardTitle className="font-headline text-lg sm:text-xl">{course.title}</CardTitle>
+                      </CardHeader>
+                      <CardFooter>
+                        <Button
+                          asChild
+                          className="w-full text-sm sm:text-base"
+                        >
+                          <Link
+                            href={`/courses/${course.id}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                          >
+                            Learn More
+                          </Link>
+                        </Button>
+                      </CardFooter>
+                    </Card>
+                  </div>
+                </CarouselItem>
+              ))}
+            </CarouselContent>
+            <CarouselPrevious className="hidden sm:flex" />
+            <CarouselNext className="hidden sm:flex" />
+          </Carousel>
+        )}
       </div>
     </section>
   );
