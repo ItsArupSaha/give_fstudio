@@ -97,7 +97,7 @@ export function Courses() {
                   <CarouselItem key={course.id} className={itemClass}>
                     <div className="p-2 sm:p-4 h-full">
                       <Card className="flex flex-col overflow-hidden h-full transition-all duration-300 hover:shadow-xl hover:-translate-y-2">
-                        <div className="relative h-48 w-full">
+                        <div className="relative h-48 w-full flex-shrink-0">
                           <Image
                             src={course.imageUrl}
                             alt={course.title}
@@ -105,10 +105,10 @@ export function Courses() {
                             className="object-cover"
                           />
                         </div>
-                        <CardHeader>
-                          <CardTitle className="font-headline text-lg sm:text-xl">{course.title}</CardTitle>
+                        <CardHeader className="min-h-[4.5rem] flex items-start flex-shrink-0">
+                          <CardTitle className="font-headline text-lg sm:text-xl line-clamp-2">{course.title}</CardTitle>
                         </CardHeader>
-                        <CardFooter>
+                        <CardFooter className="mt-auto flex-shrink-0">
                           <Button
                             asChild
                             className="w-full text-sm sm:text-base"
