@@ -17,10 +17,12 @@ import type { Submission } from "@/lib/models/submission";
 import type { Task } from "@/lib/models/task";
 import {
   createSubmission,
+  deleteSubmission,
   getTaskById,
   subscribeSubmissionByTaskAndStudent
 } from "@/lib/services/firestore";
 import { uploadFiles } from "@/lib/services/storage";
+import { getGracePeriodRemainingMinutes, isWithinGracePeriod } from "@/lib/utils";
 import {
   getTaskTypeColor,
   getTaskTypeIcon,
@@ -54,6 +56,8 @@ export default function TaskSubmissionPage() {
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [uploadProgress, setUploadProgress] = useState<Map<number, number>>(new Map());
   const [isUploading, setIsUploading] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [gracePeriodRemaining, setGracePeriodRemaining] = useState<number>(0);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -102,6 +106,24 @@ export default function TaskSubmissionPage() {
 
     return () => unsubscribe();
   }, [taskId, user?.uid, router, toast]);
+
+  // Update grace period countdown
+  useEffect(() => {
+    if (!submission || !isWithinGracePeriod(submission)) {
+      setGracePeriodRemaining(0);
+      return;
+    }
+
+    const updateCountdown = () => {
+      const remaining = getGracePeriodRemainingMinutes(submission);
+      setGracePeriodRemaining(remaining);
+    };
+
+    updateCountdown();
+    const interval = setInterval(updateCountdown, 1000); // Update every second
+
+    return () => clearInterval(interval);
+  }, [submission]);
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
@@ -235,6 +257,35 @@ export default function TaskSubmissionPage() {
     }
   };
 
+  const handleDeleteSubmission = async () => {
+    if (!submission || !user?.uid) return;
+
+    if (!confirm("Are you sure you want to delete this submission? You can resubmit within the grace period.")) {
+      return;
+    }
+
+    setIsDeleting(true);
+    try {
+      await deleteSubmission(submission.id, submission.fileUrls);
+      toast({
+        title: "Success",
+        description: "Submission deleted. You can now resubmit.",
+      });
+      // Clear form
+      setSelectedFiles([]);
+      setNotes("");
+      setUploadProgress(new Map());
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to delete submission",
+        variant: "destructive",
+      });
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="container mx-auto px-4 py-8 max-w-4xl">
@@ -267,6 +318,8 @@ export default function TaskSubmissionPage() {
     !isOverdue &&
     Math.ceil((task.dueDate.getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)) <= 3;
   const alreadySubmitted = submission?.status === "submitted" || submission?.status === "graded";
+  const withinGracePeriod = isWithinGracePeriod(submission);
+  const canEdit = withinGracePeriod && submission?.status === "submitted";
 
   return (
     <div className="container mx-auto px-4 py-8 max-w-4xl">
@@ -354,7 +407,7 @@ export default function TaskSubmissionPage() {
       </Card>
 
       {/* Submission Form */}
-      {alreadySubmitted ? (
+      {alreadySubmitted && !canEdit ? (
         <Card>
           <CardContent className="py-12 text-center">
             <div className="text-orange-600 mb-4">
@@ -366,6 +419,11 @@ export default function TaskSubmissionPage() {
               {submission?.status === "graded" && submission.grade !== undefined && (
                 <span className="block mt-2">
                   Grade: <strong>{submission.grade}/{task.maxPoints}</strong>
+                </span>
+              )}
+              {!withinGracePeriod && submission?.status === "submitted" && (
+                <span className="block mt-2 text-sm text-orange-600">
+                  The 15-minute grace period for editing has expired.
                 </span>
               )}
             </p>
@@ -400,6 +458,27 @@ export default function TaskSubmissionPage() {
                 <p className="text-sm">{submission.feedback}</p>
               </div>
             )}
+            {withinGracePeriod && submission?.status === "submitted" && (
+              <div className="mt-4">
+                <Button
+                  variant="destructive"
+                  onClick={handleDeleteSubmission}
+                  disabled={isDeleting}
+                >
+                  {isDeleting ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      Deleting...
+                    </>
+                  ) : (
+                    "Delete and Resubmit"
+                  )}
+                </Button>
+                <p className="text-sm text-muted-foreground mt-2">
+                  You have {gracePeriodRemaining} minute{gracePeriodRemaining !== 1 ? 's' : ''} remaining to delete and resubmit.
+                </p>
+              </div>
+            )}
           </CardContent>
         </Card>
       ) : task.type === "announcement" ? (
@@ -412,6 +491,35 @@ export default function TaskSubmissionPage() {
         </Card>
       ) : (
         <div className="space-y-6">
+          {canEdit && (
+            <Card className="bg-orange-50 border-orange-200">
+              <CardContent className="pt-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="font-semibold text-orange-900">Grace Period Active</p>
+                    <p className="text-sm text-orange-700">
+                      You can edit or delete your submission. {gracePeriodRemaining} minute{gracePeriodRemaining !== 1 ? 's' : ''} remaining.
+                    </p>
+                  </div>
+                  <Button
+                    variant="destructive"
+                    size="sm"
+                    onClick={handleDeleteSubmission}
+                    disabled={isDeleting}
+                  >
+                    {isDeleting ? (
+                      <>
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        Deleting...
+                      </>
+                    ) : (
+                      "Delete Submission"
+                    )}
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          )}
           {/* File Upload Section */}
           <Card>
             <CardHeader>
@@ -428,13 +536,13 @@ export default function TaskSubmissionPage() {
                 accept=".pdf,.doc,.docx,.txt,.rtf,.odt,.xls,.xlsx,.ppt,.pptx,.jpg,.jpeg,.png,.gif,.webp,.svg,.mp4,.mov,.avi,.mkv,.webm,.mp3,.wav,.ogg,.m4a,.aac,.flac"
                 onChange={handleFileSelect}
                 className="hidden"
-                disabled={alreadySubmitted || isSubmitting}
+                disabled={(alreadySubmitted && !canEdit) || isSubmitting}
               />
               <Button
                 variant="outline"
                 onClick={() => fileInputRef.current?.click()}
                 className="w-full"
-                disabled={alreadySubmitted || isSubmitting || isUploading}
+                disabled={(alreadySubmitted && !canEdit) || isSubmitting || isUploading}
               >
                 <Upload className="h-4 w-4 mr-2" />
                 Select Files
@@ -511,7 +619,7 @@ export default function TaskSubmissionPage() {
                 onChange={(e) => setNotes(e.target.value)}
                 placeholder="Add any additional notes or comments..."
                 rows={6}
-                disabled={alreadySubmitted || isSubmitting}
+                disabled={(alreadySubmitted && !canEdit) || isSubmitting}
               />
             </CardContent>
           </Card>
@@ -523,7 +631,7 @@ export default function TaskSubmissionPage() {
             </Button>
             <Button
               onClick={handleSubmit}
-              disabled={isSubmitting || alreadySubmitted || isUploading}
+              disabled={isSubmitting || (alreadySubmitted && !canEdit) || isUploading}
             >
               {isUploading ? (
                 <>
@@ -535,7 +643,7 @@ export default function TaskSubmissionPage() {
                   <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                   Submitting...
                 </>
-              ) : alreadySubmitted ? (
+              ) : (alreadySubmitted && !canEdit) ? (
                 "Already Submitted"
               ) : (
                 "Submit"

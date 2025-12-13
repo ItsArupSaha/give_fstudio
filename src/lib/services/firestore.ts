@@ -791,6 +791,49 @@ export function subscribeSubmissionByTaskAndStudent(
   });
 }
 
+export async function deleteSubmission(
+  id: string,
+  fileUrls?: string[]
+): Promise<void> {
+  try {
+    const submissionRef = doc(db, "submissions", id);
+    
+    // Get submission data before deleting (for taskId to update count)
+    const submissionDoc = await getDoc(submissionRef);
+    if (!submissionDoc.exists()) {
+      throw new Error("Submission not found");
+    }
+    const submissionData = submissionDoc.data() as SubmissionFirestore;
+    
+    // Delete associated files from storage if provided
+    if (fileUrls && fileUrls.length > 0) {
+      const { deleteFileByUrl } = await import("@/lib/services/storage");
+      // Delete files in parallel, but don't fail if some don't exist
+      await Promise.allSettled(
+        fileUrls.map((url) => deleteFileByUrl(url).catch(() => {}))
+      );
+    }
+    
+    // Delete the submission document
+    await deleteDoc(submissionRef);
+    
+    // Try to decrement task submission count (only works if user is a teacher)
+    // If this fails, it's okay - the submission is already deleted
+    try {
+      const taskRef = doc(db, "tasks", submissionData.taskId);
+      await updateDoc(taskRef, {
+        submissionCount: increment(-1),
+        updatedAt: Timestamp.now(),
+      });
+    } catch (taskUpdateError) {
+      // Log but don't fail - submission is already deleted successfully
+      console.warn("Could not update task submission count (expected for students):", taskUpdateError);
+    }
+  } catch (error) {
+    throw new Error(`Failed to delete submission: ${error instanceof Error ? error.message : String(error)}`);
+  }
+}
+
 export async function getSubmissionsByTask(taskId: string): Promise<Submission[]> {
   try {
     // Query without orderBy to avoid index requirement, then sort in memory

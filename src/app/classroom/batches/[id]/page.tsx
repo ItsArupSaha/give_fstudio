@@ -27,6 +27,7 @@ import {
   subscribeTaskBookmarksByBatch,
   subscribeTasksByBatch
 } from "@/lib/services/firestore";
+import { isWithinGracePeriod } from "@/lib/utils";
 import {
   getTaskTypeColor,
   getTaskTypeIcon,
@@ -355,8 +356,10 @@ export default function BatchTasksPage() {
               const isDueSoon = isTaskDueSoon(task);
               const submission = submissions.get(task.id);
               const isSubmitted = submission?.status === "submitted" || submission?.status === "graded";
+              const withinGracePeriod = submission ? isWithinGracePeriod(submission) : false;
 
-              const isClickable = task.type !== "announcement" && !isSubmitted;
+              // Allow clicking if task is not submitted, or if within grace period
+              const isClickable = task.type !== "announcement" && (!isSubmitted || withinGracePeriod);
 
               return (
                 <Card
