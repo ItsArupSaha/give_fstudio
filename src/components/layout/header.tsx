@@ -32,8 +32,13 @@ import { usePathname } from "next/navigation";
 import * as React from "react";
 
 const mainNavItems = [
-  { name: "Resources", href: "#resources" },
   { name: "Contact", href: "#contact" },
+];
+
+const resourceNavItems = [
+  { name: "Youtube", href: "https://youtube.com/@VaikunthaGunanuvarnana" },
+  { name: "Facebook", href: "https://www.facebook.com/vaikunthagunanuvarnana" },
+  { name: "SP Nectar Drops", href: "https://www.youtube.com/playlist?list=PLqRizzK9qLnIhYlasqoQKDxSlbSzON3pd" },
 ];
 
 const aboutNavItems = [
@@ -122,6 +127,20 @@ export default function Header() {
           >
             Testimonials
           </Link>
+          <DropdownMenu>
+            <DropdownMenuTrigger className="flex items-center gap-1 font-medium text-foreground/90 transition-colors hover:text-foreground focus:outline-none">
+              Resources <ChevronDown className="h-4 w-4" />
+            </DropdownMenuTrigger>
+            <DropdownMenuContent>
+              {resourceNavItems.map((item) => (
+                <DropdownMenuItem key={item.name} asChild>
+                  <Link href={item.href} target="_blank" rel="noopener noreferrer">
+                    {item.name}
+                  </Link>
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
           {mainNavItems.map((item) => (
             <Link
               key={item.name}
@@ -241,6 +260,29 @@ export default function Header() {
                   >
                     Testimonials
                   </Link>
+                  <Accordion type="single" collapsible className="w-full border-none">
+                    <AccordionItem value="resources" className="border-b-0">
+                      <AccordionTrigger className="px-4 text-left text-lg font-medium text-foreground/90 transition-colors hover:text-foreground hover:no-underline py-2">
+                        Resources
+                      </AccordionTrigger>
+                      <AccordionContent className="pl-4">
+                        <div className="flex flex-col gap-2 mt-2">
+                          {resourceNavItems.map((item) => (
+                            <Link
+                              key={item.name}
+                              href={item.href}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-base font-medium text-foreground/90 transition-colors hover:text-foreground"
+                              onClick={() => setIsMobileMenuOpen(false)}
+                            >
+                              {item.name}
+                            </Link>
+                          ))}
+                        </div>
+                      </AccordionContent>
+                    </AccordionItem>
+                  </Accordion>
                   {mainNavItems.map((item) => (
                     <Link
                       key={item.name}
