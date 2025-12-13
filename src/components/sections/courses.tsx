@@ -17,6 +17,38 @@ import Image from 'next/image';
 import Link from 'next/link';
 import * as React from 'react';
 
+function CourseImage({ src, alt }: { src: string; alt: string }) {
+  const [imgSrc, setImgSrc] = React.useState(src);
+  const [hasError, setHasError] = React.useState(false);
+
+  React.useEffect(() => {
+    setImgSrc(src);
+    setHasError(false);
+  }, [src]);
+
+  if (hasError || !imgSrc) {
+    return (
+      <div className="w-full h-full bg-muted flex items-center justify-center">
+        <BookOpen className="h-12 w-12 text-muted-foreground/50" />
+      </div>
+    );
+  }
+
+  return (
+    <Image
+      src={imgSrc}
+      alt={alt}
+      fill
+      className="object-cover"
+      onError={() => {
+        setHasError(true);
+      }}
+      loading="lazy"
+      unoptimized={imgSrc.includes('firebasestorage')}
+    />
+  );
+}
+
 export function Courses() {
   const [courses, setCourses] = React.useState<Course[]>([]);
   const [loading, setLoading] = React.useState(true);
@@ -97,13 +129,8 @@ export function Courses() {
                   <CarouselItem key={course.id} className={itemClass}>
                     <div className="p-2 sm:p-4 h-full">
                       <Card className="flex flex-col overflow-hidden h-full transition-all duration-300 hover:shadow-xl hover:-translate-y-2">
-                        <div className="relative h-48 w-full flex-shrink-0">
-                          <Image
-                            src={course.imageUrl}
-                            alt={course.title}
-                            fill
-                            className="object-cover"
-                          />
+                        <div className="relative h-48 w-full flex-shrink-0 bg-muted">
+                          <CourseImage src={course.imageUrl} alt={course.title} />
                         </div>
                         <CardHeader className="min-h-[4.5rem] flex items-start flex-shrink-0">
                           <CardTitle className="font-headline text-lg sm:text-xl line-clamp-2">{course.title}</CardTitle>
@@ -115,7 +142,6 @@ export function Courses() {
                           >
                             <Link
                               href={`/courses/${course.id}`}
-                              target="_blank"
                               rel="noopener noreferrer"
                             >
                               Learn More

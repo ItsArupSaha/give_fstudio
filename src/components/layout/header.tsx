@@ -28,7 +28,7 @@ import { useTeacher } from "@/hooks/use-teacher";
 import { ChevronDown, Menu } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import * as React from "react";
 
 const mainNavItems = [
@@ -51,10 +51,69 @@ export default function Header() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = React.useState(false);
   const { isTeacher } = useTeacher();
   const pathname = usePathname();
+  const router = useRouter();
   const isHomePage = pathname === "/";
 
   const coursesHref = isHomePage ? "#courses" : "/courses";
   const testimonialsHref = isHomePage ? "#testimonials" : "/testimonials";
+
+  const scrollToSection = React.useCallback((hash: string) => {
+    // Remove the # from hash if present
+    const id = hash.startsWith("#") ? hash.substring(1) : hash;
+
+    // Try multiple methods to find the element
+    const element = document.getElementById(id) || document.querySelector(`[id="${id}"]`);
+
+    if (element) {
+      const headerHeight = 56; // h-14 = 56px
+      const rect = element.getBoundingClientRect();
+      const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+      const elementTop = rect.top + scrollTop;
+      const offsetPosition = elementTop - headerHeight - 20; // 20px extra padding
+
+      window.scrollTo({
+        top: Math.max(0, offsetPosition),
+        behavior: "smooth"
+      });
+    }
+  }, []);
+
+  const handleNavClick = (href: string, e: React.MouseEvent<HTMLAnchorElement>) => {
+    // Only handle hash links manually, let regular links use default behavior
+    if (href.startsWith("#")) {
+      e.preventDefault();
+
+      if (isHomePage) {
+        // If we're on the home page, scroll to the element
+        scrollToSection(href);
+      } else {
+        // If we're not on home page, navigate to home with hash
+        router.push(href);
+      }
+    }
+  };
+
+  const handleMobileNavClick = (href: string, e: React.MouseEvent<HTMLAnchorElement>) => {
+    // Only handle hash links manually, let regular links use default behavior
+    if (href.startsWith("#")) {
+      e.preventDefault();
+      // Close the menu first
+      setIsMobileMenuOpen(false);
+
+      if (isHomePage) {
+        // Wait for menu to close, then scroll
+        setTimeout(() => {
+          scrollToSection(href);
+        }, 350);
+      } else {
+        // If we're not on home page, navigate to home with hash
+        router.push(href);
+      }
+    } else {
+      // For regular links, just close the menu
+      setIsMobileMenuOpen(false);
+    }
+  };
 
   return (
     <header className="sticky top-0 z-50 w-full border-b border-border/60 bg-secondary/90 backdrop-blur supports-[backdrop-filter]:bg-secondary/80">
@@ -118,12 +177,14 @@ export default function Header() {
           <Link
             href={coursesHref}
             className="font-medium text-foreground/90 transition-colors hover:text-foreground"
+            onClick={(e) => handleNavClick(coursesHref, e)}
           >
             Courses
           </Link>
           <Link
             href={testimonialsHref}
             className="font-medium text-foreground/90 transition-colors hover:text-foreground"
+            onClick={(e) => handleNavClick(testimonialsHref, e)}
           >
             Testimonials
           </Link>
@@ -146,6 +207,7 @@ export default function Header() {
               key={item.name}
               href={item.href}
               className="font-medium text-foreground/90 transition-colors hover:text-foreground"
+              onClick={(e) => handleNavClick(item.href, e)}
             >
               {item.name}
             </Link>
@@ -249,14 +311,14 @@ export default function Header() {
                   <Link
                     href={coursesHref}
                     className="px-4 py-2 text-lg font-medium text-foreground/90 transition-colors hover:text-foreground"
-                    onClick={() => setIsMobileMenuOpen(false)}
+                    onClick={(e) => handleMobileNavClick(coursesHref, e)}
                   >
                     Courses
                   </Link>
                   <Link
                     href={testimonialsHref}
                     className="px-4 py-2 text-lg font-medium text-foreground/90 transition-colors hover:text-foreground"
-                    onClick={() => setIsMobileMenuOpen(false)}
+                    onClick={(e) => handleMobileNavClick(testimonialsHref, e)}
                   >
                     Testimonials
                   </Link>
@@ -288,7 +350,7 @@ export default function Header() {
                       key={item.name}
                       href={item.href}
                       className="px-4 py-2 text-lg font-medium text-foreground/90 transition-colors hover:text-foreground"
-                      onClick={() => setIsMobileMenuOpen(false)}
+                      onClick={(e) => handleMobileNavClick(item.href, e)}
                     >
                       {item.name}
                     </Link>
