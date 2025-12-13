@@ -32,7 +32,6 @@ import { usePathname } from "next/navigation";
 import * as React from "react";
 
 const mainNavItems = [
-  { name: "Testimonials", href: "#testimonials" },
   { name: "Resources", href: "#resources" },
   { name: "Contact", href: "#contact" },
 ];
@@ -50,6 +49,7 @@ export default function Header() {
   const isHomePage = pathname === "/";
 
   const coursesHref = isHomePage ? "#courses" : "/courses";
+  const testimonialsHref = isHomePage ? "#testimonials" : "/testimonials";
 
   return (
     <header className="sticky top-0 z-50 w-full border-b border-border/60 bg-secondary/90 backdrop-blur supports-[backdrop-filter]:bg-secondary/80">
@@ -115,6 +115,12 @@ export default function Header() {
             className="font-medium text-foreground/90 transition-colors hover:text-foreground"
           >
             Courses
+          </Link>
+          <Link
+            href={testimonialsHref}
+            className="font-medium text-foreground/90 transition-colors hover:text-foreground"
+          >
+            Testimonials
           </Link>
           {mainNavItems.map((item) => (
             <Link
@@ -227,6 +233,13 @@ export default function Header() {
                     onClick={() => setIsMobileMenuOpen(false)}
                   >
                     Courses
+                  </Link>
+                  <Link
+                    href={testimonialsHref}
+                    className="px-4 py-2 text-lg font-medium text-foreground/90 transition-colors hover:text-foreground"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                  >
+                    Testimonials
                   </Link>
                   {mainNavItems.map((item) => (
                     <Link

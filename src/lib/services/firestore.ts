@@ -1418,7 +1418,7 @@ export function subscribeTestimonials(
       const testimonials = snapshot.docs.map((doc) =>
         testimonialFromFirestore(doc.id, doc.data() as TestimonialFirestore)
       );
-      testimonials.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+      testimonials.sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime());
       callback(testimonials);
     },
     (error) => {
