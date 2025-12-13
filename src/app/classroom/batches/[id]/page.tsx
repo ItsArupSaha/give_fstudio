@@ -209,7 +209,7 @@ export default function BatchTasksPage() {
     if (!user?.uid) {
       toast({
         title: "Error",
-        description: "You must be logged in to bookmark tasks",
+        description: "You must be logged in to bookmark assessments",
         variant: "destructive",
       });
       return;
@@ -220,7 +220,7 @@ export default function BatchTasksPage() {
         await deleteTaskBookmarkByStudentAndTask(user.uid, task.id);
         toast({
           title: "Bookmark removed",
-          description: "Task removed from bookmarks",
+          description: "Assessment removed from bookmarks",
         });
       } else {
         await createTaskBookmark({
@@ -231,7 +231,7 @@ export default function BatchTasksPage() {
         });
         toast({
           title: "Bookmark added",
-          description: "Task added to bookmarks",
+          description: "Assessment added to bookmarks",
         });
       }
     } catch (error) {
@@ -289,7 +289,7 @@ export default function BatchTasksPage() {
         </Button>
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-2 break-words">{batch.name} - Tasks</h1>
+            <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-2 break-words">{batch.name} - Assessments</h1>
           </div>
           <Button variant="outline" onClick={refreshData} className="w-full sm:w-auto">
             <RefreshCw className="h-4 w-4 mr-2" />
@@ -317,11 +317,11 @@ export default function BatchTasksPage() {
         </CardContent>
       </Card>
 
-      {/* Tasks List */}
+      {/* Assessments List */}
       <div>
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-4">
           <h2 className="text-2xl font-bold">
-            {showBookmarkedOnly ? "Bookmarked Tasks" : "Tasks"} ({filteredTasks.length})
+            {showBookmarkedOnly ? "Bookmarked Assessments" : "Assessments"} ({filteredTasks.length})
           </h2>
           <div className="flex items-center gap-2">
             <Button
@@ -340,8 +340,8 @@ export default function BatchTasksPage() {
             <CardContent className="py-12 text-center">
               <p className="text-muted-foreground">
                 {showBookmarkedOnly
-                  ? "No bookmarked tasks yet. Click the bookmark icon on any task to bookmark it."
-                  : "No tasks available yet"}
+                  ? "No bookmarked assessments yet. Click the bookmark icon on any assessment to bookmark it."
+                  : "No assessments available yet"}
               </p>
             </CardContent>
           </Card>
@@ -414,7 +414,7 @@ export default function BatchTasksPage() {
                           onMouseUp={(e) => {
                             e.stopPropagation();
                           }}
-                          title={isTaskBookmarked(task.id) ? "Remove bookmark" : "Bookmark task"}
+                          title={isTaskBookmarked(task.id) ? "Remove bookmark" : "Bookmark assessment"}
                         >
                           <Bookmark
                             className={`h-4 w-4 ${isTaskBookmarked(task.id)

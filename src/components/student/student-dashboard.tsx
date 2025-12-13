@@ -744,11 +744,11 @@ export function StudentDashboard() {
                       {enrollment.status === "active" && (
                         <Button
                           variant="outline"
-                          className="w-full mt-4"
+                          className="w-full mt-4 border-orange-500 text-orange-600 hover:bg-orange-50 hover:border-orange-600"
                           onClick={() => router.push(`/classroom/batches/${batch.id}`)}
                         >
                           <BookOpen className="h-4 w-4 mr-2" />
-                          View Tasks
+                          View Assessments
                         </Button>
                       )}
                       {enrollment.status === "pending" && (
