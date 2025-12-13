@@ -21,13 +21,13 @@ export default function IskconPage() {
               </div>
             </AnimatedSection>
             <AnimatedSection direction="right" delay={150}>
-              <div className="relative aspect-video rounded-lg overflow-hidden shadow-lg hover:scale-105 transition-transform duration-300">
+              <div className="relative rounded-lg overflow-hidden shadow-lg hover:scale-105 transition-transform duration-300 flex justify-center items-center">
                 <Image
-                  src="https://picsum.photos/seed/about-1/1280/720"
-                  alt="A wise, elderly teacher in traditional attire, smiling warmly while speaking to a group of attentive students in a peaceful outdoor setting."
-                  fill
-                  className="object-cover"
-                  data-ai-hint="teacher students"
+                  src="/iskcon_logo_new-min.jpg"
+                  alt="ISKCON Logo"
+                  width={200}
+                  height={200}
+                  className="h-auto w-auto max-w-full rounded-lg object-contain"
                 />
               </div>
             </AnimatedSection>
