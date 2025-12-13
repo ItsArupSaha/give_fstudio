@@ -28,10 +28,10 @@ import { useTeacher } from "@/hooks/use-teacher";
 import { ChevronDown, Menu } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import * as React from "react";
 
 const mainNavItems = [
-  { name: "Courses", href: "#courses" },
   { name: "Testimonials", href: "#testimonials" },
   { name: "Resources", href: "#resources" },
   { name: "Contact", href: "#contact" },
@@ -46,6 +46,10 @@ const aboutNavItems = [
 export default function Header() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = React.useState(false);
   const { isTeacher } = useTeacher();
+  const pathname = usePathname();
+  const isHomePage = pathname === "/";
+
+  const coursesHref = isHomePage ? "#courses" : "/courses";
 
   return (
     <header className="sticky top-0 z-50 w-full border-b border-border/60 bg-secondary/90 backdrop-blur supports-[backdrop-filter]:bg-secondary/80">
@@ -106,6 +110,12 @@ export default function Header() {
               Teacher Dashboard
             </Link>
           )}
+          <Link
+            href={coursesHref}
+            className="font-medium text-foreground/90 transition-colors hover:text-foreground"
+          >
+            Courses
+          </Link>
           {mainNavItems.map((item) => (
             <Link
               key={item.name}
@@ -211,6 +221,13 @@ export default function Header() {
                       Teacher Dashboard
                     </Link>
                   )}
+                  <Link
+                    href={coursesHref}
+                    className="px-4 py-2 text-lg font-medium text-foreground/90 transition-colors hover:text-foreground"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                  >
+                    Courses
+                  </Link>
                   {mainNavItems.map((item) => (
                     <Link
                       key={item.name}
