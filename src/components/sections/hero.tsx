@@ -42,7 +42,7 @@ export function Hero() {
   );
 
   return (
-    <section className="relative w-full h-[70vh] min-h-[500px] flex flex-col justify-between text-center text-white overflow-hidden">
+    <section className="relative w-full h-[70vh] min-h-[500px] md:h-[70vh] flex flex-col justify-between text-center text-white overflow-hidden [&_[role='region']]:h-full [&_[role='region']>div]:h-full [&_[role='region']>div>div]:h-full">
       <div className="absolute inset-0 w-full h-full">
         <Carousel
           plugins={[autoplayPlugin.current]}
@@ -51,10 +51,10 @@ export function Hero() {
             loop: true,
           }}
         >
-          <CarouselContent className="-ml-0 h-full">
+          <CarouselContent className="-ml-0 h-full [&>div]:h-full">
             {heroImages.map((image, index) => (
-              <CarouselItem key={index} className="pl-0 basis-full">
-                <div className="relative w-full h-full min-h-[500px]">
+              <CarouselItem key={index} className="pl-0 basis-full h-full">
+                <div className="relative w-full h-full min-h-full">
                   <Image
                     src={image.src}
                     alt={image.alt}
@@ -63,6 +63,7 @@ export function Hero() {
                     className="object-cover"
                     priority={index === 0}
                     data-ai-hint={image.alt}
+                    style={{ objectFit: 'cover', objectPosition: 'center' }}
                   />
                 </div>
               </CarouselItem>
