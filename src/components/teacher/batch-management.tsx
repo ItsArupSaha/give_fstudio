@@ -251,7 +251,7 @@ export function BatchManagement() {
             }}
           >
             <DialogTrigger asChild>
-              <Button disabled={!selectedCourseGroupId || courseGroups.length === 0} className="w-full sm:w-auto">
+              <Button disabled={!selectedCourseGroupId || courseGroups.length === 0} className="w-full sm:w-auto border border-orange-500">
                 <Plus className="h-4 w-4 mr-2" />
                 Create Batch
               </Button>
@@ -320,10 +320,11 @@ export function BatchManagement() {
                       setIsDialogOpen(false);
                       resetForm();
                     }}
+                    className="border border-orange-500"
                   >
                     Cancel
                   </Button>
-                  <Button type="submit" disabled={isSubmitting}>
+                  <Button type="submit" disabled={isSubmitting} className="border border-orange-500">
                     {isSubmitting ? (
                       <>
                         <Loader2 className="h-4 w-4 mr-2 animate-spin" />
@@ -355,7 +356,7 @@ export function BatchManagement() {
                 value={selectedCourseGroupId || ""}
                 onValueChange={setSelectedCourseGroupId}
               >
-                <SelectTrigger id="course-group-select" className="mt-2">
+                <SelectTrigger id="course-group-select" className="mt-2 border border-orange-500">
                   <SelectValue placeholder="Select a course group" />
                 </SelectTrigger>
                 <SelectContent>
@@ -392,6 +393,7 @@ export function BatchManagement() {
                             variant="ghost"
                             size="icon"
                             onClick={() => handleEdit(batch)}
+                            className="border border-orange-500"
                           >
                             <Edit className="h-4 w-4" />
                           </Button>
@@ -399,7 +401,7 @@ export function BatchManagement() {
                             variant="ghost"
                             size="icon"
                             onClick={() => handleDelete(batch.id, batch.courseGroupId)}
-                            className="text-destructive hover:text-destructive"
+                            className="text-destructive hover:text-destructive border border-orange-500"
                           >
                             <Trash2 className="h-4 w-4" />
                           </Button>
@@ -436,7 +438,7 @@ export function BatchManagement() {
                         </div>
                         <Button
                           variant="outline"
-                          className="w-full"
+                          className="w-full border border-orange-500"
                           onClick={() => router.push(`/teacher/batches/${batch.id}`)}
                         >
                           View Details

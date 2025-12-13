@@ -204,7 +204,7 @@ export function TeacherManagement() {
             {teachers.map((teacher) => (
               <div
                 key={teacher.email}
-                className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 p-3 border rounded-lg"
+                className="flex flex-row items-center justify-between gap-3 p-3 border rounded-lg"
               >
                 <div className="min-w-0 flex-1">
                   <p className="font-medium truncate">{teacher.email}</p>
@@ -223,7 +223,7 @@ export function TeacherManagement() {
                   variant="ghost"
                   size="icon"
                   onClick={() => handleRemoveTeacher(teacher.email)}
-                  className="text-destructive hover:text-destructive self-start sm:self-center"
+                  className="text-destructive hover:text-destructive flex-shrink-0"
                 >
                   <Trash2 className="h-4 w-4" />
                 </Button>
