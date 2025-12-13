@@ -14,6 +14,8 @@ type AnimatedSectionProps = {
   direction?: Direction;
   delay?: number;
   variant?: Variant;
+  rootMargin?: string;
+  threshold?: number;
 };
 
 export function AnimatedSection({
@@ -23,10 +25,12 @@ export function AnimatedSection({
   direction = "up",
   delay = 0,
   variant = "slide",
+  rootMargin = "0px 0px -10% 0px",
+  threshold = 0.15,
 }: AnimatedSectionProps) {
   const { ref, inView } = useInView<HTMLDivElement>({
-    rootMargin: "0px 0px -10% 0px",
-    threshold: 0.15,
+    rootMargin,
+    threshold,
     once: true,
   });
 
@@ -39,10 +43,10 @@ export function AnimatedSection({
       direction === "up"
         ? "translate-y-8"
         : direction === "down"
-        ? "-translate-y-8"
-        : direction === "left"
-        ? "translate-x-8"
-        : " -translate-x-8";
+          ? "-translate-y-8"
+          : direction === "left"
+            ? "translate-x-8"
+            : " -translate-x-8";
 
     transformClass = inView
       ? "opacity-100 translate-x-0 translate-y-0"

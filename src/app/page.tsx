@@ -1,6 +1,5 @@
 import { AnimatedSection } from "@/components/layout/animated-section";
 import { Courses } from "@/components/sections/courses";
-import { Faq } from "@/components/sections/faq";
 import { Hero } from "@/components/sections/hero";
 import { Multimedia } from "@/components/sections/multimedia";
 import { Prabhupada } from "@/components/sections/prabhupada";
@@ -27,9 +26,6 @@ export default function Home() {
       </AnimatedSection>
       <AnimatedSection direction="right" delay={300}>
         <Multimedia />
-      </AnimatedSection>
-      <AnimatedSection direction="up" delay={350}>
-        <Faq />
       </AnimatedSection>
     </>
   );

@@ -34,7 +34,6 @@ const mainNavItems = [
   { name: "Courses", href: "#courses" },
   { name: "Testimonials", href: "#testimonials" },
   { name: "Resources", href: "#resources" },
-  { name: "FAQ", href: "#faq" },
   { name: "Contact", href: "#contact" },
 ];
 
@@ -167,6 +166,31 @@ export default function Header() {
                               {item.name}
                             </Link>
                           ))}
+                          <Accordion type="single" collapsible className="w-full border-none">
+                            <AccordionItem value="guardians" className="border-b-0">
+                              <AccordionTrigger className="px-0 text-left text-base font-medium text-foreground/90 transition-colors hover:text-foreground hover:no-underline py-2">
+                                Guardians
+                              </AccordionTrigger>
+                              <AccordionContent className="pl-4">
+                                <div className="flex flex-col gap-2 mt-2">
+                                  <Link
+                                    href="/about/srila-bhaktisiddhanta-sarasvati-thakura"
+                                    className="text-sm font-medium text-foreground/90 transition-colors hover:text-foreground"
+                                    onClick={() => setIsMobileMenuOpen(false)}
+                                  >
+                                    Śrīla Bhaktisiddhānta Sarasvatī Ṭhākura
+                                  </Link>
+                                  <Link
+                                    href="/about/jayapataka-swami"
+                                    className="text-sm font-medium text-foreground/90 transition-colors hover:text-foreground"
+                                    onClick={() => setIsMobileMenuOpen(false)}
+                                  >
+                                    HH Jayapatākā Swami
+                                  </Link>
+                                </div>
+                              </AccordionContent>
+                            </AccordionItem>
+                          </Accordion>
                         </div>
                       </AccordionContent>
                     </AccordionItem>
