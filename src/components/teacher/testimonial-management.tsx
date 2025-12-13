@@ -109,6 +109,12 @@ export function TestimonialManagement() {
         }
     };
 
+    const getPlainText = (html: string) => {
+        if (!html) return "";
+        const doc = new DOMParser().parseFromString(html, "text/html");
+        return doc.body.textContent?.trim() ?? "";
+    };
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
 
@@ -310,7 +316,7 @@ export function TestimonialManagement() {
                 </div>
                 <Dialog open={isDialogOpen} onOpenChange={handleDialogOpenChange}>
                     <DialogTrigger asChild>
-                        <Button onClick={() => resetForm()}>
+                        <Button onClick={() => resetForm()} className="border border-orange-500">
                             <Plus className="h-4 w-4 mr-2" />
                             Add Testimonial
                         </Button>
@@ -436,10 +442,11 @@ export function TestimonialManagement() {
                                     variant="outline"
                                     onClick={() => handleDialogOpenChange(false)}
                                     disabled={isSubmitting}
+                                    className="border border-orange-500"
                                 >
                                     Cancel
                                 </Button>
-                                <Button type="submit" disabled={isSubmitting}>
+                                <Button type="submit" disabled={isSubmitting} className="border border-orange-500">
                                     {isSubmitting && (
                                         <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                                     )}
@@ -482,13 +489,14 @@ export function TestimonialManagement() {
                             </CardHeader>
                             <CardContent>
                                 <p className="text-sm text-muted-foreground line-clamp-3 mb-4">
-                                    {testimonial.description}
+                                    {getPlainText(testimonial.description)}
                                 </p>
                                 <div className="flex gap-2">
                                     <Button
                                         variant="outline"
                                         size="sm"
                                         onClick={() => handleEdit(testimonial)}
+                                        className="border border-orange-500"
                                     >
                                         <Edit className="h-4 w-4 mr-1" />
                                         Edit
@@ -497,6 +505,7 @@ export function TestimonialManagement() {
                                         variant="outline"
                                         size="sm"
                                         onClick={() => handleDelete(testimonial.id)}
+                                        className="border border-orange-500"
                                     >
                                         <Trash2 className="h-4 w-4 mr-1" />
                                         Delete

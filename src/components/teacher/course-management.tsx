@@ -307,7 +307,7 @@ export function CourseManagement() {
                 </div>
                 <Dialog open={isDialogOpen} onOpenChange={handleDialogOpenChange}>
                     <DialogTrigger asChild>
-                        <Button onClick={() => resetForm()}>
+                        <Button onClick={() => resetForm()} className="border border-orange-500">
                             <Plus className="h-4 w-4 mr-2" />
                             Add Course
                         </Button>
@@ -405,10 +405,11 @@ export function CourseManagement() {
                                     variant="outline"
                                     onClick={() => handleDialogOpenChange(false)}
                                     disabled={isSubmitting}
+                                    className="border border-orange-500"
                                 >
                                     Cancel
                                 </Button>
-                                <Button type="submit" disabled={isSubmitting}>
+                                <Button type="submit" disabled={isSubmitting} className="border border-orange-500">
                                     {isSubmitting && (
                                         <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                                     )}
@@ -441,7 +442,7 @@ export function CourseManagement() {
                             </div>
                             <CardHeader>
                                 <CardTitle className="text-base">{course.title}</CardTitle>
-                                <CardDescription className="line-clamp-2">{course.description}</CardDescription>
+                                <CardDescription className="line-clamp-2">{getPlainText(course.description)}</CardDescription>
                             </CardHeader>
                             <CardContent>
                                 <div className="flex gap-2">
@@ -449,6 +450,7 @@ export function CourseManagement() {
                                         variant="outline"
                                         size="sm"
                                         onClick={() => handleEdit(course)}
+                                        className="border border-orange-500"
                                     >
                                         <Edit className="h-4 w-4 mr-1" />
                                         Edit
@@ -457,6 +459,7 @@ export function CourseManagement() {
                                         variant="outline"
                                         size="sm"
                                         onClick={() => handleDelete(course.id)}
+                                        className="border border-orange-500"
                                     >
                                         <Trash2 className="h-4 w-4 mr-1" />
                                         Delete

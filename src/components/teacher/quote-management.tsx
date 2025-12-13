@@ -173,7 +173,7 @@ export function QuoteManagement() {
                 </div>
                 <Dialog open={isDialogOpen} onOpenChange={handleDialogOpenChange}>
                     <DialogTrigger asChild>
-                        <Button onClick={() => resetForm()}>
+                        <Button onClick={() => resetForm()} className="border border-orange-500">
                             <Plus className="h-4 w-4 mr-2" />
                             Add Quote
                         </Button>
@@ -232,10 +232,11 @@ export function QuoteManagement() {
                                     variant="outline"
                                     onClick={() => handleDialogOpenChange(false)}
                                     disabled={isSubmitting}
+                                    className="border border-orange-500"
                                 >
                                     Cancel
                                 </Button>
-                                <Button type="submit" disabled={isSubmitting}>
+                                <Button type="submit" disabled={isSubmitting} className="border border-orange-500">
                                     {isSubmitting && (
                                         <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                                     )}
@@ -270,6 +271,7 @@ export function QuoteManagement() {
                                         variant="outline"
                                         size="sm"
                                         onClick={() => handleEdit(quote)}
+                                        className="border border-orange-500"
                                     >
                                         <Edit className="h-4 w-4 mr-1" />
                                         Edit
@@ -278,6 +280,7 @@ export function QuoteManagement() {
                                         variant="outline"
                                         size="sm"
                                         onClick={() => handleDelete(quote.id)}
+                                        className="border border-orange-500"
                                     >
                                         <Trash2 className="h-4 w-4 mr-1" />
                                         Delete
