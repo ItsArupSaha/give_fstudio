@@ -89,8 +89,6 @@ export default function CoursesPage() {
                                             >
                                                 <Link
                                                     href={`/courses/${course.id}`}
-                                                    target="_blank"
-                                                    rel="noopener noreferrer"
                                                 >
                                                     Learn More
                                                 </Link>
