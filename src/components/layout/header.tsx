@@ -82,14 +82,8 @@ export default function Header() {
     // Only handle hash links manually, let regular links use default behavior
     if (href.startsWith("#")) {
       e.preventDefault();
-
-      if (isHomePage) {
-        // If we're on the home page, scroll to the element
-        scrollToSection(href);
-      } else {
-        // If we're not on home page, navigate to home with hash
-        router.push(href);
-      }
+      // Hash links work on all pages (e.g., #contact in footer is on every page)
+      scrollToSection(href);
     }
   };
 
@@ -99,16 +93,11 @@ export default function Header() {
       e.preventDefault();
       // Close the menu first
       setIsMobileMenuOpen(false);
-
-      if (isHomePage) {
-        // Wait for menu to close, then scroll
-        setTimeout(() => {
-          scrollToSection(href);
-        }, 350);
-      } else {
-        // If we're not on home page, navigate to home with hash
-        router.push(href);
-      }
+      // Hash links work on all pages (e.g., #contact in footer is on every page)
+      // Wait for menu to close, then scroll
+      setTimeout(() => {
+        scrollToSection(href);
+      }, 350);
     } else {
       // For regular links, just close the menu
       setIsMobileMenuOpen(false);
