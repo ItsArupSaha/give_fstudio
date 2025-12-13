@@ -200,6 +200,7 @@ export function TaskCreation({ batch, onTaskCreated }: TaskCreationProps) {
                 onChange={(e) =>
                   setFormData({ ...formData, title: e.target.value })
                 }
+                className="bg-gray-100"
                 required
               />
             </div>
@@ -213,6 +214,7 @@ export function TaskCreation({ batch, onTaskCreated }: TaskCreationProps) {
                 onChange={(e) =>
                   setFormData({ ...formData, description: e.target.value })
                 }
+                className="bg-gray-100"
                 rows={3}
                 required
               />
@@ -231,6 +233,7 @@ export function TaskCreation({ batch, onTaskCreated }: TaskCreationProps) {
                       onChange={(e) =>
                         setFormData({ ...formData, dueDate: e.target.value })
                       }
+                      className="bg-gray-100"
                     />
                     <p className="text-xs text-muted-foreground">
                       Submissions accepted until 11:59 PM on this date
@@ -246,6 +249,7 @@ export function TaskCreation({ batch, onTaskCreated }: TaskCreationProps) {
                       onChange={(e) =>
                         setFormData({ ...formData, maxPoints: e.target.value })
                       }
+                      className="bg-gray-100"
                     />
                   </div>
                 </div>
@@ -281,6 +285,7 @@ export function TaskCreation({ batch, onTaskCreated }: TaskCreationProps) {
                             lateSubmissionDays: e.target.value,
                           })
                         }
+                        className="bg-gray-100"
                       />
                     </div>
                   )}
@@ -298,6 +303,7 @@ export function TaskCreation({ batch, onTaskCreated }: TaskCreationProps) {
                 onChange={(e) =>
                   setFormData({ ...formData, instructions: e.target.value })
                 }
+                className="bg-gray-100"
                 rows={3}
               />
             </div>
@@ -310,6 +316,7 @@ export function TaskCreation({ batch, onTaskCreated }: TaskCreationProps) {
                 setIsDialogOpen(false);
                 resetForm();
               }}
+              className="bg-gray-200 hover:bg-gray-300"
             >
               Cancel
             </Button>

@@ -576,7 +576,7 @@ function StudentCard({
                 variant="outline"
                 size="sm"
                 onClick={handleEdit}
-                className="bg-background hover:bg-accent"
+                className="bg-background hover:bg-accent border border-orange-500"
               >
                 <Edit className="h-4 w-4 mr-1" />
                 Edit
@@ -586,7 +586,7 @@ function StudentCard({
                   variant="outline"
                   size="sm"
                   onClick={() => setShowDetails(!showDetails)}
-                  className="bg-background hover:bg-accent"
+                  className="bg-background hover:bg-accent border border-orange-500"
                 >
                   {showDetails ? (
                     <>
@@ -601,7 +601,7 @@ function StudentCard({
                   )}
                 </Button>
               )}
-              <Button variant="outline" size="sm" onClick={onRemove} className="bg-background hover:bg-accent">
+              <Button variant="outline" size="sm" onClick={onRemove} className="bg-background hover:bg-accent border border-orange-500">
                 Remove
               </Button>
             </div>
@@ -913,7 +913,7 @@ function PendingEnrollmentCard({
                 variant="outline"
                 size="sm"
                 onClick={handleEdit}
-                className="bg-background hover:bg-accent"
+                className="bg-background hover:bg-accent border border-orange-500"
               >
                 <Edit className="h-4 w-4 mr-1" />
                 Edit
@@ -923,7 +923,7 @@ function PendingEnrollmentCard({
                   variant="outline"
                   size="sm"
                   onClick={() => setShowDetails(!showDetails)}
-                  className="bg-background hover:bg-accent"
+                  className="bg-background hover:bg-accent border border-orange-500"
                 >
                   {showDetails ? (
                     <>
@@ -938,11 +938,11 @@ function PendingEnrollmentCard({
                   )}
                 </Button>
               )}
-              <Button variant="outline" size="sm" onClick={onDecline} className="bg-background hover:bg-accent">
+              <Button variant="outline" size="sm" onClick={onDecline} className="bg-background hover:bg-accent border border-orange-500">
                 <XCircle className="h-4 w-4 mr-2" />
                 Decline
               </Button>
-              <Button size="sm" onClick={onApprove} className="bg-primary hover:bg-primary/90">
+              <Button size="sm" onClick={onApprove} className="bg-primary hover:bg-primary/90 border border-orange-500">
                 <CheckCircle className="h-4 w-4 mr-2" />
                 Approve
               </Button>
