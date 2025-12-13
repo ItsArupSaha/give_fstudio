@@ -11,7 +11,7 @@ import * as React from "react";
 
 const heroImages = [
   {
-    src: "/govardhan.png",
+    src: "/Govardhan.png",
     alt: "Goverdhan",
   },
   {
