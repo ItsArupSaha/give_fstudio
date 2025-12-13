@@ -1,6 +1,5 @@
 "use client";
 
-import { AllStudentsView } from "@/components/teacher/all-students-view";
 import { BatchManagement } from "@/components/teacher/batch-management";
 import { CourseGroupsManagement } from "@/components/teacher/course-groups";
 import { CourseManagement } from "@/components/teacher/course-management";
@@ -28,7 +27,6 @@ export default function TeacherDashboardPage() {
     pendingEnrollments: 0,
   });
   const [loadingStats, setLoadingStats] = useState(true);
-  const [showAllStudents, setShowAllStudents] = useState(false);
 
   useEffect(() => {
     // Redirect if not a teacher (after auth state is determined)
@@ -139,7 +137,7 @@ export default function TeacherDashboardPage() {
         </Card>
         <Card
           className="cursor-pointer hover:bg-accent transition-colors"
-          onClick={() => setShowAllStudents(true)}
+          onClick={() => router.push("/teacher/students")}
         >
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Students</CardTitle>
@@ -220,10 +218,6 @@ export default function TeacherDashboardPage() {
         </TabsContent>
       </Tabs>
 
-      <AllStudentsView
-        open={showAllStudents}
-        onOpenChange={setShowAllStudents}
-      />
     </div>
   );
 }
