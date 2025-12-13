@@ -72,7 +72,7 @@ export function Hero() {
       </div>
       <div className="absolute inset-0 bg-black/50 z-10" />
       {/* Top section - Title */}
-      <div className="relative z-20 w-full px-4 pt-16 md:pt-20">
+      <div className="relative z-20 w-full px-4 pt-12 md:pt-16">
         <div className="max-w-screen-xl mx-auto">
           <h1 className="text-base sm:text-lg md:text-4xl lg:text-5xl font-headline font-bold tracking-tight text-shadow-lg">
             <span className="whitespace-nowrap">Gaura-vāṇī Institute for Vaiṣṇava Education</span>
