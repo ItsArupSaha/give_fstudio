@@ -290,6 +290,7 @@ export function CourseGroupsManagement() {
                         variant="ghost"
                         size="icon"
                         onClick={() => handleEdit(group)}
+                        className="border border-orange-500"
                       >
                         <Edit className="h-4 w-4" />
                       </Button>
@@ -297,7 +298,7 @@ export function CourseGroupsManagement() {
                         variant="ghost"
                         size="icon"
                         onClick={() => handleDelete(group.id)}
-                        className="text-destructive hover:text-destructive"
+                        className="text-destructive hover:text-destructive border border-orange-500"
                       >
                         <Trash2 className="h-4 w-4" />
                       </Button>

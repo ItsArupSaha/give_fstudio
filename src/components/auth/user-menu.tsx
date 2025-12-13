@@ -2,12 +2,12 @@
 
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
-    DropdownMenu,
-    DropdownMenuContent,
-    DropdownMenuItem,
-    DropdownMenuLabel,
-    DropdownMenuSeparator,
-    DropdownMenuTrigger,
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useAuthUser } from "@/hooks/use-auth";
 import { auth } from "@/lib/firebase";
@@ -46,7 +46,7 @@ export function UserMenu() {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger className="focus:outline-none">
-        <Avatar className="h-9 w-9 border border-border overflow-hidden bg-muted">
+        <Avatar className="h-9 w-9 border border-orange-500 overflow-hidden bg-muted">
           {user.photoURL && showImage ? (
             <img
               src={user.photoURL}
