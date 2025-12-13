@@ -28,8 +28,8 @@ export default function SrilaBhaktisiddhantaPage() {
               <div>
                 <h1 className="text-3xl md:text-4xl font-headline font-bold text-foreground mb-6">
                   Srila Bhaktisiddhanta Sarasvati Thakura
-          </h1>
-          <p>
+                </h1>
+                <p>
                   Srila Bhaktisiddhanta Sarasvati was one of ten children born to Bhaktivinoda Thakura, a great Vaisnava teacher in the disciple-line from Lord Caitanya Himself. While living in a house named Narayana Chata, just near the temple of Lord Jagannatha in Puri, Bhaktivinoda Thakura was engaged as a prominent Deputy Magistrate and also served as the superintendent of the temple of Lord Jagannatha. Yet in spite of these responsibilities, he served the cause of Krishna with prodigious energy. While working to reform Gaudiya Vaisnavism in India, he prayed to Lord Caitanya, "Your teachings have been greatly depreciated and it is not in my power to restore them." Thus he prayed for a son to help him in his preaching mission. When, on February 6, 1874, Bhaktisiddhanta Sarasvati was born to Bhaktivinoda and Bhagavati Devi in Jagannatha Puri, the Vaisnavas considered him the answer to his father's prayers. He was born with the umbilical cord wrapped around his neck and draped across his chest like the sacred thread worn by brahmanas.
                 </p>
               </div>
@@ -38,7 +38,7 @@ export default function SrilaBhaktisiddhantaPage() {
         </div>
 
         {/* Second section: Image on right, text on left */}
-        <div className="grid grid-cols-1 md:grid-cols-5 gap-12 items-center">
+        <div className="grid grid-cols-1 md:grid-cols-5 gap-12 mt-12 items-center">
           <div className="md:col-span-3 prose prose-lg max-w-none text-foreground/80 space-y-6">
             <AnimatedSection direction="left">
               <div>
@@ -172,11 +172,11 @@ export default function SrilaBhaktisiddhantaPage() {
               </p>
               <p>
                 In the early hours of the day on January 1, 1937 Bhaktisiddhanta Sarasvati Goswami passed away.
-          </p>
-        </div>
+              </p>
+            </div>
           </AnimatedSection>
+        </div>
       </div>
-    </div>
     </div >
   );
 }
