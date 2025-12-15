@@ -33,6 +33,12 @@ import { BookOpen, Edit, Loader2, Plus, Trash2, X } from "lucide-react";
 import Image from "next/image";
 import { useEffect, useRef, useState } from "react";
 
+// Normalize any localhost absolute URLs coming from the editor
+function normalizeInternalLinks(html: string): string {
+    if (!html) return html;
+    return html.replace(/https?:\/\/localhost(?::\d+)?/g, "");
+}
+
 export function CourseManagement() {
     const [courses, setCourses] = useState<Course[]>([]);
     const [loading, setLoading] = useState(true);
@@ -115,7 +121,8 @@ export function CourseManagement() {
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
 
-        const plainDescription = getPlainText(formData.description);
+        const normalizedDescription = normalizeInternalLinks(formData.description);
+        const plainDescription = getPlainText(normalizedDescription);
 
         if (!formData.title.trim() || !plainDescription) {
             toast({
@@ -180,7 +187,7 @@ export function CourseManagement() {
             if (isEditing && editingId) {
                 await updateCourse(editingId, {
                     title: formData.title.trim(),
-                    description: formData.description.trim(),
+                    description: normalizedDescription.trim(),
                     imageUrl: imageUrl,
                 });
                 toast({
@@ -190,7 +197,7 @@ export function CourseManagement() {
             } else {
                 await createCourse({
                     title: formData.title.trim(),
-                    description: formData.description.trim(),
+                    description: normalizedDescription.trim(),
                     imageUrl: imageUrl,
                 });
                 toast({

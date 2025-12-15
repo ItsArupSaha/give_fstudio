@@ -9,6 +9,14 @@ import Image from "next/image";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
+// Normalize any localhost absolute URLs saved from the editor back to relative/internal links
+function normalizeInternalLinks(html: string): string {
+    if (!html) return html;
+
+    // Strip localhost origin (with optional port) so "/about/give" etc. work in any environment
+    return html.replace(/https?:\/\/localhost(?::\d+)?/g, "");
+}
+
 export default function CourseDetailPage() {
     const params = useParams();
     const router = useRouter();
@@ -98,7 +106,7 @@ export default function CourseDetailPage() {
                        [&_h2]:text-xl [&_h2]:font-bold [&_h2]:mb-3
                        [&_h3]:text-lg [&_h3]:font-bold [&_h3]:mb-2
                        [&_ul.checklist]:list-none [&_ul.checklist]:pl-0 [&_ul.checklist>li]:relative [&_ul.checklist>li]:ps-6 [&_ul.checklist>li]:my-2 [&_ul.checklist>li]:before:content-['✔'] [&_ul.checklist>li]:before:text-primary [&_ul.checklist>li]:before:absolute [&_ul.checklist>li]:before:left-0 [&_ul.checklist>li]:before:top-0"
-                        dangerouslySetInnerHTML={{ __html: course.description }}
+                        dangerouslySetInnerHTML={{ __html: normalizeInternalLinks(course.description) }}
                     />
                 </CardContent>
             </Card>
