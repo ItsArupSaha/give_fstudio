@@ -70,11 +70,24 @@ interface StudentFile {
   studentId: string;
   taskId?: string; // Optional: only needed for combined daily listening tasks
   taskTitle?: string; // Optional: only needed for combined daily listening tasks
+  type: "file";
 }
+
+interface StudentTextSubmission {
+  submissionId: string;
+  text: string;
+  studentId: string;
+  taskId?: string; // Optional: only needed for combined daily listening tasks
+  taskTitle?: string; // Optional: only needed for combined daily listening tasks
+  type: "text";
+}
+
+type StudentSubmissionItem = StudentFile | StudentTextSubmission;
 
 interface StudentSubmission {
   studentId: string;
   files: StudentFile[];
+  textSubmissions: StudentTextSubmission[];
 }
 
 interface TaskFiles {
@@ -96,7 +109,8 @@ export default function BatchSubmissionsPage() {
   const [previewFile, setPreviewFile] = useState<{
     url: string;
     name: string;
-    type: "pdf" | "video" | "audio" | "image" | "other";
+    type: "pdf" | "video" | "audio" | "image" | "other" | "text";
+    text?: string;
   } | null>(null);
   const [loading, setLoading] = useState(true);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
@@ -107,9 +121,15 @@ export default function BatchSubmissionsPage() {
     fileName: string;
     studentId: string;
   } | null>(null);
+  const [textToDelete, setTextToDelete] = useState<{
+    submissionId: string;
+    studentId: string;
+  } | null>(null);
   const [taskToDeleteAll, setTaskToDeleteAll] = useState<Task | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const [deletingText, setDeletingText] = useState(false);
   const [deletingAll, setDeletingAll] = useState(false);
+  const [deleteTextDialogOpen, setDeleteTextDialogOpen] = useState(false);
   const [selectedFiles, setSelectedFiles] = useState<Set<string>>(new Set());
   const [deleteSelectedDialogOpen, setDeleteSelectedDialogOpen] = useState(false);
   const [deletingSelected, setDeletingSelected] = useState(false);
@@ -160,32 +180,32 @@ export default function BatchSubmissionsPage() {
         });
       });
 
-      // Group files by task and student
+      // Group files and text submissions by task and student
       const uniqueStudentIds = new Set<string>();
       submissions.forEach((submission) => {
         const taskFiles = taskFilesMap.get(submission.taskId);
         if (taskFiles) {
-          // Check if fileUrls exists and is an array with content
+          // Track student ID for loading student info
+          if (submission.studentId) {
+            uniqueStudentIds.add(submission.studentId);
+          }
+
+          // Find or create student submission entry
+          let studentSubmission = taskFiles.studentSubmissions.find(
+            (s) => s.studentId === submission.studentId
+          );
+
+          if (!studentSubmission) {
+            studentSubmission = {
+              studentId: submission.studentId,
+              files: [],
+              textSubmissions: [],
+            };
+            taskFiles.studentSubmissions.push(studentSubmission);
+          }
+
+          // Add files if any
           if (submission.fileUrls && Array.isArray(submission.fileUrls) && submission.fileUrls.length > 0) {
-            // Track student ID for loading student info
-            if (submission.studentId) {
-              uniqueStudentIds.add(submission.studentId);
-            }
-
-            // Find or create student submission entry
-            let studentSubmission = taskFiles.studentSubmissions.find(
-              (s) => s.studentId === submission.studentId
-            );
-
-            if (!studentSubmission) {
-              studentSubmission = {
-                studentId: submission.studentId,
-                files: [],
-              };
-              taskFiles.studentSubmissions.push(studentSubmission);
-            }
-
-            // Add files to student submission
             submission.fileUrls.forEach((fileUrl, index) => {
               if (fileUrl && typeof fileUrl === 'string' && fileUrl.trim() !== '') {
                 try {
@@ -197,6 +217,7 @@ export default function BatchSubmissionsPage() {
                     fileUrl,
                     fileName,
                     studentId: submission.studentId,
+                    type: "file",
                     ...(isDailyListening && {
                       taskId: submission.taskId,
                       taskTitle: taskFiles.task.title,
@@ -208,6 +229,18 @@ export default function BatchSubmissionsPage() {
               } else {
                 console.warn(`Invalid file URL at index ${index} in submission ${submission.id}:`, fileUrl);
               }
+            });
+          }
+
+          // Add text submission for daily listening tasks if notes exist
+          if (taskFiles.task.type === "dailyListening" && submission.notes && submission.notes.trim()) {
+            studentSubmission.textSubmissions.push({
+              submissionId: submission.id,
+              text: submission.notes,
+              studentId: submission.studentId,
+              type: "text",
+              taskId: submission.taskId,
+              taskTitle: taskFiles.task.title,
             });
           }
         }
@@ -294,10 +327,12 @@ export default function BatchSubmissionsPage() {
             const existing = studentSubmissionsMap.get(studentSub.studentId);
             if (existing) {
               existing.files.push(...studentSub.files);
+              existing.textSubmissions.push(...studentSub.textSubmissions);
             } else {
               studentSubmissionsMap.set(studentSub.studentId, {
                 studentId: studentSub.studentId,
                 files: [...studentSub.files],
+                textSubmissions: [...studentSub.textSubmissions],
               });
             }
           });
@@ -420,6 +455,14 @@ export default function BatchSubmissionsPage() {
     setDeleteDialogOpen(true);
   };
 
+  const handleDeleteTextClick = (
+    submissionId: string,
+    studentId: string
+  ) => {
+    setTextToDelete({ submissionId, studentId });
+    setDeleteTextDialogOpen(true);
+  };
+
   const handleDeleteConfirm = async () => {
     if (!fileToDelete) return;
 
@@ -481,6 +524,52 @@ export default function BatchSubmissionsPage() {
     }
   };
 
+  const handleDeleteTextConfirm = async () => {
+    if (!textToDelete) return;
+
+    setDeletingText(true);
+    try {
+      console.log("Deleting text submission:", textToDelete.submissionId);
+
+      // Get current submissions to update the submission document
+      const submissions = await getSubmissionsByBatch(batchId);
+      const submission = submissions.find((s) => s.id === textToDelete.submissionId);
+
+      if (submission) {
+        // Remove the notes field from submission (set to undefined to delete it)
+        console.log(`Updating submission ${textToDelete.submissionId}: removing text submission`);
+
+        // Update submission to remove notes (use null to trigger deleteField)
+        await updateSubmission(textToDelete.submissionId, {
+          notes: null as any,
+        });
+        console.log("Text submission deleted successfully");
+      } else {
+        console.warn(`Submission ${textToDelete.submissionId} not found`);
+      }
+
+      toast({
+        title: "Success",
+        description: "Text submission deleted successfully",
+      });
+
+      // Reload data
+      await loadData();
+    } catch (error) {
+      console.error("Error deleting text submission:", error);
+      toast({
+        title: "Error",
+        description:
+          error instanceof Error ? error.message : "Failed to delete text submission",
+        variant: "destructive",
+      });
+    } finally {
+      setDeletingText(false);
+      setDeleteTextDialogOpen(false);
+      setTextToDelete(null);
+    }
+  };
+
   const handleDeleteAllClick = (task: Task) => {
     setTaskToDeleteAll(task);
     setDeleteAllDialogOpen(true);
@@ -516,14 +605,15 @@ export default function BatchSubmissionsPage() {
         console.log(`Found ${taskSubmissions.length} submissions for this task`);
       }
 
-      // Delete all files from storage and update submissions
+      // Delete all files from storage and text submissions, then update submissions
       const deletePromises: Promise<void>[] = [];
       let totalFiles = 0;
       let filesDeleted = 0;
       let filesNotFound = 0;
+      let textSubmissionsDeleted = 0;
 
       for (const submission of taskSubmissions) {
-        console.log(`Processing submission ${submission.id} with ${submission.fileUrls.length} files`);
+        console.log(`Processing submission ${submission.id} with ${submission.fileUrls.length} files and ${submission.notes ? 'text' : 'no text'}`);
 
         // Delete all files from storage
         for (const fileUrl of submission.fileUrls) {
@@ -550,12 +640,23 @@ export default function BatchSubmissionsPage() {
           );
         }
 
-        // Update submission to remove all file URLs
+        // Delete text submission if it exists
+        if (submission.notes && submission.notes.trim()) {
+          textSubmissionsDeleted++;
+        }
+
+        // Update submission to remove all file URLs and text
+        const updates: any = {};
         if (submission.fileUrls.length > 0) {
+          updates.fileUrls = [];
+        }
+        if (submission.notes && submission.notes.trim()) {
+          updates.notes = null; // Use null to trigger deleteField in updateSubmission
+        }
+
+        if (Object.keys(updates).length > 0) {
           deletePromises.push(
-            updateSubmission(submission.id, {
-              fileUrls: [],
-            }).catch((error) => {
+            updateSubmission(submission.id, updates).catch((error) => {
               console.error(`Failed to update submission ${submission.id}:`, error);
               throw error;
             })
@@ -563,13 +664,25 @@ export default function BatchSubmissionsPage() {
         }
       }
 
-      console.log(`Deleting ${totalFiles} files and updating ${taskSubmissions.length} submissions...`);
+      console.log(`Deleting ${totalFiles} files, ${textSubmissionsDeleted} text submissions, and updating ${taskSubmissions.length} submissions...`);
       await Promise.all(deletePromises);
-      console.log(`All files processed: ${filesDeleted} deleted, ${filesNotFound} already missing`);
+      console.log(`All submissions processed: ${filesDeleted} files deleted, ${filesNotFound} files already missing, ${textSubmissionsDeleted} text submissions deleted`);
 
-      const description = filesNotFound > 0
-        ? `All file references removed. ${filesDeleted} file(s) deleted, ${filesNotFound} file(s) were already missing from storage.`
-        : `All files for "${taskToDeleteAll.title}" deleted successfully`;
+      const parts: string[] = [];
+      if (totalFiles > 0) {
+        if (filesNotFound > 0) {
+          parts.push(`${filesDeleted} file(s) deleted, ${filesNotFound} file(s) were already missing`);
+        } else {
+          parts.push(`${filesDeleted} file(s) deleted`);
+        }
+      }
+      if (textSubmissionsDeleted > 0) {
+        parts.push(`${textSubmissionsDeleted} text submission(s) deleted`);
+      }
+
+      const description = parts.length > 0
+        ? `All submissions for "${taskToDeleteAll.title}" deleted: ${parts.join(", ")}`
+        : `All submissions for "${taskToDeleteAll.title}" deleted successfully`;
 
       toast({
         title: "Success",
@@ -833,6 +946,9 @@ export default function BatchSubmissionsPage() {
             const taskColor = getTaskTypeColor(task.type);
             const isDailyListening = task.type === "dailyListening";
             const totalFiles = studentSubmissions.reduce((sum, s) => sum + s.files.length, 0);
+            const totalTextSubmissions = studentSubmissions.reduce((sum, s) => sum + s.textSubmissions.length, 0);
+            const totalSubmissions = totalFiles + totalTextSubmissions;
+            const hasAnySubmissions = totalSubmissions > 0;
 
             return (
               <Card key={task.id}>
@@ -852,14 +968,17 @@ export default function BatchSubmissionsPage() {
                         <CardTitle className="text-xl sm:text-2xl break-words">{task.title}</CardTitle>
                         <CardDescription className="mt-1">
                           {getTaskTypeLabel(task.type)} • {studentSubmissions.length} student
-                          {studentSubmissions.length !== 1 ? "s" : ""} • {totalFiles} file
-                          {totalFiles !== 1 ? "s" : ""}
+                          {studentSubmissions.length !== 1 ? "s" : ""} • {totalSubmissions} submission
+                          {totalSubmissions !== 1 ? "s" : ""}
+                          {isDailyListening && totalTextSubmissions > 0 && (
+                            <span> ({totalTextSubmissions} text{totalTextSubmissions !== 1 ? "s" : ""}, {totalFiles} file{totalFiles !== 1 ? "s" : ""})</span>
+                          )}
                         </CardDescription>
                       </div>
                     </div>
                     <div className="flex flex-wrap items-center gap-2">
                       <Badge variant="outline">{task.status}</Badge>
-                      {isDailyListening && totalFiles > 0 && (
+                      {isDailyListening && hasAnySubmissions && (
                         <Button
                           variant="destructive"
                           size="sm"
@@ -944,19 +1063,76 @@ export default function BatchSubmissionsPage() {
                                   )}
                                 </div>
                                 <Badge variant="secondary" className="ml-auto flex-shrink-0">
-                                  {fileCount} file{fileCount !== 1 ? "s" : ""}
+                                  {fileCount + studentSub.textSubmissions.length} submission{(fileCount + studentSub.textSubmissions.length) !== 1 ? "s" : ""}
                                 </Badge>
                               </div>
                             </AccordionTrigger>
                             <AccordionContent>
                               <div className="grid gap-2 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 pt-2">
+                                {/* Render text submissions first for daily listening */}
+                                {isDailyListening && studentSub.textSubmissions.map((textSub: StudentTextSubmission, index: number) => (
+                                  <div
+                                    key={`text-${index}`}
+                                    className="flex flex-col p-3 bg-muted rounded-lg border gap-2 w-full"
+                                  >
+                                    <div className="flex items-center gap-2 flex-1 min-w-0">
+                                      <FileText className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                                      <span className="text-sm font-medium break-words">
+                                        Text Submission
+                                      </span>
+                                    </div>
+                                    {textSub.taskTitle && (
+                                      <div className="flex items-center gap-1">
+                                        <Badge variant="outline" className="text-xs">
+                                          {textSub.taskTitle}
+                                        </Badge>
+                                      </div>
+                                    )}
+                                    <div className="text-sm text-muted-foreground line-clamp-3 break-words">
+                                      {textSub.text}
+                                    </div>
+                                    <div className="flex items-center gap-1 flex-shrink-0 self-end">
+                                      <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        className="h-8 w-8"
+                                        onClick={() => {
+                                          setPreviewFile({
+                                            url: "",
+                                            name: "Text Submission",
+                                            type: "text",
+                                            text: textSub.text,
+                                          });
+                                        }}
+                                        title="View full text"
+                                      >
+                                        <Eye className="h-4 w-4" />
+                                      </Button>
+                                      <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        className="h-8 w-8 text-destructive hover:text-destructive"
+                                        onClick={() =>
+                                          handleDeleteTextClick(
+                                            textSub.submissionId,
+                                            textSub.studentId
+                                          )
+                                        }
+                                        title="Delete text submission"
+                                      >
+                                        <Trash2 className="h-4 w-4" />
+                                      </Button>
+                                    </div>
+                                  </div>
+                                ))}
+
+                                {/* Render file submissions */}
                                 {studentSub.files.map((file: StudentFile, index: number) => {
-                                  const isDailyListening = task.type === "dailyListening";
                                   const isSelected = selectedFiles.has(file.fileUrl);
 
                                   return (
                                     <div
-                                      key={index}
+                                      key={`file-${index}`}
                                       className={`flex flex-col p-3 bg-muted rounded-lg border gap-2 w-full ${isSelected && !isDailyListening ? 'ring-2 ring-primary' : ''}`}
                                     >
                                       <div className="flex items-center gap-2 flex-1 min-w-0">
@@ -1076,6 +1252,11 @@ export default function BatchSubmissionsPage() {
                 className="max-h-[75vh] w-full object-contain rounded border"
               />
             )}
+            {previewFile?.type === "text" && previewFile?.text && (
+              <div className="w-full max-h-[75vh] overflow-y-auto p-4 bg-muted rounded border">
+                <p className="whitespace-pre-wrap text-sm">{previewFile.text}</p>
+              </div>
+            )}
             {previewFile?.type === "other" && previewFile?.url && (
               <div className="flex flex-col gap-2">
                 <Button onClick={() => window.open(previewFile.url, "_blank", "noopener,noreferrer")}>
@@ -1106,6 +1287,37 @@ export default function BatchSubmissionsPage() {
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
               {deleting ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Deleting...
+                </>
+              ) : (
+                "Delete"
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Delete Text Submission Dialog */}
+      <AlertDialog open={deleteTextDialogOpen} onOpenChange={setDeleteTextDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Text Submission</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete this text submission? This
+              action cannot be undone and the text will be permanently removed
+              from the database.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deletingText}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeleteTextConfirm}
+              disabled={deletingText}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {deletingText ? (
                 <>
                   <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                   Deleting...

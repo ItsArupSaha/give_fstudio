@@ -728,7 +728,14 @@ export async function updateSubmission(
     if (submission.fileUrls !== undefined) updates.fileUrls = submission.fileUrls;
     if (submission.recordingUrl !== undefined)
       updates.recordingUrl = submission.recordingUrl;
-    if (submission.notes !== undefined) updates.notes = submission.notes;
+    // Handle notes: if explicitly set to null, delete the field; otherwise update it
+    if (submission.notes !== undefined) {
+      if (submission.notes === null) {
+        (updates as any).notes = deleteField();
+      } else {
+        updates.notes = submission.notes;
+      }
+    }
     if (submission.grade !== undefined) updates.grade = submission.grade;
     if (submission.feedback !== undefined) updates.feedback = submission.feedback;
     if (submission.gradedAt !== undefined)

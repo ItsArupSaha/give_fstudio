@@ -53,6 +53,7 @@ export default function TaskSubmissionPage() {
   const [loading, setLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [notes, setNotes] = useState("");
+  const [textSubmission, setTextSubmission] = useState(""); // For daily listening text submission
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [uploadProgress, setUploadProgress] = useState<Map<number, number>>(new Map());
   const [isUploading, setIsUploading] = useState(false);
@@ -96,10 +97,14 @@ export default function TaskSubmissionPage() {
       (submissionData) => {
         if (submissionData) {
           setSubmission(submissionData);
+          // Note: We'll handle the task type check in a separate useEffect that depends on task
+          // For now, populate both fields and let the task-dependent useEffect handle it
+          setTextSubmission(submissionData.notes || "");
           setNotes(submissionData.notes || "");
         } else {
           setSubmission(null);
           setNotes("");
+          setTextSubmission("");
         }
       }
     );
@@ -124,6 +129,20 @@ export default function TaskSubmissionPage() {
 
     return () => clearInterval(interval);
   }, [submission]);
+
+  // Sync submission data with task type (for daily listening vs other tasks)
+  useEffect(() => {
+    if (!submission || !task) return;
+
+    // For daily listening tasks, use textSubmission; for others, use notes
+    if (task.type === "dailyListening") {
+      setTextSubmission(submission.notes || "");
+      setNotes("");
+    } else {
+      setNotes(submission.notes || "");
+      setTextSubmission("");
+    }
+  }, [submission, task]);
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
@@ -168,15 +187,28 @@ export default function TaskSubmissionPage() {
   const handleSubmit = async () => {
     if (!task || !user?.uid) return;
 
-    // Validation: Require at least one submission (file or notes) for all task types except announcements
+    // Validation: Different rules for daily listening vs other tasks
     if (task.type !== "announcement") {
-      if (selectedFiles.length === 0 && !notes.trim()) {
-        toast({
-          title: "Validation Error",
-          description: "Please add at least one submission (file or notes)",
-          variant: "destructive",
-        });
-        return;
+      if (task.type === "dailyListening") {
+        // For daily listening: require at least text submission OR file (either one is sufficient)
+        if (selectedFiles.length === 0 && !textSubmission.trim()) {
+          toast({
+            title: "Validation Error",
+            description: "Please add either a text submission or upload a file",
+            variant: "destructive",
+          });
+          return;
+        }
+      } else {
+        // For other tasks: require at least file or notes
+        if (selectedFiles.length === 0 && !notes.trim()) {
+          toast({
+            title: "Validation Error",
+            description: "Please add at least one submission (file or notes)",
+            variant: "destructive",
+          });
+          return;
+        }
       }
     }
 
@@ -218,6 +250,11 @@ export default function TaskSubmissionPage() {
       setIsUploading(false);
 
       // Create submission
+      // For daily listening: use textSubmission; for others: use notes
+      const submissionNotes = task.type === "dailyListening"
+        ? textSubmission.trim() || undefined
+        : notes.trim() || undefined;
+
       const submissionData: Omit<Submission, "id"> = {
         taskId: task.id,
         studentId: user.uid,
@@ -228,7 +265,7 @@ export default function TaskSubmissionPage() {
         submittedAt: new Date(),
         fileUrls: fileUrls,
         recordingUrl: undefined,
-        notes: notes.trim() || undefined,
+        notes: submissionNotes,
       };
 
       await createSubmission(submissionData);
@@ -241,6 +278,7 @@ export default function TaskSubmissionPage() {
       // Clear form
       setSelectedFiles([]);
       setNotes("");
+      setTextSubmission("");
       setUploadProgress(new Map());
 
       // Don't navigate back immediately - let user see the success state
@@ -274,6 +312,7 @@ export default function TaskSubmissionPage() {
       // Clear form
       setSelectedFiles([]);
       setNotes("");
+      setTextSubmission("");
       setUploadProgress(new Map());
     } catch (error) {
       toast({
@@ -448,7 +487,9 @@ export default function TaskSubmissionPage() {
             )}
             {submission?.notes && (
               <div className="mt-4 p-4 bg-muted rounded-lg text-left">
-                <h4 className="font-semibold mb-2">Notes:</h4>
+                <h4 className="font-semibold mb-2">
+                  {task.type === "dailyListening" ? "Text Submission:" : "Notes:"}
+                </h4>
                 <p className="text-sm whitespace-pre-wrap">{submission.notes}</p>
               </div>
             )}
@@ -520,6 +561,28 @@ export default function TaskSubmissionPage() {
               </CardContent>
             </Card>
           )}
+          {/* Text Submission Section - Only for Daily Listening Tasks */}
+          {task.type === "dailyListening" && (
+            <Card>
+              <CardHeader>
+                <CardTitle>Text Submission</CardTitle>
+                <CardDescription>
+                  Write your response or submission text here.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Textarea
+                  value={textSubmission}
+                  onChange={(e) => setTextSubmission(e.target.value)}
+                  placeholder="Enter your submission text here..."
+                  rows={8}
+                  disabled={(alreadySubmitted && !canEdit) || isSubmitting}
+                  className="font-mono text-sm border-2 border-gray-300 focus:border-primary"
+                />
+              </CardContent>
+            </Card>
+          )}
+
           {/* File Upload Section */}
           <Card>
             <CardHeader>
@@ -605,24 +668,26 @@ export default function TaskSubmissionPage() {
             </CardContent>
           </Card>
 
-          {/* Notes Section */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Additional Notes (Optional)</CardTitle>
-              <CardDescription>
-                Add any additional notes or comments
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Textarea
-                value={notes}
-                onChange={(e) => setNotes(e.target.value)}
-                placeholder="Add any additional notes or comments..."
-                rows={6}
-                disabled={(alreadySubmitted && !canEdit) || isSubmitting}
-              />
-            </CardContent>
-          </Card>
+          {/* Notes Section - Only for non-daily listening tasks */}
+          {task.type !== "dailyListening" && (
+            <Card>
+              <CardHeader>
+                <CardTitle>Additional Notes (Optional)</CardTitle>
+                <CardDescription>
+                  Add any additional notes or comments
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Textarea
+                  value={notes}
+                  onChange={(e) => setNotes(e.target.value)}
+                  placeholder="Add any additional notes or comments..."
+                  rows={6}
+                  disabled={(alreadySubmitted && !canEdit) || isSubmitting}
+                />
+              </CardContent>
+            </Card>
+          )}
 
           {/* Submit Button */}
           <div className="flex justify-end gap-2">
