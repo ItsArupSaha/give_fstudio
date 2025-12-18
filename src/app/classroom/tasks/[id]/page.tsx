@@ -850,7 +850,7 @@ export default function TaskSubmissionPage() {
               <Button
                 variant="outline"
                 onClick={() => fileInputRef.current?.click()}
-                className="w-full"
+                className="w-full border border-orange-500"
                 disabled={(alreadySubmitted && !canEdit) || isSubmitting || isUploading}
               >
                 <Upload className="h-4 w-4 mr-2" />
@@ -937,7 +937,11 @@ export default function TaskSubmissionPage() {
 
           {/* Submit Button */}
           <div className="flex justify-end gap-2">
-            <Button variant="outline" onClick={() => router.back()}>
+            <Button
+              variant="outline"
+              className="border border-orange-500"
+              onClick={() => router.back()}
+            >
               Cancel
             </Button>
             <Button
