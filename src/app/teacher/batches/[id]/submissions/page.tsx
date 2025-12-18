@@ -268,6 +268,14 @@ export default function BatchSubmissionsPage() {
         }
       });
 
+      // Remove students that no longer have any submissions (no files and no text)
+      taskFilesMap.forEach((taskFiles) => {
+        taskFiles.studentSubmissions = taskFiles.studentSubmissions.filter(
+          (studentSub) =>
+            studentSub.files.length > 0 || studentSub.textSubmissions.length > 0
+        );
+      });
+
       // Load student information for all unique student IDs
       const studentsMap = new Map<string, User>();
       const studentLoadPromises = Array.from(uniqueStudentIds).map(async (studentId) => {
