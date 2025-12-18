@@ -152,12 +152,90 @@ export default function BatchSubmissionsPage() {
       setLoading(true);
 
       // Load batch, all tasks, submissions, and enrollments in parallel
-      const [batchData, tasks, submissions, enrollments] = await Promise.all([
+      const [batchData, tasks, rawSubmissions, enrollments] = await Promise.all([
         getBatchById(batchId),
         getTasksByBatch(batchId),
         getSubmissionsByBatch(batchId),
         getEnrollmentsByBatch(batchId),
       ]);
+
+      // Helper to check if a storage URL actually exists (not 404)
+      const urlExistsCache = new Map<string, boolean>();
+      const urlExists = async (url: string): Promise<boolean> => {
+        if (!url || typeof url !== "string") return false;
+        if (urlExistsCache.has(url)) {
+          return urlExistsCache.get(url)!;
+        }
+        try {
+          const response = await fetch(url, { method: "HEAD" });
+          const ok = response.ok;
+          urlExistsCache.set(url, ok);
+          return ok;
+        } catch (error) {
+          console.warn("Error checking URL existence:", url, error);
+          urlExistsCache.set(url, false);
+          return false;
+        }
+      };
+
+      // Clean submissions: drop any fileUrls / recordingUrl that no longer exist in storage
+      const submissions = await Promise.all(
+        rawSubmissions.map(async (submission) => {
+          const fileUrls = Array.isArray(submission.fileUrls)
+            ? submission.fileUrls
+            : [];
+
+          const validFileUrls: string[] = [];
+          const invalidFileUrls: string[] = [];
+
+          for (const url of fileUrls) {
+            if (!url || typeof url !== "string" || !url.trim()) {
+              invalidFileUrls.push(url);
+              continue;
+            }
+            const exists = await urlExists(url);
+            if (exists) {
+              validFileUrls.push(url);
+            } else {
+              invalidFileUrls.push(url);
+            }
+          }
+
+          let recordingUrl = submission.recordingUrl;
+          let recordingInvalid = false;
+          if (recordingUrl) {
+            const exists = await urlExists(recordingUrl);
+            if (!exists) {
+              recordingInvalid = true;
+              recordingUrl = undefined;
+            }
+          }
+
+          // If we found invalid URLs, clean them from Firestore in the background
+          if (invalidFileUrls.length > 0 || recordingInvalid) {
+            const updates: any = {};
+            if (invalidFileUrls.length > 0) {
+              updates.fileUrls = validFileUrls;
+            }
+            if (recordingInvalid) {
+              updates.recordingUrl = undefined;
+            }
+            updateSubmission(submission.id, updates).catch((error) => {
+              console.warn(
+                "Failed to clean invalid file/recording URLs for submission:",
+                submission.id,
+                error
+              );
+            });
+          }
+
+          return {
+            ...submission,
+            fileUrls: validFileUrls,
+            recordingUrl,
+          };
+        })
+      );
 
       setBatch(batchData);
 
@@ -230,6 +308,28 @@ export default function BatchSubmissionsPage() {
                 console.warn(`Invalid file URL at index ${index} in submission ${submission.id}:`, fileUrl);
               }
             });
+          }
+
+          // Add audio recording as a separate item for daily listening tasks
+          if (taskFiles.task.type === "dailyListening" && submission.recordingUrl) {
+            try {
+              const fileName = getFileNameFromUrl(submission.recordingUrl);
+              studentSubmission.files.push({
+                submissionId: submission.id,
+                fileUrl: submission.recordingUrl,
+                fileName,
+                studentId: submission.studentId,
+                type: "file",
+                taskId: submission.taskId,
+                taskTitle: taskFiles.task.title,
+              });
+            } catch (error) {
+              console.error(
+                `Error processing recording URL in submission ${submission.id}:`,
+                error,
+                submission.recordingUrl
+              );
+            }
           }
 
           // Add text submission for daily listening tasks if notes exist
@@ -484,18 +584,37 @@ export default function BatchSubmissionsPage() {
       const submission = submissions.find((s) => s.id === fileToDelete.submissionId);
 
       if (submission) {
-        // Remove the file URL from submission
-        const updatedFileUrls = submission.fileUrls.filter(
-          (url) => url !== fileToDelete.fileUrl
-        );
+        const updates: any = {};
 
-        console.log(`Updating submission ${fileToDelete.submissionId}: removing file URL, ${submission.fileUrls.length} -> ${updatedFileUrls.length} files`);
+        // Remove the file URL from submission.fileUrls if present
+        if (submission.fileUrls && submission.fileUrls.length > 0) {
+          const updatedFileUrls = submission.fileUrls.filter(
+            (url) => url !== fileToDelete.fileUrl
+          );
+          if (updatedFileUrls.length !== submission.fileUrls.length) {
+            updates.fileUrls = updatedFileUrls;
+          }
+          console.log(
+            `Updating submission ${fileToDelete.submissionId}: removing file URL, ${submission.fileUrls.length} -> ${updatedFileUrls.length} files`
+          );
+        }
 
-        // Update submission
-        await updateSubmission(fileToDelete.submissionId, {
-          fileUrls: updatedFileUrls,
-        });
-        console.log("Submission updated successfully");
+        // If this file is the recordingUrl, clear that field as well
+        if (submission.recordingUrl === fileToDelete.fileUrl) {
+          updates.recordingUrl = undefined;
+          console.log(
+            `Updating submission ${fileToDelete.submissionId}: clearing recordingUrl`
+          );
+        }
+
+        if (Object.keys(updates).length > 0) {
+          await updateSubmission(fileToDelete.submissionId, updates);
+          console.log("Submission updated successfully");
+        } else {
+          console.log(
+            `No updates needed for submission ${fileToDelete.submissionId} after file deletion`
+          );
+        }
       } else {
         console.warn(`Submission ${fileToDelete.submissionId} not found after deletion`);
       }
@@ -613,10 +732,17 @@ export default function BatchSubmissionsPage() {
       let textSubmissionsDeleted = 0;
 
       for (const submission of taskSubmissions) {
-        console.log(`Processing submission ${submission.id} with ${submission.fileUrls.length} files and ${submission.notes ? 'text' : 'no text'}`);
+        const fileUrls = Array.isArray(submission.fileUrls)
+          ? submission.fileUrls
+          : [];
+
+        console.log(
+          `Processing submission ${submission.id} with ${fileUrls.length} files, ${submission.recordingUrl ? "recording" : "no recording"
+          } and ${submission.notes ? "text" : "no text"}`
+        );
 
         // Delete all files from storage
-        for (const fileUrl of submission.fileUrls) {
+        for (const fileUrl of fileUrls) {
           totalFiles++;
           deletePromises.push(
             deleteFileByUrl(fileUrl)
@@ -640,15 +766,50 @@ export default function BatchSubmissionsPage() {
           );
         }
 
+        // Delete recording file if it exists
+        if (submission.recordingUrl) {
+          totalFiles++;
+          deletePromises.push(
+            deleteFileByUrl(submission.recordingUrl)
+              .then((existed) => {
+                if (existed) {
+                  filesDeleted++;
+                } else {
+                  filesNotFound++;
+                }
+              })
+              .catch((error) => {
+                if (
+                  error?.code !== "storage/object-not-found" &&
+                  !(
+                    error instanceof Error &&
+                    error.message.includes("object-not-found")
+                  )
+                ) {
+                  console.error(
+                    `Failed to delete recording ${submission.recordingUrl}:`,
+                    error
+                  );
+                  throw error;
+                } else {
+                  filesNotFound++;
+                }
+              })
+          );
+        }
+
         // Delete text submission if it exists
         if (submission.notes && submission.notes.trim()) {
           textSubmissionsDeleted++;
         }
 
-        // Update submission to remove all file URLs and text
+        // Update submission to remove all file URLs, recording, and text
         const updates: any = {};
-        if (submission.fileUrls.length > 0) {
+        if (fileUrls.length > 0) {
           updates.fileUrls = [];
+        }
+        if (submission.recordingUrl) {
+          updates.recordingUrl = undefined;
         }
         if (submission.notes && submission.notes.trim()) {
           updates.notes = null; // Use null to trigger deleteField in updateSubmission

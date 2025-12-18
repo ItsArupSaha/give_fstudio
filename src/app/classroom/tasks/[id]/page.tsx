@@ -21,7 +21,7 @@ import {
   getTaskById,
   subscribeSubmissionByTaskAndStudent
 } from "@/lib/services/firestore";
-import { uploadFiles } from "@/lib/services/storage";
+import { uploadFile, uploadFiles } from "@/lib/services/storage";
 import { getGracePeriodRemainingMinutes, isWithinGracePeriod } from "@/lib/utils";
 import {
   getTaskTypeColor,
@@ -34,9 +34,11 @@ import {
   CheckCircle2,
   FileText,
   Loader2,
+  Mic,
+  Square,
   Star,
   Upload,
-  X,
+  X
 } from "lucide-react";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
@@ -60,6 +62,15 @@ export default function TaskSubmissionPage() {
   const [isDeleting, setIsDeleting] = useState(false);
   const [gracePeriodRemaining, setGracePeriodRemaining] = useState<number>(0);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const mediaStreamRef = useRef<MediaStream | null>(null);
+  const [isRecording, setIsRecording] = useState(false);
+  const [audioBlob, setAudioBlob] = useState<Blob | null>(null);
+  const [audioUrl, setAudioUrl] = useState<string | null>(null);
+  const [recordingError, setRecordingError] = useState<string | null>(null);
+  const recordingStartTimeRef = useRef<number | null>(null);
+  const recordingTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const [recordingDuration, setRecordingDuration] = useState<number>(0);
 
   useEffect(() => {
     if (!taskId || !user?.uid) return;
@@ -130,6 +141,25 @@ export default function TaskSubmissionPage() {
     return () => clearInterval(interval);
   }, [submission]);
 
+  // Cleanup media recorder and object URLs on unmount
+  useEffect(() => {
+    return () => {
+      if (mediaRecorderRef.current && mediaRecorderRef.current.state !== "inactive") {
+        mediaRecorderRef.current.stop();
+      }
+      if (mediaStreamRef.current) {
+        mediaStreamRef.current.getTracks().forEach((track) => track.stop());
+      }
+      if (recordingTimerRef.current) {
+        clearInterval(recordingTimerRef.current);
+      }
+      if (audioUrl) {
+        URL.revokeObjectURL(audioUrl);
+      }
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   // Sync submission data with task type (for daily listening vs other tasks)
   useEffect(() => {
     if (!submission || !task) return;
@@ -184,17 +214,127 @@ export default function TaskSubmissionPage() {
     setSelectedFiles((prev) => prev.filter((_, i) => i !== index));
   };
 
+  const resetRecordingState = () => {
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== "inactive") {
+      mediaRecorderRef.current.stop();
+    }
+    if (mediaStreamRef.current) {
+      mediaStreamRef.current.getTracks().forEach((track) => track.stop());
+      mediaStreamRef.current = null;
+    }
+    if (recordingTimerRef.current) {
+      clearInterval(recordingTimerRef.current);
+      recordingTimerRef.current = null;
+    }
+    recordingStartTimeRef.current = null;
+    setIsRecording(false);
+    setRecordingDuration(0);
+    if (audioUrl) {
+      URL.revokeObjectURL(audioUrl);
+    }
+    setAudioUrl(null);
+    setAudioBlob(null);
+  };
+
+  const startRecording = async () => {
+    try {
+      setRecordingError(null);
+      // Stop any existing recording state
+      resetRecordingState();
+
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        setRecordingError("Audio recording is not supported in this browser.");
+        return;
+      }
+
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      mediaStreamRef.current = stream;
+
+      const mimeType =
+        typeof MediaRecorder !== "undefined" &&
+          MediaRecorder.isTypeSupported("audio/webm;codecs=opus")
+          ? "audio/webm;codecs=opus"
+          : "audio/webm";
+
+      const mediaRecorder = new MediaRecorder(stream, { mimeType });
+      mediaRecorderRef.current = mediaRecorder;
+
+      const chunks: BlobPart[] = [];
+
+      mediaRecorder.ondataavailable = (event) => {
+        if (event.data && event.data.size > 0) {
+          chunks.push(event.data);
+        }
+      };
+
+      mediaRecorder.onstop = () => {
+        const blob = new Blob(chunks, { type: mimeType });
+        if (audioUrl) {
+          URL.revokeObjectURL(audioUrl);
+        }
+        const url = URL.createObjectURL(blob);
+        setAudioBlob(blob);
+        setAudioUrl(url);
+        setIsRecording(false);
+        if (recordingTimerRef.current) {
+          clearInterval(recordingTimerRef.current);
+          recordingTimerRef.current = null;
+        }
+      };
+
+      mediaRecorder.start();
+      setIsRecording(true);
+      recordingStartTimeRef.current = Date.now();
+      setRecordingDuration(0);
+
+      recordingTimerRef.current = setInterval(() => {
+        if (recordingStartTimeRef.current) {
+          const diff = Date.now() - recordingStartTimeRef.current;
+          setRecordingDuration(Math.floor(diff / 1000));
+        }
+      }, 1000);
+    } catch (error) {
+      console.error("Error starting audio recording:", error);
+      setRecordingError(
+        error instanceof Error
+          ? error.message
+          : "Failed to start audio recording. Please check microphone permissions."
+      );
+      resetRecordingState();
+    }
+  };
+
+  const stopRecording = () => {
+    try {
+      if (mediaRecorderRef.current && mediaRecorderRef.current.state === "recording") {
+        mediaRecorderRef.current.stop();
+      }
+      if (mediaStreamRef.current) {
+        mediaStreamRef.current.getTracks().forEach((track) => track.stop());
+        mediaStreamRef.current = null;
+      }
+    } catch (error) {
+      console.error("Error stopping audio recording:", error);
+    } finally {
+      setIsRecording(false);
+      if (recordingTimerRef.current) {
+        clearInterval(recordingTimerRef.current);
+        recordingTimerRef.current = null;
+      }
+    }
+  };
+
   const handleSubmit = async () => {
     if (!task || !user?.uid) return;
 
     // Validation: Different rules for daily listening vs other tasks
     if (task.type !== "announcement") {
       if (task.type === "dailyListening") {
-        // For daily listening: require at least text submission OR file (either one is sufficient)
-        if (selectedFiles.length === 0 && !textSubmission.trim()) {
+        // For daily listening: require at least text submission, file, or audio recording
+        if (selectedFiles.length === 0 && !textSubmission.trim() && !audioBlob) {
           toast({
             title: "Validation Error",
-            description: "Please add either a text submission or upload a file",
+            description: "Please add a text submission, upload a file, or record audio",
             variant: "destructive",
           });
           return;
@@ -218,6 +358,7 @@ export default function TaskSubmissionPage() {
 
     try {
       let fileUrls: string[] = [];
+      let recordingUrl: string | undefined = undefined;
 
       // Upload files if any (for all task types except announcements)
       if (selectedFiles.length > 0 && task.type !== "announcement") {
@@ -247,6 +388,29 @@ export default function TaskSubmissionPage() {
         }
       }
 
+      // Upload audio recording for daily listening tasks if present
+      if (task.type === "dailyListening" && audioBlob) {
+        try {
+          const fileName = `recording_${Date.now()}.webm`;
+          const audioFile = new File([audioBlob], fileName, { type: audioBlob.type || "audio/webm" });
+          const basePath = `submissions/${task.id}/${user.uid}`;
+          const audioPath = `${basePath}/${fileName}`;
+          recordingUrl = await uploadFile(audioFile, audioPath);
+        } catch (uploadError) {
+          toast({
+            title: "Upload Error",
+            description:
+              uploadError instanceof Error
+                ? uploadError.message
+                : "Failed to upload audio recording. Please try again.",
+            variant: "destructive",
+          });
+          setIsSubmitting(false);
+          setIsUploading(false);
+          return;
+        }
+      }
+
       setIsUploading(false);
 
       // Create submission
@@ -264,7 +428,7 @@ export default function TaskSubmissionPage() {
         updatedAt: new Date(),
         submittedAt: new Date(),
         fileUrls: fileUrls,
-        recordingUrl: undefined,
+        recordingUrl: recordingUrl,
         notes: submissionNotes,
       };
 
@@ -280,6 +444,7 @@ export default function TaskSubmissionPage() {
       setNotes("");
       setTextSubmission("");
       setUploadProgress(new Map());
+      resetRecordingState();
 
       // Don't navigate back immediately - let user see the success state
       // The real-time subscription will update the UI to show "Already Submitted"
@@ -304,7 +469,11 @@ export default function TaskSubmissionPage() {
 
     setIsDeleting(true);
     try {
-      await deleteSubmission(submission.id, submission.fileUrls);
+      const urlsToDelete = [
+        ...(submission.fileUrls || []),
+        submission.recordingUrl || "",
+      ].filter((url) => url && url.trim().length > 0);
+      await deleteSubmission(submission.id, urlsToDelete);
       toast({
         title: "Success",
         description: "Submission deleted. You can now resubmit.",
@@ -493,6 +662,14 @@ export default function TaskSubmissionPage() {
                 <p className="text-sm whitespace-pre-wrap">{submission.notes}</p>
               </div>
             )}
+            {submission?.recordingUrl && (
+              <div className="mt-4 p-4 bg-muted rounded-lg text-left">
+                <h4 className="font-semibold mb-2">Audio Recording:</h4>
+                <audio controls src={submission.recordingUrl} className="w-full">
+                  Your browser does not support the audio element.
+                </audio>
+              </div>
+            )}
             {submission?.feedback && (
               <div className="mt-4 p-4 bg-muted rounded-lg text-left">
                 <h4 className="font-semibold mb-2">Feedback:</h4>
@@ -561,26 +738,93 @@ export default function TaskSubmissionPage() {
               </CardContent>
             </Card>
           )}
-          {/* Text Submission Section - Only for Daily Listening Tasks */}
+          {/* Text & Audio Submission Section - Only for Daily Listening Tasks */}
           {task.type === "dailyListening" && (
-            <Card>
-              <CardHeader>
-                <CardTitle>Text Submission</CardTitle>
-                <CardDescription>
-                  Write your response or submission text here.
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <Textarea
-                  value={textSubmission}
-                  onChange={(e) => setTextSubmission(e.target.value)}
-                  placeholder="Enter your submission text here..."
-                  rows={8}
-                  disabled={(alreadySubmitted && !canEdit) || isSubmitting}
-                  className="font-mono text-sm border-2 border-gray-300 focus:border-primary"
-                />
-              </CardContent>
-            </Card>
+            <>
+              <Card>
+                <CardHeader>
+                  <CardTitle>Text Submission</CardTitle>
+                  <CardDescription>
+                    Write your response or submission text here.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <Textarea
+                    value={textSubmission}
+                    onChange={(e) => setTextSubmission(e.target.value)}
+                    placeholder="Enter your submission text here..."
+                    rows={8}
+                    disabled={(alreadySubmitted && !canEdit) || isSubmitting}
+                    className="font-mono text-sm border-2 border-gray-300 focus:border-primary"
+                  />
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle>Audio Recording (Optional)</CardTitle>
+                  <CardDescription>
+                    Record your daily listening reflection using your microphone. Works best in Chrome or modern browsers.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {recordingError && (
+                    <p className="text-sm text-red-600">{recordingError}</p>
+                  )}
+
+                  <div className="flex items-center gap-3">
+                    <Button
+                      type="button"
+                      variant={isRecording ? "destructive" : "outline"}
+                      onClick={isRecording ? stopRecording : startRecording}
+                      disabled={
+                        (alreadySubmitted && !canEdit) ||
+                        isSubmitting ||
+                        isUploading
+                      }
+                    >
+                      {isRecording ? (
+                        <>
+                          <Square className="h-4 w-4 mr-2" />
+                          Stop Recording
+                        </>
+                      ) : (
+                        <>
+                          <Mic className="h-4 w-4 mr-2" />
+                          Start Recording
+                        </>
+                      )}
+                    </Button>
+
+                    <div className="text-sm text-muted-foreground">
+                      {isRecording
+                        ? `Recording... ${recordingDuration}s`
+                        : audioBlob
+                          ? "Recorded audio ready to submit."
+                          : "No recording yet."}
+                    </div>
+                  </div>
+
+                  {audioUrl && (
+                    <div className="space-y-2">
+                      <audio controls src={audioUrl} className="w-full">
+                        Your browser does not support the audio element.
+                      </audio>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={resetRecordingState}
+                        disabled={isRecording || isSubmitting || isUploading}
+                      >
+                        <X className="h-4 w-4 mr-2" />
+                        Remove Recording
+                      </Button>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </>
           )}
 
           {/* File Upload Section */}
