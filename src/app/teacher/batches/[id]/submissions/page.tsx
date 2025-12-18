@@ -152,90 +152,12 @@ export default function BatchSubmissionsPage() {
       setLoading(true);
 
       // Load batch, all tasks, submissions, and enrollments in parallel
-      const [batchData, tasks, rawSubmissions, enrollments] = await Promise.all([
+      const [batchData, tasks, submissions, enrollments] = await Promise.all([
         getBatchById(batchId),
         getTasksByBatch(batchId),
         getSubmissionsByBatch(batchId),
         getEnrollmentsByBatch(batchId),
       ]);
-
-      // Helper to check if a storage URL actually exists (not 404)
-      const urlExistsCache = new Map<string, boolean>();
-      const urlExists = async (url: string): Promise<boolean> => {
-        if (!url || typeof url !== "string") return false;
-        if (urlExistsCache.has(url)) {
-          return urlExistsCache.get(url)!;
-        }
-        try {
-          const response = await fetch(url, { method: "HEAD" });
-          const ok = response.ok;
-          urlExistsCache.set(url, ok);
-          return ok;
-        } catch (error) {
-          console.warn("Error checking URL existence:", url, error);
-          urlExistsCache.set(url, false);
-          return false;
-        }
-      };
-
-      // Clean submissions: drop any fileUrls / recordingUrl that no longer exist in storage
-      const submissions = await Promise.all(
-        rawSubmissions.map(async (submission) => {
-          const fileUrls = Array.isArray(submission.fileUrls)
-            ? submission.fileUrls
-            : [];
-
-          const validFileUrls: string[] = [];
-          const invalidFileUrls: string[] = [];
-
-          for (const url of fileUrls) {
-            if (!url || typeof url !== "string" || !url.trim()) {
-              invalidFileUrls.push(url);
-              continue;
-            }
-            const exists = await urlExists(url);
-            if (exists) {
-              validFileUrls.push(url);
-            } else {
-              invalidFileUrls.push(url);
-            }
-          }
-
-          let recordingUrl = submission.recordingUrl;
-          let recordingInvalid = false;
-          if (recordingUrl) {
-            const exists = await urlExists(recordingUrl);
-            if (!exists) {
-              recordingInvalid = true;
-              recordingUrl = undefined;
-            }
-          }
-
-          // If we found invalid URLs, clean them from Firestore in the background
-          if (invalidFileUrls.length > 0 || recordingInvalid) {
-            const updates: any = {};
-            if (invalidFileUrls.length > 0) {
-              updates.fileUrls = validFileUrls;
-            }
-            if (recordingInvalid) {
-              updates.recordingUrl = undefined;
-            }
-            updateSubmission(submission.id, updates).catch((error) => {
-              console.warn(
-                "Failed to clean invalid file/recording URLs for submission:",
-                submission.id,
-                error
-              );
-            });
-          }
-
-          return {
-            ...submission,
-            fileUrls: validFileUrls,
-            recordingUrl,
-          };
-        })
-      );
 
       setBatch(batchData);
 
