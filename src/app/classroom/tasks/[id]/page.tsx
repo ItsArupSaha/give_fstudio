@@ -815,6 +815,7 @@ export default function TaskSubmissionPage() {
                         type="button"
                         variant="ghost"
                         size="sm"
+                        className="border border-orange-500"
                         onClick={resetRecordingState}
                         disabled={isRecording || isSubmitting || isUploading}
                       >
