@@ -30,7 +30,7 @@ export function LoginDialog() {
             <DialogTrigger asChild>
                 <button
                     type="button"
-                    className="text-sm font-medium text-foreground/90 hover:text-foreground transition-colors"
+                    className="text-sm font-medium text-foreground/90 hover:text-foreground transition-colors border border-orange-500 px-4 py-2 rounded-md"
                 >
                     Login
                 </button>
