@@ -776,6 +776,7 @@ export default function TaskSubmissionPage() {
                     <Button
                       type="button"
                       variant={isRecording ? "destructive" : "outline"}
+                      className="border border-orange-500"
                       onClick={isRecording ? stopRecording : startRecording}
                       disabled={
                         (alreadySubmitted && !canEdit) ||
