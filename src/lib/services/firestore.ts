@@ -726,8 +726,14 @@ export async function updateSubmission(
     if (submission.submittedAt !== undefined)
       updates.submittedAt = Timestamp.fromDate(submission.submittedAt);
     if (submission.fileUrls !== undefined) updates.fileUrls = submission.fileUrls;
-    if (submission.recordingUrl !== undefined)
-      updates.recordingUrl = submission.recordingUrl;
+    // Handle recordingUrl: if explicitly set to null, delete the field; otherwise update it
+    if (submission.recordingUrl !== undefined) {
+      if (submission.recordingUrl === null) {
+        (updates as any).recordingUrl = deleteField();
+      } else {
+        updates.recordingUrl = submission.recordingUrl;
+      }
+    }
     // Handle notes: if explicitly set to null, delete the field; otherwise update it
     if (submission.notes !== undefined) {
       if (submission.notes === null) {

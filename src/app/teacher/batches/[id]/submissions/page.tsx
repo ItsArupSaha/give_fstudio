@@ -531,7 +531,7 @@ export default function BatchSubmissionsPage() {
 
         // If this file is the recordingUrl, clear that field as well
         if (submission.recordingUrl === fileToDelete.fileUrl) {
-          updates.recordingUrl = undefined;
+          updates.recordingUrl = null as any; // Use null to trigger deleteField in updateSubmission
           console.log(
             `Updating submission ${fileToDelete.submissionId}: clearing recordingUrl`
           );
@@ -635,8 +635,9 @@ export default function BatchSubmissionsPage() {
       const submissions = await getSubmissionsByBatch(batchId);
 
       // If it's the combined daily listening group, delete from all daily listening tasks
+      // Check by ID prefix since combined tasks have a special ID
       let taskSubmissions: typeof submissions;
-      if (taskToDeleteAll.title === "Daily Listening" && taskToDeleteAll.type === "dailyListening") {
+      if (taskToDeleteAll.id.startsWith("daily-listening-combined-")) {
         // Get all daily listening task IDs
         const tasks = await getTasksByBatch(batchId);
         const dailyListeningTaskIds = tasks
@@ -739,7 +740,7 @@ export default function BatchSubmissionsPage() {
           updates.fileUrls = [];
         }
         if (submission.recordingUrl) {
-          updates.recordingUrl = undefined;
+          updates.recordingUrl = null; // Use null to trigger deleteField in updateSubmission
         }
         if (submission.notes && submission.notes.trim()) {
           updates.notes = null; // Use null to trigger deleteField in updateSubmission
