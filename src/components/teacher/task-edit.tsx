@@ -51,6 +51,9 @@ export function TaskEdit({ task, isOpen, onClose, onTaskUpdated }: TaskEditProps
         type: task.type,
         title: task.title,
         description: task.description,
+        startDate: task.startDate
+            ? new Date(task.startDate).toISOString().split("T")[0]
+            : "",
         dueDate: task.dueDate
             ? new Date(task.dueDate).toISOString().split("T")[0]
             : "",
@@ -68,6 +71,9 @@ export function TaskEdit({ task, isOpen, onClose, onTaskUpdated }: TaskEditProps
                 type: task.type,
                 title: task.title,
                 description: task.description,
+                startDate: task.startDate
+                    ? new Date(task.startDate).toISOString().split("T")[0]
+                    : "",
                 dueDate: task.dueDate
                     ? new Date(task.dueDate).toISOString().split("T")[0]
                     : "",
@@ -95,11 +101,21 @@ export function TaskEdit({ task, isOpen, onClose, onTaskUpdated }: TaskEditProps
 
         setIsSubmitting(true);
         try {
+            // Set start date to 12:00 AM
+            const startDate = formData.startDate
+                ? (() => {
+                    const date = new Date(formData.startDate);
+                    date.setHours(0, 0, 0, 0);
+                    return date;
+                })()
+                : undefined;
+
             await updateTask(task.id, {
                 title: formData.title.trim(),
                 description: formData.description.trim(),
                 type: formData.type,
                 status: formData.status,
+                startDate: startDate,
                 dueDate:
                     formData.type !== "announcement" && formData.dueDate
                         ? (() => {
@@ -225,6 +241,23 @@ export function TaskEdit({ task, isOpen, onClose, onTaskUpdated }: TaskEditProps
                             </select>
                         </div>
 
+                        {/* Start Date - When task becomes visible to students */}
+                        <div className="grid gap-2">
+                            <Label htmlFor="start-date">Start Date</Label>
+                            <Input
+                                id="start-date"
+                                type="date"
+                                value={formData.startDate}
+                                onChange={(e) =>
+                                    setFormData({ ...formData, startDate: e.target.value })
+                                }
+                                className="bg-gray-100"
+                            />
+                            <p className="text-xs text-muted-foreground">
+                                Task will be visible to students starting at 12:00 AM on this date. Leave empty to make it visible immediately.
+                            </p>
+                        </div>
+
                         {/* Due Date and Points (not for announcements) */}
                         {formData.type !== "announcement" && (
                             <>
@@ -239,6 +272,7 @@ export function TaskEdit({ task, isOpen, onClose, onTaskUpdated }: TaskEditProps
                                                 setFormData({ ...formData, dueDate: e.target.value })
                                             }
                                             className="bg-gray-100"
+                                            min={formData.startDate || undefined}
                                         />
                                         <p className="text-xs text-muted-foreground">
                                             Submissions accepted until 11:59 PM on this date
