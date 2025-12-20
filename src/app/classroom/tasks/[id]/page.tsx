@@ -72,6 +72,29 @@ export default function TaskSubmissionPage() {
   const recordingTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const [recordingDuration, setRecordingDuration] = useState<number>(0);
 
+  // Track which submission type is active (null = none, 'text' | 'audio' | 'file')
+  const [activeSubmissionType, setActiveSubmissionType] = useState<'text' | 'audio' | 'file' | null>(null);
+
+  // Determine active submission type based on current inputs
+  // Only applies to daily listening tasks (text, audio, file)
+  // Other tasks only have file uploads, so no restrictions needed
+  useEffect(() => {
+    if (task?.type === "dailyListening") {
+      if (textSubmission.trim()) {
+        setActiveSubmissionType('text');
+      } else if (audioBlob) {
+        setActiveSubmissionType('audio');
+      } else if (selectedFiles.length > 0) {
+        setActiveSubmissionType('file');
+      } else {
+        setActiveSubmissionType(null);
+      }
+    } else {
+      // For other tasks, no restrictions - they can only upload files
+      setActiveSubmissionType(null);
+    }
+  }, [textSubmission, audioBlob, selectedFiles.length, task?.type]);
+
   useEffect(() => {
     if (!taskId || !user?.uid) return;
 
@@ -200,6 +223,16 @@ export default function TaskSubmissionPage() {
       }
 
       if (validFiles.length > 0) {
+        // For daily listening tasks: Clear text and audio when files are selected
+        if (task?.type === "dailyListening" && (textSubmission.trim() || audioBlob)) {
+          toast({
+            title: "Submission Type Changed",
+            description: "File upload selected. Text submission and audio recording have been cleared.",
+            variant: "default",
+          });
+          setTextSubmission("");
+          resetRecordingState();
+        }
         setSelectedFiles((prev) => [...prev, ...validFiles]);
       }
 
@@ -239,6 +272,19 @@ export default function TaskSubmissionPage() {
   const startRecording = async () => {
     try {
       setRecordingError(null);
+
+      // For daily listening tasks: Clear text and files when starting audio recording
+      if (task?.type === "dailyListening" && (textSubmission.trim() || selectedFiles.length > 0)) {
+        toast({
+          title: "Submission Type Changed",
+          description: "Audio recording selected. Text submission and file uploads have been cleared.",
+          variant: "default",
+        });
+        setTextSubmission("");
+        setSelectedFiles([]);
+        setUploadProgress(new Map());
+      }
+
       // Stop any existing recording state
       resetRecordingState();
 
@@ -751,12 +797,41 @@ export default function TaskSubmissionPage() {
                 <CardContent>
                   <Textarea
                     value={textSubmission}
-                    onChange={(e) => setTextSubmission(e.target.value)}
+                    onChange={(e) => {
+                      const newValue = e.target.value;
+                      // Clear audio and files when text is entered (only for daily listening)
+                      if (task?.type === "dailyListening" && newValue.trim() && (audioBlob || selectedFiles.length > 0)) {
+                        toast({
+                          title: "Submission Type Changed",
+                          description: "Text submission selected. Audio recording and file uploads have been cleared.",
+                          variant: "default",
+                        });
+                        resetRecordingState();
+                        setSelectedFiles([]);
+                        setUploadProgress(new Map());
+                      }
+                      setTextSubmission(newValue);
+                    }}
                     placeholder="Enter your submission text here..."
                     rows={8}
-                    disabled={(alreadySubmitted && !canEdit) || isSubmitting}
+                    disabled={
+                      (alreadySubmitted && !canEdit) ||
+                      isSubmitting ||
+                      activeSubmissionType === 'audio' ||
+                      activeSubmissionType === 'file'
+                    }
                     className="font-mono text-sm border-2 border-gray-300 focus:border-primary"
                   />
+                  {task?.type === "dailyListening" && activeSubmissionType === 'audio' && (
+                    <p className="text-sm text-muted-foreground mt-2">
+                      Text submission is disabled because audio recording is active. Remove the audio recording to enable text input.
+                    </p>
+                  )}
+                  {task?.type === "dailyListening" && activeSubmissionType === 'file' && (
+                    <p className="text-sm text-muted-foreground mt-2">
+                      Text submission is disabled because files are uploaded. Remove the files to enable text input.
+                    </p>
+                  )}
                 </CardContent>
               </Card>
 
@@ -781,7 +856,9 @@ export default function TaskSubmissionPage() {
                       disabled={
                         (alreadySubmitted && !canEdit) ||
                         isSubmitting ||
-                        isUploading
+                        isUploading ||
+                        (task?.type === "dailyListening" && activeSubmissionType === 'text') ||
+                        (task?.type === "dailyListening" && activeSubmissionType === 'file')
                       }
                     >
                       {isRecording ? (
@@ -802,7 +879,9 @@ export default function TaskSubmissionPage() {
                         ? `Recording... ${recordingDuration}s`
                         : audioBlob
                           ? "Recorded audio ready to submit."
-                          : "No recording yet."}
+                          : (task?.type === "dailyListening" && (activeSubmissionType === 'text' || activeSubmissionType === 'file'))
+                            ? "Audio recording is disabled because another submission type is active."
+                            : "No recording yet."}
                     </div>
                   </div>
 
@@ -845,17 +924,38 @@ export default function TaskSubmissionPage() {
                 accept=".pdf,.doc,.docx,.txt,.rtf,.odt,.xls,.xlsx,.ppt,.pptx,.jpg,.jpeg,.png,.gif,.webp,.svg,.mp4,.mov,.avi,.mkv,.webm,.mp3,.wav,.ogg,.m4a,.aac,.flac"
                 onChange={handleFileSelect}
                 className="hidden"
-                disabled={(alreadySubmitted && !canEdit) || isSubmitting}
+                disabled={
+                  (alreadySubmitted && !canEdit) ||
+                  isSubmitting ||
+                  (task?.type === "dailyListening" && activeSubmissionType === 'text') ||
+                  (task?.type === "dailyListening" && activeSubmissionType === 'audio')
+                }
               />
               <Button
                 variant="outline"
                 onClick={() => fileInputRef.current?.click()}
                 className="w-full border border-orange-500"
-                disabled={(alreadySubmitted && !canEdit) || isSubmitting || isUploading}
+                disabled={
+                  (alreadySubmitted && !canEdit) ||
+                  isSubmitting ||
+                  isUploading ||
+                  (task?.type === "dailyListening" && activeSubmissionType === 'text') ||
+                  (task?.type === "dailyListening" && activeSubmissionType === 'audio')
+                }
               >
                 <Upload className="h-4 w-4 mr-2" />
                 Select Files
               </Button>
+              {task?.type === "dailyListening" && activeSubmissionType === 'text' && (
+                <p className="text-sm text-muted-foreground mt-2">
+                  File upload is disabled because text submission is active. Clear the text to enable file upload.
+                </p>
+              )}
+              {task?.type === "dailyListening" && activeSubmissionType === 'audio' && (
+                <p className="text-sm text-muted-foreground mt-2">
+                  File upload is disabled because audio recording is active. Remove the audio recording to enable file upload.
+                </p>
+              )}
 
               {selectedFiles.length > 0 && (
                 <div className="mt-4 space-y-2">
