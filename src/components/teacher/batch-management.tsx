@@ -36,6 +36,7 @@ import {
   createBatch,
   deleteBatch,
   generateBatchCode,
+  getBatchByClassCode,
   getCourseGroups,
   subscribeBatchesByCourseGroup,
   updateBatch
@@ -62,6 +63,7 @@ export function BatchManagement() {
     name: "",
     description: "",
     startDate: "",
+    classCode: "",
   });
 
   useEffect(() => {
@@ -130,7 +132,38 @@ export function BatchManagement() {
           description: "Batch updated successfully",
         });
       } else {
-        const batchCode = generateBatchCode();
+        // Use custom code if provided, otherwise generate one
+        let batchCode = formData.classCode.trim().toUpperCase();
+
+        // Validate custom code if provided
+        if (batchCode) {
+          // Validate format: alphanumeric, 3-10 characters
+          if (!/^[A-Z0-9]{3,10}$/.test(batchCode)) {
+            toast({
+              title: "Invalid Class Code",
+              description: "Class code must be 3-10 characters and contain only letters and numbers.",
+              variant: "destructive",
+            });
+            setIsSubmitting(false);
+            return;
+          }
+
+          // Check if code already exists
+          const existingBatch = await getBatchByClassCode(batchCode);
+          if (existingBatch) {
+            toast({
+              title: "Class Code Already Exists",
+              description: "This class code is already in use. Please choose a different code.",
+              variant: "destructive",
+            });
+            setIsSubmitting(false);
+            return;
+          }
+        } else {
+          // Generate random code if not provided
+          batchCode = generateBatchCode();
+        }
+
         await createBatch({
           name: formData.name.trim(),
           description: formData.description.trim(),
@@ -168,6 +201,7 @@ export function BatchManagement() {
       startDate: batch.startDate
         ? new Date(batch.startDate).toISOString().split("T")[0]
         : "",
+      classCode: "",
     });
     setIsEditing(true);
     setEditingId(batch.id);
@@ -209,9 +243,13 @@ export function BatchManagement() {
   };
 
   const resetForm = () => {
-    setFormData({ name: "", description: "", startDate: "" });
+    setFormData({ name: "", description: "", startDate: "", classCode: "" });
     setIsEditing(false);
     setEditingId(null);
+  };
+
+  const handleGenerateCode = () => {
+    setFormData({ ...formData, classCode: generateBatchCode() });
   };
 
   const selectedCourseGroup = courseGroups.find(
@@ -256,27 +294,27 @@ export function BatchManagement() {
                 Create Batch
               </Button>
             </DialogTrigger>
-            <DialogContent className="max-w-2xl w-[95vw] sm:w-full">
+            <DialogContent className="max-w-2xl w-[90vw] sm:w-full max-h-[90vh] sm:max-h-[95vh] overflow-y-auto p-4 sm:p-6">
               <form onSubmit={handleSubmit}>
-                <DialogHeader>
-                  <DialogTitle>
+                <DialogHeader className="text-left space-y-1.5 sm:space-y-2">
+                  <DialogTitle className="text-lg sm:text-xl md:text-2xl">
                     {isEditing ? "Edit Batch" : "Create Batch"}
                   </DialogTitle>
-                  <DialogDescription>
+                  <DialogDescription className="text-sm sm:text-base">
                     {isEditing
                       ? "Update the batch details"
                       : "Create a new batch for students to join"}
                   </DialogDescription>
                 </DialogHeader>
-                <div className="grid gap-4 py-4">
+                <div className="grid gap-4 sm:gap-5 py-4 sm:py-6">
                   {selectedCourseGroup && (
-                    <div className="p-3 bg-muted rounded-lg">
-                      <p className="text-sm text-muted-foreground">Course Group</p>
-                      <p className="font-medium">{selectedCourseGroup.name}</p>
+                    <div className="p-3 sm:p-4 bg-muted rounded-lg">
+                      <p className="text-xs sm:text-sm text-muted-foreground">Course Group</p>
+                      <p className="font-medium text-sm sm:text-base mt-1">{selectedCourseGroup.name}</p>
                     </div>
                   )}
                   <div className="grid gap-2">
-                    <Label htmlFor="batch-name">Batch Name *</Label>
+                    <Label htmlFor="batch-name" className="text-sm sm:text-base">Batch Name *</Label>
                     <Input
                       id="batch-name"
                       placeholder="e.g., Batch 1 - Morning"
@@ -284,11 +322,12 @@ export function BatchManagement() {
                       onChange={(e) =>
                         setFormData({ ...formData, name: e.target.value })
                       }
+                      className="text-sm sm:text-base"
                       required
                     />
                   </div>
                   <div className="grid gap-2">
-                    <Label htmlFor="batch-description">Description *</Label>
+                    <Label htmlFor="batch-description" className="text-sm sm:text-base">Description *</Label>
                     <Textarea
                       id="batch-description"
                       placeholder="Describe the batch, schedule, and any special instructions..."
@@ -297,11 +336,12 @@ export function BatchManagement() {
                         setFormData({ ...formData, description: e.target.value })
                       }
                       rows={4}
+                      className="text-sm sm:text-base resize-none"
                       required
                     />
                   </div>
                   <div className="grid gap-2">
-                    <Label htmlFor="start-date">Start Date</Label>
+                    <Label htmlFor="start-date" className="text-sm sm:text-base">Start Date</Label>
                     <Input
                       id="start-date"
                       type="date"
@@ -309,10 +349,45 @@ export function BatchManagement() {
                       onChange={(e) =>
                         setFormData({ ...formData, startDate: e.target.value })
                       }
+                      className="text-sm sm:text-base"
                     />
                   </div>
+                  {!isEditing && (
+                    <div className="grid gap-2">
+                      <Label htmlFor="class-code" className="text-sm sm:text-base">
+                        Class Code (Optional)
+                        <span className="text-xs text-muted-foreground ml-1 sm:ml-2 block sm:inline">
+                          Leave empty to auto-generate
+                        </span>
+                      </Label>
+                      <div className="flex flex-col sm:flex-row gap-2">
+                        <Input
+                          id="class-code"
+                          placeholder="e.g., BATCH1, MORNING2024"
+                          value={formData.classCode}
+                          onChange={(e) =>
+                            setFormData({ ...formData, classCode: e.target.value.toUpperCase() })
+                          }
+                          maxLength={10}
+                          pattern="[A-Z0-9]{3,10}"
+                          className="flex-1 text-sm sm:text-base"
+                        />
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={handleGenerateCode}
+                          className="border border-orange-500 text-sm sm:text-base whitespace-nowrap"
+                        >
+                          Generate
+                        </Button>
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        3-10 characters, letters and numbers only. Must be unique.
+                      </p>
+                    </div>
+                  )}
                 </div>
-                <DialogFooter>
+                <DialogFooter className="flex-col sm:flex-row gap-2 sm:gap-0 mt-4 sm:mt-6">
                   <Button
                     type="button"
                     variant="outline"
@@ -320,11 +395,15 @@ export function BatchManagement() {
                       setIsDialogOpen(false);
                       resetForm();
                     }}
-                    className="border border-orange-500"
+                    className="border border-orange-500 w-full sm:w-auto text-sm sm:text-base"
                   >
                     Cancel
                   </Button>
-                  <Button type="submit" disabled={isSubmitting} className="border border-orange-500">
+                  <Button
+                    type="submit"
+                    disabled={isSubmitting}
+                    className="border border-orange-500 w-full sm:w-auto text-sm sm:text-base"
+                  >
                     {isSubmitting ? (
                       <>
                         <Loader2 className="h-4 w-4 mr-2 animate-spin" />
