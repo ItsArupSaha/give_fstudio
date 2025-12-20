@@ -373,6 +373,26 @@ export default function TaskSubmissionPage() {
   const handleSubmit = async () => {
     if (!task || !user?.uid) return;
 
+    // Prevent submission if due date has passed (for new submissions)
+    if (dueDatePassed && !submission) {
+      toast({
+        title: "Due Date Passed",
+        description: "The due date for this task has passed. You can no longer submit.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Prevent submission if grace period has passed
+    if (gracePeriodPassed) {
+      toast({
+        title: "Grace Period Expired",
+        description: "The grace period for editing your submission has expired. You can no longer submit.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     // Validation: Different rules for daily listening vs other tasks
     if (task.type !== "announcement") {
       if (task.type === "dailyListening") {
@@ -574,6 +594,54 @@ export default function TaskSubmissionPage() {
   const alreadySubmitted = submission?.status === "submitted" || submission?.status === "graded";
   const withinGracePeriod = isWithinGracePeriod(submission);
   const canEdit = withinGracePeriod && submission?.status === "submitted";
+
+  // Check if due date has passed
+  const dueDatePassed = task.dueDate && task.type !== "announcement" && new Date() > task.dueDate;
+
+  // Check if grace period has passed (for submissions)
+  const gracePeriodPassed = submission?.submittedAt && !withinGracePeriod && submission.status === "submitted";
+
+  // Block access if:
+  // 1. Due date passed AND no submission exists (can't submit new)
+  // 2. Grace period passed (can't access after grace period)
+  const shouldBlockAccess = (dueDatePassed && !submission) || gracePeriodPassed;
+
+  if (shouldBlockAccess) {
+    return (
+      <div className="container mx-auto px-4 py-8 max-w-4xl">
+        <div className="mb-6">
+          <Button variant="ghost" onClick={() => router.back()}>
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            Back
+          </Button>
+        </div>
+        <Card>
+          <CardContent className="py-12 text-center">
+            <div className="text-red-600 mb-4">
+              <X className="h-12 w-12 mx-auto" />
+            </div>
+            <h3 className="text-xl font-semibold mb-2">
+              {dueDatePassed && !submission ? "Due Date Passed" : "Grace Period Expired"}
+            </h3>
+            <p className="text-muted-foreground mb-4">
+              {dueDatePassed && !submission
+                ? "The due date for this task has passed. You can no longer submit to this task."
+                : "The grace period for editing your submission has expired. You can no longer access this task."}
+              {task.dueDate && (
+                <span className="block mt-2 text-sm">
+                  Deadline was: <strong>{new Date(task.dueDate).toLocaleString()}</strong>
+                </span>
+              )}
+            </p>
+            <Button variant="outline" onClick={() => router.back()}>
+              <ArrowLeft className="h-4 w-4 mr-2" />
+              Go Back
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="container mx-auto px-4 py-8 max-w-4xl">
@@ -817,6 +885,7 @@ export default function TaskSubmissionPage() {
                     disabled={
                       (alreadySubmitted && !canEdit) ||
                       isSubmitting ||
+                      gracePeriodPassed ||
                       activeSubmissionType === 'audio' ||
                       activeSubmissionType === 'file'
                     }
@@ -857,6 +926,7 @@ export default function TaskSubmissionPage() {
                         (alreadySubmitted && !canEdit) ||
                         isSubmitting ||
                         isUploading ||
+                        gracePeriodPassed ||
                         (task?.type === "dailyListening" && activeSubmissionType === 'text') ||
                         (task?.type === "dailyListening" && activeSubmissionType === 'file')
                       }
@@ -927,6 +997,7 @@ export default function TaskSubmissionPage() {
                 disabled={
                   (alreadySubmitted && !canEdit) ||
                   isSubmitting ||
+                  gracePeriodPassed ||
                   (task?.type === "dailyListening" && activeSubmissionType === 'text') ||
                   (task?.type === "dailyListening" && activeSubmissionType === 'audio')
                 }
@@ -939,6 +1010,7 @@ export default function TaskSubmissionPage() {
                   (alreadySubmitted && !canEdit) ||
                   isSubmitting ||
                   isUploading ||
+                  gracePeriodPassed ||
                   (task?.type === "dailyListening" && activeSubmissionType === 'text') ||
                   (task?.type === "dailyListening" && activeSubmissionType === 'audio')
                 }
@@ -1029,7 +1101,7 @@ export default function TaskSubmissionPage() {
                   onChange={(e) => setNotes(e.target.value)}
                   placeholder="Add any additional notes or comments..."
                   rows={6}
-                  disabled={(alreadySubmitted && !canEdit) || isSubmitting}
+                  disabled={(alreadySubmitted && !canEdit) || isSubmitting || gracePeriodPassed}
                 />
               </CardContent>
             </Card>
@@ -1046,7 +1118,12 @@ export default function TaskSubmissionPage() {
             </Button>
             <Button
               onClick={handleSubmit}
-              disabled={isSubmitting || (alreadySubmitted && !canEdit) || isUploading}
+              disabled={
+                isSubmitting ||
+                (alreadySubmitted && !canEdit) ||
+                isUploading ||
+                gracePeriodPassed
+              }
             >
               {isUploading ? (
                 <>

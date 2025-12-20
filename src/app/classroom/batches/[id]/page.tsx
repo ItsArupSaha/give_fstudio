@@ -358,8 +358,19 @@ export default function BatchTasksPage() {
               const isSubmitted = submission?.status === "submitted" || submission?.status === "graded";
               const withinGracePeriod = submission ? isWithinGracePeriod(submission) : false;
 
-              // Allow clicking if task is not submitted, or if within grace period
-              const isClickable = task.type !== "announcement" && (!isSubmitted || withinGracePeriod);
+              // Allow clicking if:
+              // 1. Task is not announcement
+              // 2. Due date hasn't passed (if no submission) OR within grace period (if submitted)
+              const dueDatePassed = task.dueDate && new Date() > task.dueDate;
+              const gracePeriodPassed = submission && !withinGracePeriod && submission.status === "submitted";
+
+              // Can't click if:
+              // - Due date passed AND no submission exists
+              // - Grace period passed (submission exists but grace period expired)
+              const isClickable = task.type !== "announcement" &&
+                !(dueDatePassed && !isSubmitted) &&
+                !gracePeriodPassed &&
+                (!isSubmitted || withinGracePeriod);
 
               return (
                 <Card
