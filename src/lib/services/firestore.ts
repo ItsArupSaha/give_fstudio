@@ -426,6 +426,8 @@ export async function updateTask(id: string, task: Partial<Task>): Promise<void>
     if (task.title !== undefined) updates.title = task.title;
     if (task.description !== undefined) updates.description = task.description;
     if (task.status !== undefined) updates.status = task.status;
+    if (task.startDate !== undefined)
+      updates.startDate = Timestamp.fromDate(task.startDate);
     if (task.dueDate !== undefined)
       updates.dueDate = Timestamp.fromDate(task.dueDate);
     if (task.maxPoints !== undefined) updates.maxPoints = task.maxPoints;
@@ -474,7 +476,10 @@ export async function deleteTask(id: string): Promise<void> {
   }
 }
 
-export async function getTasksByBatch(batchId: string): Promise<Task[]> {
+export async function getTasksByBatch(
+  batchId: string,
+  includeFutureTasks: boolean = false
+): Promise<Task[]> {
   try {
     // Query without orderBy to avoid index requirement, then sort in memory
     const q = query(
@@ -482,11 +487,22 @@ export async function getTasksByBatch(batchId: string): Promise<Task[]> {
       where("batchId", "==", batchId)
     );
     const snapshot = await getDocs(q);
-    const tasks = snapshot.docs.map((doc) =>
-      taskFromFirestore(doc.id, doc.data() as TaskFirestore)
-    );
-    // Sort in memory by createdAt descending
-    tasks.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+    const now = new Date();
+    const tasks = snapshot.docs
+      .map((doc) => taskFromFirestore(doc.id, doc.data() as TaskFirestore))
+      .filter((task) => {
+        // If includeFutureTasks is true (for teachers), show all tasks
+        if (includeFutureTasks) return true;
+        // For students, only show tasks where startDate has passed or is null (backward compatibility)
+        if (!task.startDate) return true; // Backward compatibility: show tasks without startDate
+        return task.startDate.getTime() <= now.getTime();
+      });
+    // Sort in memory by startDate (if available) or createdAt descending
+    tasks.sort((a, b) => {
+      const aDate = a.startDate || a.createdAt;
+      const bDate = b.startDate || b.createdAt;
+      return bDate.getTime() - aDate.getTime();
+    });
     return tasks;
   } catch (error) {
     throw new Error(`Failed to get tasks: ${error}`);
@@ -495,7 +511,8 @@ export async function getTasksByBatch(batchId: string): Promise<Task[]> {
 
 export function subscribeTasksByBatch(
   batchId: string,
-  callback: (tasks: Task[]) => void
+  callback: (tasks: Task[]) => void,
+  includeFutureTasks: boolean = false // For teachers, show all tasks. For students, filter by startDate
 ): () => void {
   // Query without orderBy to avoid index requirement, then sort in memory
   const q = query(
@@ -504,11 +521,22 @@ export function subscribeTasksByBatch(
   );
 
   return onSnapshot(q, (snapshot) => {
-    const tasks = snapshot.docs.map((doc) =>
-      taskFromFirestore(doc.id, doc.data() as TaskFirestore)
-    );
-    // Sort in memory by createdAt descending
-    tasks.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+    const now = new Date();
+    const tasks = snapshot.docs
+      .map((doc) => taskFromFirestore(doc.id, doc.data() as TaskFirestore))
+      .filter((task) => {
+        // If includeFutureTasks is true (for teachers), show all tasks
+        if (includeFutureTasks) return true;
+        // For students, only show tasks where startDate has passed or is null (backward compatibility)
+        if (!task.startDate) return true; // Backward compatibility: show tasks without startDate
+        return task.startDate.getTime() <= now.getTime();
+      });
+    // Sort in memory by startDate (if available) or createdAt descending
+    tasks.sort((a, b) => {
+      const aDate = a.startDate || a.createdAt;
+      const bDate = b.startDate || b.createdAt;
+      return bDate.getTime() - aDate.getTime();
+    });
     callback(tasks);
   });
 }

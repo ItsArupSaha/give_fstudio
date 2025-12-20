@@ -18,6 +18,7 @@ export interface Task {
   status: TaskStatus;
   createdAt: Date;
   updatedAt: Date;
+  startDate?: Date; // Date when task becomes visible to students (12:00 AM)
   dueDate?: Date;
   maxPoints: number;
   attachments: string[];
@@ -37,6 +38,7 @@ export interface TaskFirestore {
   status: string;
   createdAt: Timestamp;
   updatedAt: Timestamp;
+  startDate?: Timestamp; // Date when task becomes visible to students (12:00 AM)
   dueDate?: Timestamp;
   maxPoints: number;
   attachments: string[];
@@ -58,6 +60,7 @@ export function taskFromFirestore(id: string, data: TaskFirestore): Task {
     status: (data.status as TaskStatus) || "draft",
     createdAt: data.createdAt?.toDate() ?? new Date(),
     updatedAt: data.updatedAt?.toDate() ?? new Date(),
+    startDate: data.startDate?.toDate(),
     dueDate: data.dueDate?.toDate(),
     maxPoints: data.maxPoints ?? 100,
     attachments: data.attachments ?? [],
@@ -89,6 +92,9 @@ export function taskToFirestore(task: Task): TaskFirestore {
   };
   
   // Only include optional fields if they're defined
+  if (task.startDate !== undefined) {
+    data.startDate = Timestamp.fromDate(task.startDate);
+  }
   if (task.dueDate !== undefined) {
     data.dueDate = Timestamp.fromDate(task.dueDate);
   }

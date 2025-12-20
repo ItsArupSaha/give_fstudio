@@ -108,7 +108,7 @@ export default function BatchDetailsPage() {
         });
         submissionUnsubscribers.push(unsubscribe);
       });
-    });
+    }, true); // Include future tasks for teachers
 
     return () => {
       unsubscribeEnrollments();

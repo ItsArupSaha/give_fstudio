@@ -154,7 +154,7 @@ export default function BatchSubmissionsPage() {
       // Load batch, all tasks, submissions, and enrollments in parallel
       const [batchData, tasks, submissions, enrollments] = await Promise.all([
         getBatchById(batchId),
-        getTasksByBatch(batchId),
+        getTasksByBatch(batchId, true), // Include future tasks for teachers
         getSubmissionsByBatch(batchId),
         getEnrollmentsByBatch(batchId),
       ]);

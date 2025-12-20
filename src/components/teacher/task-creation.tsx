@@ -53,6 +53,7 @@ export function TaskCreation({ batch, onTaskCreated }: TaskCreationProps) {
     type: "dailyListening" as TaskType,
     title: "",
     description: "",
+    startDate: "",
     dueDate: "",
     maxPoints: "100",
     allowLateSubmission: true,
@@ -75,6 +76,15 @@ export function TaskCreation({ batch, onTaskCreated }: TaskCreationProps) {
 
     setIsSubmitting(true);
     try {
+      // Set start date to 12:00 AM
+      const startDate = formData.startDate
+        ? (() => {
+          const date = new Date(formData.startDate);
+          date.setHours(0, 0, 0, 0);
+          return date;
+        })()
+        : undefined;
+
       await createTask({
         title: formData.title.trim(),
         description: formData.description.trim(),
@@ -84,6 +94,7 @@ export function TaskCreation({ batch, onTaskCreated }: TaskCreationProps) {
         status: "published",
         createdAt: new Date(),
         updatedAt: new Date(),
+        startDate: startDate,
         dueDate:
           formData.type !== "announcement" && formData.dueDate
             ? (() => {
@@ -131,6 +142,7 @@ export function TaskCreation({ batch, onTaskCreated }: TaskCreationProps) {
       type: "dailyListening",
       title: "",
       description: "",
+      startDate: "",
       dueDate: "",
       maxPoints: "100",
       allowLateSubmission: true,
@@ -220,6 +232,25 @@ export function TaskCreation({ batch, onTaskCreated }: TaskCreationProps) {
               />
             </div>
 
+            {/* Start Date - When task becomes visible to students */}
+            <div className="grid gap-2">
+              <Label htmlFor="start-date">Start Date *</Label>
+              <Input
+                id="start-date"
+                type="date"
+                value={formData.startDate}
+                onChange={(e) =>
+                  setFormData({ ...formData, startDate: e.target.value })
+                }
+                className="bg-gray-100"
+                required
+                min={new Date().toISOString().split("T")[0]}
+              />
+              <p className="text-xs text-muted-foreground">
+                Task will be visible to students starting at 12:00 AM on this date
+              </p>
+            </div>
+
             {/* Due Date and Points (not for announcements) */}
             {formData.type !== "announcement" && (
               <>
@@ -234,6 +265,7 @@ export function TaskCreation({ batch, onTaskCreated }: TaskCreationProps) {
                         setFormData({ ...formData, dueDate: e.target.value })
                       }
                       className="bg-gray-100"
+                      min={formData.startDate || undefined}
                     />
                     <p className="text-xs text-muted-foreground">
                       Submissions accepted until 11:59 PM on this date
