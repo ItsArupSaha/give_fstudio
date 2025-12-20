@@ -297,6 +297,8 @@ export async function getBatchesByCourseGroup(
   courseGroupId: string
 ): Promise<Batch[]> {
   try {
+    // Returns all active batches for the specified course group
+    // All teachers can see all batches (no teacher filtering)
     // Query without orderBy to avoid index requirement, then sort in memory
     const q = query(
       collection(db, "batches"),
@@ -319,6 +321,8 @@ export function subscribeBatchesByCourseGroup(
   courseGroupId: string,
   callback: (batches: Batch[]) => void
 ): () => void {
+  // Subscribes to all active batches for the specified course group
+  // All teachers can see all batches (no teacher filtering)
   // Query without orderBy to avoid index requirement, then sort in memory
   const q = query(
     collection(db, "batches"),
