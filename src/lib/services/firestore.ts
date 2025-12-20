@@ -171,10 +171,9 @@ export async function deleteCourseGroup(id: string): Promise<void> {
 
 export async function getCourseGroups(teacherId: string): Promise<CourseGroup[]> {
   try {
-    // Query without orderBy to avoid index requirement, then sort in memory
+    // Return all active course groups for all teachers (all teachers should see everything)
     const q = query(
       collection(db, "courseGroups"),
-      where("teacherId", "==", teacherId),
       where("isActive", "==", true)
     );
     const snapshot = await getDocs(q);
@@ -193,10 +192,9 @@ export function subscribeCourseGroups(
   teacherId: string,
   callback: (courseGroups: CourseGroup[]) => void
 ): () => void {
-  // Query without orderBy to avoid index requirement, then sort in memory
+  // Subscribe to all active course groups for all teachers (all teachers should see everything)
   const q = query(
     collection(db, "courseGroups"),
-    where("teacherId", "==", teacherId),
     where("isActive", "==", true)
   );
 
