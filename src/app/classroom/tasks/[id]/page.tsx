@@ -54,6 +54,7 @@ export default function TaskSubmissionPage() {
   const [submission, setSubmission] = useState<Submission | null>(null);
   const [loading, setLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submissionJustCompleted, setSubmissionJustCompleted] = useState(false); // Track if submission was just completed to disable button immediately
   const [notes, setNotes] = useState("");
   const [textSubmission, setTextSubmission] = useState(""); // For daily listening text submission
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
@@ -131,6 +132,8 @@ export default function TaskSubmissionPage() {
       (submissionData) => {
         if (submissionData) {
           setSubmission(submissionData);
+          // Reset the flag when real-time update confirms submission exists
+          setSubmissionJustCompleted(false);
           // Note: We'll handle the task type check in a separate useEffect that depends on task
           // For now, populate both fields and let the task-dependent useEffect handle it
           setTextSubmission(submissionData.notes || "");
@@ -139,6 +142,8 @@ export default function TaskSubmissionPage() {
           setSubmission(null);
           setNotes("");
           setTextSubmission("");
+          // Re-enable submit button if submission is deleted (within grace period)
+          setSubmissionJustCompleted(false);
         }
       }
     );
@@ -500,6 +505,9 @@ export default function TaskSubmissionPage() {
 
       await createSubmission(submissionData);
 
+      // Immediately disable submit button to prevent multiple clicks
+      setSubmissionJustCompleted(true);
+
       toast({
         title: "Success",
         description: "Task submitted successfully!",
@@ -540,6 +548,8 @@ export default function TaskSubmissionPage() {
         submission.recordingUrl || "",
       ].filter((url) => url && url.trim().length > 0);
       await deleteSubmission(submission.id, urlsToDelete);
+      // Re-enable submit button after deletion (within grace period)
+      setSubmissionJustCompleted(false);
       toast({
         title: "Success",
         description: "Submission deleted. You can now resubmit.",
@@ -1108,9 +1118,10 @@ export default function TaskSubmissionPage() {
               onClick={handleSubmit}
               disabled={
                 isSubmitting ||
-                (alreadySubmitted && !canEdit) ||
+                alreadySubmitted || // Disable if already submitted (regardless of grace period - must delete first to resubmit)
                 isUploading ||
-                gracePeriodPassed
+                gracePeriodPassed ||
+                submissionJustCompleted
               }
             >
               {isUploading ? (
