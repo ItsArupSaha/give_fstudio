@@ -27,7 +27,7 @@ import {
   subscribeTaskBookmarksByBatch,
   subscribeTasksByBatch
 } from "@/lib/services/firestore";
-import { isWithinGracePeriod } from "@/lib/utils";
+import { getGracePeriodRemainingMinutes, isWithinGracePeriod } from "@/lib/utils";
 import {
   getTaskTypeColor,
   getTaskTypeIcon,
@@ -58,6 +58,7 @@ export default function BatchTasksPage() {
   const [showBookmarkedOnly, setShowBookmarkedOnly] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [gracePeriodCountdowns, setGracePeriodCountdowns] = useState<Map<string, number>>(new Map());
   const { toast } = useToast();
 
   useEffect(() => {
@@ -112,6 +113,25 @@ export default function BatchTasksPage() {
       unsubscribeBookmarks();
     };
   }, [batchId, user?.uid]);
+
+  // Update grace period countdowns for all submissions
+  useEffect(() => {
+    const updateCountdowns = () => {
+      const newCountdowns = new Map<string, number>();
+      submissions.forEach((submission, taskId) => {
+        if (isWithinGracePeriod(submission)) {
+          const remaining = getGracePeriodRemainingMinutes(submission);
+          newCountdowns.set(taskId, remaining);
+        }
+      });
+      setGracePeriodCountdowns(newCountdowns);
+    };
+
+    updateCountdowns();
+    const interval = setInterval(updateCountdowns, 1000); // Update every second
+
+    return () => clearInterval(interval);
+  }, [submissions]);
 
   const refreshData = async () => {
     if (!batchId || !user?.uid) return;
@@ -357,6 +377,7 @@ export default function BatchTasksPage() {
               const submission = submissions.get(task.id);
               const isSubmitted = submission?.status === "submitted" || submission?.status === "graded";
               const withinGracePeriod = submission ? isWithinGracePeriod(submission) : false;
+              const gracePeriodRemaining = gracePeriodCountdowns.get(task.id) || 0;
 
               // Allow clicking if:
               // 1. Task is not announcement
@@ -456,6 +477,16 @@ export default function BatchTasksPage() {
                   </CardHeader>
                   {task.type !== "announcement" && (
                     <CardContent>
+                      {withinGracePeriod && submission?.status === "submitted" && (
+                        <div className="mb-3 p-3 bg-orange-50 border border-orange-200 rounded-lg">
+                          <p className="text-sm font-semibold text-orange-900">
+                            Grace Period Active
+                          </p>
+                          <p className="text-xs text-orange-700 mt-1">
+                            You can edit or delete your submission. {gracePeriodRemaining} minute{gracePeriodRemaining !== 1 ? 's' : ''} remaining.
+                          </p>
+                        </div>
+                      )}
                       <div className="flex flex-wrap gap-2">
                         {task.dueDate && (
                           <Badge
