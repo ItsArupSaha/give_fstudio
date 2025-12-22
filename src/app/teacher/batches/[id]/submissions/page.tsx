@@ -20,10 +20,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
+  CardContent
 } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
@@ -291,9 +288,12 @@ export default function BatchSubmissionsPage() {
       await Promise.all(studentLoadPromises);
       setStudentsMap(studentsMap);
 
+      // Filter only active enrollments
+      const activeEnrollments = enrollments.filter((e) => e.status === "active");
+
       // Map enrollments by studentId for display name priority (diksha -> certificate -> google)
       const enrollmentMap = new Map<string, Enrollment>();
-      enrollments.forEach((enrollment) => {
+      activeEnrollments.forEach((enrollment) => {
         if (enrollment.studentId && !enrollmentMap.has(enrollment.studentId)) {
           enrollmentMap.set(enrollment.studentId, enrollment);
         }
@@ -328,70 +328,10 @@ export default function BatchSubmissionsPage() {
         totalFiles: data.studentSubmissions.reduce((sum, s) => sum + s.files.length, 0)
       })));
 
-      // Separate daily listening tasks from other tasks
-      const dailyListeningTasks: TaskFiles[] = [];
-      const otherTasks: TaskFiles[] = [];
-
-      taskFilesMap.forEach((taskFiles) => {
-        if (taskFiles.task.type === "dailyListening") {
-          dailyListeningTasks.push(taskFiles);
-        } else {
-          otherTasks.push(taskFiles);
-        }
-      });
-
-      // Group all daily listening tasks into one combined group
-      const combinedDailyListening: TaskFiles[] = [];
-      if (dailyListeningTasks.length > 0) {
-        // Use the most recent daily listening task as the representative task
-        const sortedDailyListening = dailyListeningTasks.sort(
-          (a, b) => b.task.createdAt.getTime() - a.task.createdAt.getTime()
-        );
-        const representativeTask = sortedDailyListening[0].task;
-
-        // Combine all student submissions from all daily listening tasks
-        const studentSubmissionsMap = new Map<string, StudentSubmission>();
-
-        dailyListeningTasks.forEach((taskFiles) => {
-          taskFiles.studentSubmissions.forEach((studentSub) => {
-            const existing = studentSubmissionsMap.get(studentSub.studentId);
-            if (existing) {
-              existing.files.push(...studentSub.files);
-              existing.textSubmissions.push(...studentSub.textSubmissions);
-            } else {
-              studentSubmissionsMap.set(studentSub.studentId, {
-                studentId: studentSub.studentId,
-                files: [...studentSub.files],
-                textSubmissions: [...studentSub.textSubmissions],
-              });
-            }
-          });
-        });
-
-        combinedDailyListening.push({
-          task: {
-            ...representativeTask,
-            id: `daily-listening-combined-${batchId}`, // Special ID for combined group
-            title: "Daily Listening",
-            description: `${dailyListeningTasks.length} daily listening task${dailyListeningTasks.length !== 1 ? "s" : ""} combined`,
-          },
-          studentSubmissions: Array.from(studentSubmissionsMap.values()).sort((a, b) => {
-            const studentA = studentsMap.get(a.studentId);
-            const studentB = studentsMap.get(b.studentId);
-            const nameA = studentA?.name || "Unknown Student";
-            const nameB = studentB?.name || "Unknown Student";
-            return nameA.localeCompare(nameB);
-          }),
-        });
-      }
-
-      // Sort other tasks by creation date (newest first)
-      otherTasks.sort(
+      // Sort all tasks by creation date (newest first)
+      const finalTasksWithFiles = Array.from(taskFilesMap.values()).sort(
         (a, b) => b.task.createdAt.getTime() - a.task.createdAt.getTime()
       );
-
-      // Combine: other tasks first, then daily listening group at the end
-      const finalTasksWithFiles = [...otherTasks, ...combinedDailyListening];
 
       setTasksWithFiles(finalTasksWithFiles);
       // Clear selection when data is reloaded
@@ -633,27 +573,10 @@ export default function BatchSubmissionsPage() {
 
       // Get all submissions for this task
       const submissions = await getSubmissionsByBatch(batchId);
-
-      // If it's the combined daily listening group, delete from all daily listening tasks
-      // Check by ID prefix since combined tasks have a special ID
-      let taskSubmissions: typeof submissions;
-      if (taskToDeleteAll.id.startsWith("daily-listening-combined-")) {
-        // Get all daily listening task IDs
-        const tasks = await getTasksByBatch(batchId);
-        const dailyListeningTaskIds = tasks
-          .filter((t) => t.type === "dailyListening")
-          .map((t) => t.id);
-
-        taskSubmissions = submissions.filter((s) =>
-          dailyListeningTaskIds.includes(s.taskId)
-        );
-        console.log(`Found ${taskSubmissions.length} submissions across ${dailyListeningTaskIds.length} daily listening tasks`);
-      } else {
-        taskSubmissions = submissions.filter(
-          (s) => s.taskId === taskToDeleteAll.id
-        );
-        console.log(`Found ${taskSubmissions.length} submissions for this task`);
-      }
+      const taskSubmissions = submissions.filter(
+        (s) => s.taskId === taskToDeleteAll.id
+      );
+      console.log(`Found ${taskSubmissions.length} submissions for this task`);
 
       // Delete all files from storage and text submissions, then update submissions
       const deletePromises: Promise<void>[] = [];
@@ -864,18 +787,15 @@ export default function BatchSubmissionsPage() {
 
       // Find all selected files across all tasks
       tasksWithFiles.forEach(({ task, studentSubmissions }) => {
-        // Only process non-daily-listening tasks
-        if (task.type !== "dailyListening") {
-          studentSubmissions.forEach((studentSub) => {
-            studentSub.files.forEach((file) => {
-              if (selectedFiles.has(file.fileUrl)) {
-                const existing = filesBySubmission.get(file.submissionId) || [];
-                existing.push({ fileUrl: file.fileUrl, fileName: file.fileName });
-                filesBySubmission.set(file.submissionId, existing);
-              }
-            });
+        studentSubmissions.forEach((studentSub) => {
+          studentSub.files.forEach((file) => {
+            if (selectedFiles.has(file.fileUrl)) {
+              const existing = filesBySubmission.get(file.submissionId) || [];
+              existing.push({ fileUrl: file.fileUrl, fileName: file.fileName });
+              filesBySubmission.set(file.submissionId, existing);
+            }
           });
-        }
+        });
       });
 
       console.log(`Deleting ${selectedFiles.size} selected files from ${filesBySubmission.size} submissions`);
@@ -1032,56 +952,53 @@ export default function BatchSubmissionsPage() {
           </CardContent>
         </Card>
       ) : (
-        <div className="space-y-6">
+        <Accordion type="multiple" className="w-full space-y-2">
           {tasksWithFiles.map(({ task, studentSubmissions }) => {
             const TaskIcon = getTaskTypeIcon(task.type);
             const taskColor = getTaskTypeColor(task.type);
             const isDailyListening = task.type === "dailyListening";
             const totalFiles = studentSubmissions.reduce((sum, s) => sum + s.files.length, 0);
             const totalTextSubmissions = studentSubmissions.reduce((sum, s) => sum + s.textSubmissions.length, 0);
-            const totalSubmissions = totalFiles + totalTextSubmissions;
+            const totalSubmissions = studentSubmissions.length; // Count students who submitted, not total files
             const hasAnySubmissions = totalSubmissions > 0;
 
             return (
-              <Card key={task.id}>
-                <CardHeader>
-                  <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
-                    <div className="flex items-center gap-3 flex-1 min-w-0">
-                      <div
-                        className="p-2 rounded-lg flex-shrink-0"
-                        style={{
-                          backgroundColor: `${taskColor}20`,
-                          color: taskColor,
-                        }}
-                      >
-                        <TaskIcon className="h-6 w-6" />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <CardTitle className="text-xl sm:text-2xl break-words">{task.title}</CardTitle>
-                        <CardDescription className="mt-1">
-                          {getTaskTypeLabel(task.type)} • {studentSubmissions.length} student
-                          {studentSubmissions.length !== 1 ? "s" : ""} • {totalSubmissions} submission
-                          {totalSubmissions !== 1 ? "s" : ""}
-                          {isDailyListening && totalTextSubmissions > 0 && (
-                            <span> ({totalTextSubmissions} text{totalTextSubmissions !== 1 ? "s" : ""}, {totalFiles} file{totalFiles !== 1 ? "s" : ""})</span>
-                          )}
-                        </CardDescription>
+              <AccordionItem key={task.id} value={task.id} className="border rounded-lg px-4 mb-2">
+                <AccordionTrigger className="hover:no-underline py-4">
+                  <div className="flex items-center gap-3 flex-1 min-w-0">
+                    <div
+                      className="p-2 rounded-lg flex-shrink-0"
+                      style={{
+                        backgroundColor: `${taskColor}20`,
+                        color: taskColor,
+                      }}
+                    >
+                      <TaskIcon className="h-5 w-5" />
+                    </div>
+                    <div className="flex-1 min-w-0 text-left">
+                      <div className="font-semibold text-lg break-words mb-1">{task.title}</div>
+                      <div className="text-sm text-muted-foreground">
+                        {getTaskTypeLabel(task.type)} • {enrollmentsMap.size} student
+                        {enrollmentsMap.size !== 1 ? "s" : ""} • {totalSubmissions} submission
+                        {totalSubmissions !== 1 ? "s" : ""}
+                        {isDailyListening && totalTextSubmissions > 0 && (
+                          <span> ({totalTextSubmissions} text{totalTextSubmissions !== 1 ? "s" : ""}, {totalFiles} file{totalFiles !== 1 ? "s" : ""})</span>
+                        )}
+                        <Badge variant="outline" className="ml-2">{task.status}</Badge>
                       </div>
                     </div>
-                    <div className="flex flex-wrap items-center gap-2">
-                      <Badge variant="outline">{task.status}</Badge>
-                      {isDailyListening && hasAnySubmissions && (
-                        <Button
-                          variant="destructive"
-                          size="sm"
-                          onClick={() => handleDeleteAllClick(task)}
-                        >
-                          <Trash2 className="h-4 w-4 mr-2" />
-                          Delete All
-                        </Button>
-                      )}
-                      {!isDailyListening && totalFiles > 0 && (
-                        <>
+                  </div>
+                </AccordionTrigger>
+                <AccordionContent className="pt-4 pb-6">
+                  {studentSubmissions.length === 0 ? (
+                    <div className="py-8 text-center text-muted-foreground">
+                      <p>No student submissions for this task.</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-4">
+                      {/* Action buttons for bulk operations */}
+                      {totalFiles > 0 && (
+                        <div className="flex flex-wrap items-center gap-2 pb-2 border-b">
                           {(() => {
                             const selectedForTask = getSelectedFilesForTask({ task, studentSubmissions });
                             const allSelected = selectedForTask.length > 0 && selectedForTask.length === totalFiles;
@@ -1091,7 +1008,10 @@ export default function BatchSubmissionsPage() {
                                 <Button
                                   variant="outline"
                                   size="sm"
-                                  onClick={() => handleSelectAll({ task, studentSubmissions }, !allSelected)}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleSelectAll({ task, studentSubmissions }, !allSelected);
+                                  }}
                                 >
                                   {allSelected ? "Deselect All" : "Select All"}
                                 </Button>
@@ -1099,7 +1019,10 @@ export default function BatchSubmissionsPage() {
                                   <Button
                                     variant="destructive"
                                     size="sm"
-                                    onClick={handleDeleteSelectedClick}
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleDeleteSelectedClick();
+                                    }}
                                   >
                                     <Trash2 className="h-4 w-4 mr-2" />
                                     Delete Selected ({selectedForTask.length})
@@ -1108,127 +1031,119 @@ export default function BatchSubmissionsPage() {
                               </>
                             );
                           })()}
-                        </>
+                        </div>
                       )}
-                    </div>
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  {studentSubmissions.length === 0 ? (
-                    <div className="py-8 text-center text-muted-foreground">
-                      <p>No student submissions for this task.</p>
-                    </div>
-                  ) : (
-                    <Accordion type="multiple" className="w-full">
-                      {studentSubmissions.map((studentSub) => {
-                        const student = studentsMap.get(studentSub.studentId);
-                        const enrollment = enrollmentsMap.get(studentSub.studentId);
-                        const studentName =
-                          enrollment?.dikshaName ||
-                          enrollment?.studentName ||
-                          student?.name ||
-                          "Unknown Student";
-                        const fileCount = studentSub.files.length;
-                        const certificateName =
-                          enrollment?.studentName &&
-                            enrollment?.dikshaName &&
-                            enrollment.dikshaName !== enrollment.studentName
-                            ? enrollment.studentName
-                            : null;
 
-                        return (
-                          <AccordionItem
-                            key={studentSub.studentId}
-                            value={studentSub.studentId}
-                            className="border-b"
-                          >
-                            <AccordionTrigger className="hover:no-underline">
-                              <div className="flex flex-wrap items-center justify-between w-full gap-2 sm:gap-3">
-                                <div className="flex flex-col items-start min-w-0 flex-1">
-                                  <span className="font-medium text-base break-words">
-                                    {studentName}
-                                  </span>
-                                  {certificateName && (
-                                    <span className="text-sm text-muted-foreground break-words">
-                                      Certificate: {certificateName}
+                      {/* Student submissions */}
+                      <Accordion type="multiple" className="w-full">
+                        {studentSubmissions.map((studentSub) => {
+                          const student = studentsMap.get(studentSub.studentId);
+                          const enrollment = enrollmentsMap.get(studentSub.studentId);
+                          const studentName =
+                            enrollment?.dikshaName ||
+                            enrollment?.studentName ||
+                            student?.name ||
+                            "Unknown Student";
+                          const fileCount = studentSub.files.length;
+                          const certificateName =
+                            enrollment?.studentName &&
+                              enrollment?.dikshaName &&
+                              enrollment.dikshaName !== enrollment.studentName
+                              ? enrollment.studentName
+                              : null;
+
+                          return (
+                            <AccordionItem
+                              key={studentSub.studentId}
+                              value={studentSub.studentId}
+                              className="border-b"
+                            >
+                              <AccordionTrigger className="hover:no-underline">
+                                <div className="flex flex-wrap items-center justify-between w-full gap-2 sm:gap-3">
+                                  <div className="flex flex-col items-start min-w-0 flex-1">
+                                    <span className="font-medium text-base break-words">
+                                      {studentName}
                                     </span>
-                                  )}
-                                </div>
-                                <Badge variant="secondary" className="ml-auto flex-shrink-0">
-                                  {fileCount + studentSub.textSubmissions.length} submission{(fileCount + studentSub.textSubmissions.length) !== 1 ? "s" : ""}
-                                </Badge>
-                              </div>
-                            </AccordionTrigger>
-                            <AccordionContent>
-                              <div className="grid gap-2 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 pt-2">
-                                {/* Render text submissions first for daily listening */}
-                                {isDailyListening && studentSub.textSubmissions.map((textSub: StudentTextSubmission, index: number) => (
-                                  <div
-                                    key={`text-${index}`}
-                                    className="flex flex-col p-3 bg-muted rounded-lg border gap-2 w-full"
-                                  >
-                                    <div className="flex items-center gap-2 flex-1 min-w-0">
-                                      <FileText className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-                                      <span className="text-sm font-medium break-words">
-                                        Text Submission
+                                    {certificateName && (
+                                      <span className="text-sm text-muted-foreground break-words">
+                                        Certificate: {certificateName}
                                       </span>
-                                    </div>
-                                    {textSub.taskTitle && (
-                                      <div className="flex items-center gap-1">
-                                        <Badge variant="outline" className="text-xs">
-                                          {textSub.taskTitle}
-                                        </Badge>
-                                      </div>
                                     )}
-                                    <div className="text-sm text-muted-foreground line-clamp-3 break-words">
-                                      {textSub.text}
-                                    </div>
-                                    <div className="flex items-center gap-1 flex-shrink-0 self-end">
-                                      <Button
-                                        variant="ghost"
-                                        size="icon"
-                                        className="h-8 w-8"
-                                        onClick={() => {
-                                          setPreviewFile({
-                                            url: "",
-                                            name: "Text Submission",
-                                            type: "text",
-                                            text: textSub.text,
-                                          });
-                                        }}
-                                        title="View full text"
-                                      >
-                                        <Eye className="h-4 w-4" />
-                                      </Button>
-                                      <Button
-                                        variant="ghost"
-                                        size="icon"
-                                        className="h-8 w-8 text-destructive hover:text-destructive"
-                                        onClick={() =>
-                                          handleDeleteTextClick(
-                                            textSub.submissionId,
-                                            textSub.studentId
-                                          )
-                                        }
-                                        title="Delete text submission"
-                                      >
-                                        <Trash2 className="h-4 w-4" />
-                                      </Button>
-                                    </div>
                                   </div>
-                                ))}
-
-                                {/* Render file submissions */}
-                                {studentSub.files.map((file: StudentFile, index: number) => {
-                                  const isSelected = selectedFiles.has(file.fileUrl);
-
-                                  return (
+                                  <Badge variant="secondary" className="ml-auto flex-shrink-0">
+                                    {fileCount + studentSub.textSubmissions.length} submission{(fileCount + studentSub.textSubmissions.length) !== 1 ? "s" : ""}
+                                  </Badge>
+                                </div>
+                              </AccordionTrigger>
+                              <AccordionContent>
+                                <div className="grid gap-2 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 pt-2">
+                                  {/* Render text submissions first for daily listening */}
+                                  {isDailyListening && studentSub.textSubmissions.map((textSub: StudentTextSubmission, index: number) => (
                                     <div
-                                      key={`file-${index}`}
-                                      className={`flex flex-col p-3 bg-muted rounded-lg border gap-2 w-full ${isSelected && !isDailyListening ? 'ring-2 ring-primary' : ''}`}
+                                      key={`text-${index}`}
+                                      className="flex flex-col p-3 bg-muted rounded-lg border gap-2 w-full"
                                     >
                                       <div className="flex items-center gap-2 flex-1 min-w-0">
-                                        {!isDailyListening && (
+                                        <FileText className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                                        <span className="text-sm font-medium break-words">
+                                          Text Submission
+                                        </span>
+                                      </div>
+                                      {textSub.taskTitle && (
+                                        <div className="flex items-center gap-1">
+                                          <Badge variant="outline" className="text-xs">
+                                            {textSub.taskTitle}
+                                          </Badge>
+                                        </div>
+                                      )}
+                                      <div className="text-sm text-muted-foreground line-clamp-3 break-words">
+                                        {textSub.text}
+                                      </div>
+                                      <div className="flex items-center gap-1 flex-shrink-0 self-end">
+                                        <Button
+                                          variant="ghost"
+                                          size="icon"
+                                          className="h-8 w-8"
+                                          onClick={() => {
+                                            setPreviewFile({
+                                              url: "",
+                                              name: "Text Submission",
+                                              type: "text",
+                                              text: textSub.text,
+                                            });
+                                          }}
+                                          title="View full text"
+                                        >
+                                          <Eye className="h-4 w-4" />
+                                        </Button>
+                                        <Button
+                                          variant="ghost"
+                                          size="icon"
+                                          className="h-8 w-8 text-destructive hover:text-destructive"
+                                          onClick={() =>
+                                            handleDeleteTextClick(
+                                              textSub.submissionId,
+                                              textSub.studentId
+                                            )
+                                          }
+                                          title="Delete text submission"
+                                        >
+                                          <Trash2 className="h-4 w-4" />
+                                        </Button>
+                                      </div>
+                                    </div>
+                                  ))}
+
+                                  {/* Render file submissions */}
+                                  {studentSub.files.map((file: StudentFile, index: number) => {
+                                    const isSelected = selectedFiles.has(file.fileUrl);
+
+                                    return (
+                                      <div
+                                        key={`file-${index}`}
+                                        className={`flex flex-col p-3 bg-muted rounded-lg border gap-2 w-full ${isSelected ? 'ring-2 ring-primary' : ''}`}
+                                      >
+                                        <div className="flex items-center gap-2 flex-1 min-w-0">
                                           <Checkbox
                                             checked={isSelected}
                                             onCheckedChange={(checked) =>
@@ -1236,72 +1151,72 @@ export default function BatchSubmissionsPage() {
                                             }
                                             className="flex-shrink-0"
                                           />
-                                        )}
-                                        <FileText className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-                                        <span className="text-sm break-words" title={file.fileName}>
-                                          {file.fileName}
-                                        </span>
-                                      </div>
-                                      {file.taskTitle && (
-                                        <div className="flex items-center gap-1">
-                                          <Badge variant="outline" className="text-xs">
-                                            {file.taskTitle}
-                                          </Badge>
+                                          <FileText className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                                          <span className="text-sm break-words" title={file.fileName}>
+                                            {file.fileName}
+                                          </span>
                                         </div>
-                                      )}
-                                      <div className="flex items-center gap-1 flex-shrink-0 self-end">
-                                        <Button
-                                          variant="ghost"
-                                          size="icon"
-                                          className="h-8 w-8"
-                                          onClick={() => handlePreview(file.fileUrl, file.fileName)}
-                                          title="Preview file"
-                                        >
-                                          <Eye className="h-4 w-4" />
-                                        </Button>
-                                        <Button
-                                          variant="ghost"
-                                          size="icon"
-                                          className="h-8 w-8"
-                                          onClick={() =>
-                                            handleDownload(file.fileUrl, file.fileName)
-                                          }
-                                          title="Download file"
-                                        >
-                                          <Download className="h-4 w-4" />
-                                        </Button>
-                                        <Button
-                                          variant="ghost"
-                                          size="icon"
-                                          className="h-8 w-8 text-destructive hover:text-destructive"
-                                          onClick={() =>
-                                            handleDeleteClick(
-                                              file.submissionId,
-                                              file.fileUrl,
-                                              file.fileName,
-                                              file.studentId
-                                            )
-                                          }
-                                          title="Delete file"
-                                        >
-                                          <Trash2 className="h-4 w-4" />
-                                        </Button>
+                                        {file.taskTitle && (
+                                          <div className="flex items-center gap-1">
+                                            <Badge variant="outline" className="text-xs">
+                                              {file.taskTitle}
+                                            </Badge>
+                                          </div>
+                                        )}
+                                        <div className="flex items-center gap-1 flex-shrink-0 self-end">
+                                          <Button
+                                            variant="ghost"
+                                            size="icon"
+                                            className="h-8 w-8"
+                                            onClick={() => handlePreview(file.fileUrl, file.fileName)}
+                                            title="Preview file"
+                                          >
+                                            <Eye className="h-4 w-4" />
+                                          </Button>
+                                          <Button
+                                            variant="ghost"
+                                            size="icon"
+                                            className="h-8 w-8"
+                                            onClick={() =>
+                                              handleDownload(file.fileUrl, file.fileName)
+                                            }
+                                            title="Download file"
+                                          >
+                                            <Download className="h-4 w-4" />
+                                          </Button>
+                                          <Button
+                                            variant="ghost"
+                                            size="icon"
+                                            className="h-8 w-8 text-destructive hover:text-destructive"
+                                            onClick={() =>
+                                              handleDeleteClick(
+                                                file.submissionId,
+                                                file.fileUrl,
+                                                file.fileName,
+                                                file.studentId
+                                              )
+                                            }
+                                            title="Delete file"
+                                          >
+                                            <Trash2 className="h-4 w-4" />
+                                          </Button>
+                                        </div>
                                       </div>
-                                    </div>
-                                  );
-                                })}
-                              </div>
-                            </AccordionContent>
-                          </AccordionItem>
-                        );
-                      })}
-                    </Accordion>
+                                    );
+                                  })}
+                                </div>
+                              </AccordionContent>
+                            </AccordionItem>
+                          );
+                        })}
+                      </Accordion>
+                    </div>
                   )}
-                </CardContent>
-              </Card>
+                </AccordionContent>
+              </AccordionItem>
             );
           })}
-        </div>
+        </Accordion>
       )}
 
       {/* Preview dialog */}
