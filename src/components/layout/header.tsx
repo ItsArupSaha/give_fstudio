@@ -24,8 +24,9 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { useTeacher } from "@/hooks/use-teacher";
-import { ChevronDown, Menu } from "lucide-react";
+import { ChevronDown, Download, Menu } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
@@ -50,6 +51,7 @@ const aboutNavItems = [
 export default function Header() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = React.useState(false);
   const { isTeacher } = useTeacher();
+  const isMobile = useIsMobile();
   const pathname = usePathname();
   const router = useRouter();
   const isHomePage = pathname === "/";
@@ -57,6 +59,7 @@ export default function Header() {
   // Use clean API route instead of direct Firebase Storage URL
   // This hides the Firebase Storage URL from users
   const bengaliBookUrl = "/api/books/bengali-bs-shb";
+  const bengaliBookDownloadUrl = "/api/books/bengali-bs-shb?download=true";
 
   const coursesHref = isHomePage ? "#courses" : "/courses";
   const testimonialsHref = isHomePage ? "#testimonials" : "/testimonials";
@@ -204,11 +207,26 @@ export default function Header() {
               <DropdownMenuSub>
                 <DropdownMenuSubTrigger>Books</DropdownMenuSubTrigger>
                 <DropdownMenuSubContent>
-                  <DropdownMenuItem asChild>
-                    <Link href={bengaliBookUrl} target="_blank" rel="noopener noreferrer">
-                      GIVE_Bengali_BS_SHB
-                    </Link>
-                  </DropdownMenuItem>
+                  <div className="flex items-center gap-2 px-2 py-1.5">
+                    <DropdownMenuItem asChild className="flex-1">
+                      <Link href={bengaliBookUrl} target="_blank" rel="noopener noreferrer">
+                        GIVE_Bengali_BS_SHB
+                      </Link>
+                    </DropdownMenuItem>
+                    {isMobile && (
+                      <DropdownMenuItem asChild>
+                        <Link
+                          href={bengaliBookDownloadUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          download
+                          className="p-1 border-2 border-orange-500 rounded"
+                        >
+                          <Download className="h-4 w-4 text-orange-500" />
+                        </Link>
+                      </DropdownMenuItem>
+                    )}
+                  </div>
                 </DropdownMenuSubContent>
               </DropdownMenuSub>
             </DropdownMenuContent>
@@ -368,15 +386,27 @@ export default function Header() {
                               </AccordionTrigger>
                               <AccordionContent className="pl-4">
                                 <div className="flex flex-col gap-2 mt-2">
-                                  <Link
-                                    href={bengaliBookUrl}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="text-sm font-medium text-foreground/90 transition-colors hover:text-foreground"
-                                    onClick={() => setIsMobileMenuOpen(false)}
-                                  >
-                                    Bengali_BS_SHB
-                                  </Link>
+                                  <div className="flex items-center justify-between">
+                                    <Link
+                                      href={bengaliBookUrl}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="text-sm font-medium text-foreground/90 transition-colors hover:text-foreground"
+                                      onClick={() => setIsMobileMenuOpen(false)}
+                                    >
+                                      Bengali_BS_SHB
+                                    </Link>
+                                    <Link
+                                      href={bengaliBookDownloadUrl}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="ml-2 p-1 border-2 border-orange-500 rounded"
+                                      onClick={() => setIsMobileMenuOpen(false)}
+                                      download
+                                    >
+                                      <Download className="h-4 w-4 text-orange-500" />
+                                    </Link>
+                                  </div>
                                 </div>
                               </AccordionContent>
                             </AccordionItem>

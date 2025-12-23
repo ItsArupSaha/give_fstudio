@@ -50,11 +50,20 @@ export async function GET(
     // Get the file content
     const fileBuffer = await fileResponse.arrayBuffer();
 
+    // Check if download is requested via query parameter
+    const url = new URL(request.url);
+    const forceDownload = url.searchParams.get("download") === "true";
+    
+    // Set Content-Disposition header based on download parameter
+    const contentDisposition = forceDownload 
+      ? `attachment; filename="${slug}.pdf"` 
+      : `inline; filename="${slug}.pdf"`;
+
     // Return the file with proper headers
     return new NextResponse(fileBuffer, {
       headers: {
         "Content-Type": "application/pdf",
-        "Content-Disposition": `inline; filename="${slug}.pdf"`,
+        "Content-Disposition": contentDisposition,
         "Cache-Control": "public, max-age=3600", // Cache for 1 hour
       },
     });
