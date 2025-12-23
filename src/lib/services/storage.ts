@@ -175,3 +175,26 @@ export async function deleteFiles(paths: string[]): Promise<boolean[]> {
     throw new Error(`Failed to delete files: ${error}`);
   }
 }
+
+/**
+ * Get download URL for a file in Firebase Storage
+ * @param path - Storage path (e.g., "books/GIVE_Bengali_BS_SHB.pdf")
+ * @returns Promise with download URL
+ */
+export async function getFileDownloadURL(path: string): Promise<string> {
+  try {
+    const storageRef = ref(storage, path);
+    console.log("Getting download URL for path:", path, "ref:", storageRef.fullPath);
+    const downloadURL = await getDownloadURL(storageRef);
+    console.log("Download URL retrieved:", downloadURL);
+    return downloadURL;
+  } catch (error: any) {
+    console.error("Error in getFileDownloadURL:", {
+      path,
+      error,
+      code: error?.code,
+      message: error?.message
+    });
+    throw new Error(`Failed to get download URL for ${path}: ${error?.message || error}`);
+  }
+}

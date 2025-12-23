@@ -54,6 +54,10 @@ export default function Header() {
   const router = useRouter();
   const isHomePage = pathname === "/";
 
+  // Use clean API route instead of direct Firebase Storage URL
+  // This hides the Firebase Storage URL from users
+  const bengaliBookUrl = "/api/books/bengali-bs-shb";
+
   const coursesHref = isHomePage ? "#courses" : "/courses";
   const testimonialsHref = isHomePage ? "#testimonials" : "/testimonials";
 
@@ -197,6 +201,16 @@ export default function Header() {
                   </Link>
                 </DropdownMenuItem>
               ))}
+              <DropdownMenuSub>
+                <DropdownMenuSubTrigger>Books</DropdownMenuSubTrigger>
+                <DropdownMenuSubContent>
+                  <DropdownMenuItem asChild>
+                    <Link href={bengaliBookUrl} target="_blank" rel="noopener noreferrer">
+                      Bengali_BS_SHB
+                    </Link>
+                  </DropdownMenuItem>
+                </DropdownMenuSubContent>
+              </DropdownMenuSub>
             </DropdownMenuContent>
           </DropdownMenu>
           {mainNavItems.map((item) => (
@@ -347,6 +361,26 @@ export default function Header() {
                               {item.name}
                             </Link>
                           ))}
+                          <Accordion type="single" collapsible className="w-full border-none">
+                            <AccordionItem value="books" className="border-b-0">
+                              <AccordionTrigger className="px-0 text-left text-base font-medium text-foreground/90 transition-colors hover:text-foreground hover:no-underline py-2">
+                                Books
+                              </AccordionTrigger>
+                              <AccordionContent className="pl-4">
+                                <div className="flex flex-col gap-2 mt-2">
+                                  <Link
+                                    href={bengaliBookUrl}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="text-sm font-medium text-foreground/90 transition-colors hover:text-foreground"
+                                    onClick={() => setIsMobileMenuOpen(false)}
+                                  >
+                                    Bengali_BS_SHB
+                                  </Link>
+                                </div>
+                              </AccordionContent>
+                            </AccordionItem>
+                          </Accordion>
                         </div>
                       </AccordionContent>
                     </AccordionItem>
