@@ -50,7 +50,7 @@ import {
   Timestamp,
   updateDoc,
   where,
-  writeBatch
+  writeBatch,
 } from "firebase/firestore";
 
 // Import conversion functions
@@ -314,6 +314,129 @@ export async function getBatchesByCourseGroup(
     return batches;
   } catch (error) {
     throw new Error(`Failed to get batches: ${error}`);
+  }
+}
+
+// ==================== About Page Content ====================
+
+export type AboutSectionLayout = "image-left" | "image-right" | "text-only";
+
+export interface AboutSection {
+  id: string;
+  layout: AboutSectionLayout;
+  title?: string;
+  subtitle?: string;
+  imagePath?: string;
+  imageAlt?: string;
+  paragraphs: string[];
+}
+
+export interface AboutPage {
+  slug: string;
+  name: string;
+  heroTitle?: string;
+  heroSubtitle?: string;
+  sections: AboutSection[];
+  updatedAt: Date;
+}
+
+export interface AboutPageFirestore {
+  slug: string;
+  name: string;
+  heroTitle?: string;
+  heroSubtitle?: string;
+  sections: AboutSection[];
+  updatedAt: Timestamp;
+}
+
+export function aboutPageFromFirestore(
+  data: AboutPageFirestore
+): AboutPage {
+  return {
+    slug: data.slug,
+    name: data.name,
+    heroTitle: data.heroTitle,
+    heroSubtitle: data.heroSubtitle,
+    sections: data.sections ?? [],
+    updatedAt: data.updatedAt?.toDate() ?? new Date(),
+  };
+}
+
+export function aboutPageToFirestore(
+  page: AboutPage
+): AboutPageFirestore {
+  const base: AboutPageFirestore = {
+    slug: page.slug,
+    name: page.name,
+    sections: page.sections,
+    updatedAt: Timestamp.fromDate(page.updatedAt),
+  };
+
+  // Only include optional fields if they are non-null/defined –
+  // Firestore does not allow `undefined` values in documents.
+  if (page.heroTitle != null) {
+    base.heroTitle = page.heroTitle;
+  }
+  if (page.heroSubtitle != null) {
+    base.heroSubtitle = page.heroSubtitle;
+  }
+
+  return base;
+}
+
+/**
+ * Get a single About page configuration by slug.
+ */
+export async function getAboutPage(slug: string): Promise<AboutPage | null> {
+  try {
+    const ref = doc(db, "aboutPages", slug);
+    const snap = await getDoc(ref);
+
+    if (!snap.exists()) {
+      return null;
+    }
+
+    return aboutPageFromFirestore(snap.data() as AboutPageFirestore);
+  } catch (error) {
+    console.error("Failed to get about page:", error);
+    return null;
+  }
+}
+
+/**
+ * Update or create an About page configuration.
+ */
+export async function setAboutPage(
+  page: Omit<AboutPage, "updatedAt">
+): Promise<void> {
+  try {
+    const ref = doc(db, "aboutPages", page.slug);
+    const payload = aboutPageToFirestore({
+      ...page,
+      updatedAt: new Date(),
+    });
+    await setDoc(ref, payload, { merge: true });
+  } catch (error) {
+    console.error("Failed to set about page:", error);
+    throw error;
+  }
+}
+
+/**
+ * List all About page configurations (for admin dropdowns, etc.).
+ */
+export async function getAllAboutPages(): Promise<AboutPage[]> {
+  try {
+    const snapshot = await getDocs(collection(db, "aboutPages"));
+    const pages = snapshot.docs.map((docSnap) =>
+      aboutPageFromFirestore(docSnap.data() as AboutPageFirestore)
+    );
+    // Sort by name for nicer dropdown
+    pages.sort((a, b) => a.name.localeCompare(b.name));
+    return pages;
+  } catch (error) {
+    console.error("Failed to list about pages:", error);
+    return [];
   }
 }
 

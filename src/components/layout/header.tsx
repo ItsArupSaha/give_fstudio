@@ -156,12 +156,20 @@ export default function Header() {
             Classroom
           </Link>
           {isTeacher && (
-            <Link
-              href="/teacher"
-              className="font-medium text-foreground/90 transition-colors hover:text-foreground"
-            >
-              Teacher Dashboard
-            </Link>
+            <>
+              <Link
+                href="/teacher"
+                className="font-medium text-foreground/90 transition-colors hover:text-foreground"
+              >
+                Teacher Dashboard
+              </Link>
+              <Link
+                href="/admin"
+                className="font-medium text-foreground/90 transition-colors hover:text-foreground"
+              >
+                Admin
+              </Link>
+            </>
           )}
           <Link
             href={coursesHref}
@@ -289,13 +297,22 @@ export default function Header() {
                     Classroom
                   </Link>
                   {isTeacher && (
-                    <Link
-                      href="/teacher"
-                      className="px-4 py-2 text-lg font-medium text-foreground/90 transition-colors hover:text-foreground"
-                      onClick={() => setIsMobileMenuOpen(false)}
-                    >
-                      Teacher Dashboard
-                    </Link>
+                    <>
+                      <Link
+                        href="/teacher"
+                        className="px-4 py-2 text-lg font-medium text-foreground/90 transition-colors hover:text-foreground"
+                        onClick={() => setIsMobileMenuOpen(false)}
+                      >
+                        Teacher Dashboard
+                      </Link>
+                      <Link
+                        href="/admin"
+                        className="px-4 py-2 text-lg font-medium text-foreground/90 transition-colors hover:text-foreground"
+                        onClick={() => setIsMobileMenuOpen(false)}
+                      >
+                        Admin
+                      </Link>
+                    </>
                   )}
                   <Link
                     href={coursesHref}
