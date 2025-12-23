@@ -206,7 +206,7 @@ export default function Header() {
                 <DropdownMenuSubContent>
                   <DropdownMenuItem asChild>
                     <Link href={bengaliBookUrl} target="_blank" rel="noopener noreferrer">
-                      Bengali_BS_SHB
+                      GIVE_Bengali_BS_SHB
                     </Link>
                   </DropdownMenuItem>
                 </DropdownMenuSubContent>
