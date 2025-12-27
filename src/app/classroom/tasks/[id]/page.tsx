@@ -378,8 +378,8 @@ export default function TaskSubmissionPage() {
   const handleSubmit = async () => {
     if (!task || !user?.uid) return;
 
-    // Prevent submission if due date has passed (for new submissions)
-    if (dueDatePassed && !submission) {
+    // Prevent submission if due date has passed (for new submissions) and late submission is not allowed
+    if (dueDatePassed && !submission && !lateSubmissionAllowed) {
       toast({
         title: "Due Date Passed",
         description: "The due date for this task has passed. You can no longer submit.",
@@ -611,8 +611,45 @@ export default function TaskSubmissionPage() {
   // Check if grace period has passed (for submissions)
   const gracePeriodPassed = submission?.submittedAt && !withinGracePeriod && submission.status === "submitted";
 
-  // Block access only if due date passed AND no submission exists (can't submit new)
-  if (dueDatePassed && !submission) {
+  // Helper function to check if late submission is currently allowed
+  const isLateSubmissionAllowed = (): boolean => {
+    if (!task.allowLateSubmission || !task.dueDate || task.type === "announcement") {
+      return false;
+    }
+    const now = new Date();
+    const dueDate = new Date(task.dueDate);
+    const lateSubmissionDeadline = new Date(dueDate);
+    lateSubmissionDeadline.setDate(lateSubmissionDeadline.getDate() + task.lateSubmissionDays);
+    // Set deadline to 11:59:59 PM on the last day
+    lateSubmissionDeadline.setHours(23, 59, 59, 999);
+    return now > dueDate && now <= lateSubmissionDeadline;
+  };
+
+  // Helper function to get remaining late submission days
+  const getRemainingLateSubmissionDays = (): number | null => {
+    if (!task.allowLateSubmission || !task.dueDate || task.type === "announcement") {
+      return null;
+    }
+    const now = new Date();
+    const dueDate = new Date(task.dueDate);
+    const lateSubmissionDeadline = new Date(dueDate);
+    lateSubmissionDeadline.setDate(lateSubmissionDeadline.getDate() + task.lateSubmissionDays);
+    // Set deadline to 11:59:59 PM on the last day
+    lateSubmissionDeadline.setHours(23, 59, 59, 999);
+
+    if (now > dueDate && now <= lateSubmissionDeadline) {
+      const remainingMs = lateSubmissionDeadline.getTime() - now.getTime();
+      const remainingDays = Math.ceil(remainingMs / (1000 * 60 * 60 * 24));
+      return Math.max(0, remainingDays);
+    }
+    return null;
+  };
+
+  const lateSubmissionAllowed = isLateSubmissionAllowed();
+  const remainingLateDays = getRemainingLateSubmissionDays();
+
+  // Block access only if due date passed AND no submission exists AND late submission is not allowed
+  if (dueDatePassed && !submission && !lateSubmissionAllowed) {
     return (
       <div className="container mx-auto px-4 py-8 max-w-4xl">
         <div className="mb-6">
@@ -632,6 +669,11 @@ export default function TaskSubmissionPage() {
               {task.dueDate && (
                 <span className="block mt-2 text-sm">
                   Deadline was: <strong>{new Date(task.dueDate).toLocaleString()}</strong>
+                </span>
+              )}
+              {task.allowLateSubmission && task.lateSubmissionDays > 0 && (
+                <span className="block mt-2 text-sm text-orange-600">
+                  Late submission was allowed for {task.lateSubmissionDays} day{task.lateSubmissionDays !== 1 ? 's' : ''} after the due date, but that period has also expired.
                 </span>
               )}
             </p>
@@ -710,6 +752,15 @@ export default function TaskSubmissionPage() {
                   Due: {new Date(task.dueDate).toLocaleDateString()}
                   {isOverdue && " (Overdue)"}
                   {isDueSoon && !isOverdue && " (Due Soon)"}
+                </Badge>
+              )}
+              {lateSubmissionAllowed && remainingLateDays !== null && (
+                <Badge
+                  variant="outline"
+                  className="bg-orange-50 text-orange-700 border-orange-200"
+                >
+                  <Calendar className="h-3 w-3 mr-1" />
+                  Late Submission: {remainingLateDays} day{remainingLateDays !== 1 ? 's' : ''} remaining
                 </Badge>
               )}
               <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
@@ -1101,6 +1152,27 @@ export default function TaskSubmissionPage() {
                   rows={6}
                   disabled={(alreadySubmitted && !canEdit) || isSubmitting}
                 />
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Late Submission Warning */}
+          {lateSubmissionAllowed && dueDatePassed && !submission && (
+            <Card className="bg-orange-50 border-orange-200">
+              <CardContent className="pt-6">
+                <div className="flex items-start gap-3">
+                  <div className="text-orange-600 mt-0.5">
+                    <Calendar className="h-5 w-5" />
+                  </div>
+                  <div className="flex-1">
+                    <p className="font-semibold text-orange-900">Late Submission</p>
+                    <p className="text-sm text-orange-700 mt-1">
+                      You are submitting after the due date. {remainingLateDays !== null && remainingLateDays > 0 && (
+                        <>You have {remainingLateDays} day{remainingLateDays !== 1 ? 's' : ''} remaining to submit.</>
+                      )}
+                    </p>
+                  </div>
+                </div>
               </CardContent>
             </Card>
           )}

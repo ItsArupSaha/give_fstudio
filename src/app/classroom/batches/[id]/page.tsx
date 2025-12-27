@@ -220,6 +220,20 @@ export default function BatchTasksPage() {
     return daysUntilDue <= 3 && daysUntilDue >= 0;
   };
 
+  // Helper function to check if late submission is currently allowed
+  const isLateSubmissionAllowed = (task: Task): boolean => {
+    if (!task.allowLateSubmission || !task.dueDate || task.type === "announcement") {
+      return false;
+    }
+    const now = new Date();
+    const dueDate = new Date(task.dueDate);
+    const lateSubmissionDeadline = new Date(dueDate);
+    lateSubmissionDeadline.setDate(lateSubmissionDeadline.getDate() + task.lateSubmissionDays);
+    // Set deadline to 11:59:59 PM on the last day
+    lateSubmissionDeadline.setHours(23, 59, 59, 999);
+    return now > dueDate && now <= lateSubmissionDeadline;
+  };
+
   const isTaskBookmarked = (taskId: string) => {
     return bookmarks.has(taskId);
   };
@@ -378,18 +392,40 @@ export default function BatchTasksPage() {
               const isSubmitted = submission?.status === "submitted" || submission?.status === "graded";
               const withinGracePeriod = submission ? isWithinGracePeriod(submission) : false;
               const gracePeriodRemaining = gracePeriodCountdowns.get(task.id) || 0;
+              const lateSubmissionAllowed = isLateSubmissionAllowed(task);
+
+              // Calculate remaining late submission days
+              const getRemainingLateSubmissionDays = (): number | null => {
+                if (!task.allowLateSubmission || !task.dueDate || task.type === "announcement") {
+                  return null;
+                }
+                const now = new Date();
+                const dueDate = new Date(task.dueDate);
+                const lateSubmissionDeadline = new Date(dueDate);
+                lateSubmissionDeadline.setDate(lateSubmissionDeadline.getDate() + task.lateSubmissionDays);
+                // Set deadline to 11:59:59 PM on the last day
+                lateSubmissionDeadline.setHours(23, 59, 59, 999);
+
+                if (now > dueDate && now <= lateSubmissionDeadline) {
+                  const remainingMs = lateSubmissionDeadline.getTime() - now.getTime();
+                  const remainingDays = Math.ceil(remainingMs / (1000 * 60 * 60 * 24));
+                  return Math.max(0, remainingDays);
+                }
+                return null;
+              };
+              const remainingLateDays = getRemainingLateSubmissionDays();
 
               // Allow clicking if:
               // 1. Task is not announcement
-              // 2. Due date hasn't passed (if no submission) OR within grace period (if submitted)
-              const dueDatePassed = task.dueDate && new Date() > task.dueDate;
+              // 2. Due date hasn't passed (if no submission) OR late submission is allowed OR within grace period (if submitted)
+              const dueDatePassed = task.dueDate && task.type !== "announcement" && new Date() > task.dueDate;
               const gracePeriodPassed = submission && !withinGracePeriod && submission.status === "submitted";
 
               // Can't click if:
-              // - Due date passed AND no submission exists
+              // - Due date passed AND no submission exists AND late submission is not allowed
               // - Grace period passed (submission exists but grace period expired)
               const isClickable = task.type !== "announcement" &&
-                !(dueDatePassed && !isSubmitted) &&
+                !(dueDatePassed && !isSubmitted && !lateSubmissionAllowed) &&
                 !gracePeriodPassed &&
                 (!isSubmitted || withinGracePeriod);
 
@@ -503,6 +539,15 @@ export default function BatchTasksPage() {
                             Due: {new Date(task.dueDate).toLocaleDateString()}
                             {isOverdue && " (Overdue)"}
                             {isDueSoon && !isOverdue && " (Due Soon)"}
+                          </Badge>
+                        )}
+                        {lateSubmissionAllowed && remainingLateDays !== null && (
+                          <Badge
+                            variant="outline"
+                            className="bg-orange-50 text-orange-700 border-orange-200"
+                          >
+                            <Calendar className="h-3 w-3 mr-1" />
+                            Late Submission: {remainingLateDays} day{remainingLateDays !== 1 ? 's' : ''} remaining
                           </Badge>
                         )}
                         <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
