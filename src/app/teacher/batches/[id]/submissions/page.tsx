@@ -67,6 +67,7 @@ interface StudentFile {
   studentId: string;
   taskId?: string; // Optional: only needed for combined daily listening tasks
   taskTitle?: string; // Optional: only needed for combined daily listening tasks
+  submittedAt?: Date; // When the submission was submitted
   type: "file";
 }
 
@@ -76,6 +77,7 @@ interface StudentTextSubmission {
   studentId: string;
   taskId?: string; // Optional: only needed for combined daily listening tasks
   taskTitle?: string; // Optional: only needed for combined daily listening tasks
+  submittedAt?: Date; // When the submission was submitted
   type: "text";
 }
 
@@ -203,6 +205,8 @@ export default function BatchSubmissionsPage() {
 
           // Add files if any
           if (submission.fileUrls && Array.isArray(submission.fileUrls) && submission.fileUrls.length > 0) {
+            // Get submission timestamp (prefer submittedAt, fallback to createdAt)
+            const submissionTime = submission.submittedAt || submission.createdAt;
             submission.fileUrls.forEach((fileUrl, index) => {
               if (fileUrl && typeof fileUrl === 'string' && fileUrl.trim() !== '') {
                 try {
@@ -214,6 +218,7 @@ export default function BatchSubmissionsPage() {
                     fileUrl,
                     fileName,
                     studentId: submission.studentId,
+                    submittedAt: submissionTime,
                     type: "file",
                     ...(isDailyListening && {
                       taskId: submission.taskId,
@@ -233,11 +238,14 @@ export default function BatchSubmissionsPage() {
           if (taskFiles.task.type === "dailyListening" && submission.recordingUrl) {
             try {
               const fileName = getFileNameFromUrl(submission.recordingUrl);
+              // Get submission timestamp (prefer submittedAt, fallback to createdAt)
+              const submissionTime = submission.submittedAt || submission.createdAt;
               studentSubmission.files.push({
                 submissionId: submission.id,
                 fileUrl: submission.recordingUrl,
                 fileName,
                 studentId: submission.studentId,
+                submittedAt: submissionTime,
                 type: "file",
                 taskId: submission.taskId,
                 taskTitle: taskFiles.task.title,
@@ -253,10 +261,13 @@ export default function BatchSubmissionsPage() {
 
           // Add text submission for daily listening tasks if notes exist
           if (taskFiles.task.type === "dailyListening" && submission.notes && submission.notes.trim()) {
+            // Get submission timestamp (prefer submittedAt, fallback to createdAt)
+            const submissionTime = submission.submittedAt || submission.createdAt;
             studentSubmission.textSubmissions.push({
               submissionId: submission.id,
               text: submission.notes,
               studentId: submission.studentId,
+              submittedAt: submissionTime,
               type: "text",
               taskId: submission.taskId,
               taskTitle: taskFiles.task.title,
@@ -1099,6 +1110,17 @@ export default function BatchSubmissionsPage() {
                                       <div className="text-sm text-muted-foreground line-clamp-3 break-words">
                                         {textSub.text}
                                       </div>
+                                      {textSub.submittedAt && (
+                                        <div className="text-xs text-muted-foreground">
+                                          Submitted: {textSub.submittedAt.toLocaleString(undefined, {
+                                            year: 'numeric',
+                                            month: 'short',
+                                            day: 'numeric',
+                                            hour: '2-digit',
+                                            minute: '2-digit'
+                                          })}
+                                        </div>
+                                      )}
                                       <div className="flex items-center gap-1 flex-shrink-0 self-end">
                                         <Button
                                           variant="ghost"
@@ -1161,6 +1183,17 @@ export default function BatchSubmissionsPage() {
                                             <Badge variant="outline" className="text-xs">
                                               {file.taskTitle}
                                             </Badge>
+                                          </div>
+                                        )}
+                                        {file.submittedAt && (
+                                          <div className="text-xs text-muted-foreground">
+                                            Submitted: {file.submittedAt.toLocaleString(undefined, {
+                                              year: 'numeric',
+                                              month: 'short',
+                                              day: 'numeric',
+                                              hour: '2-digit',
+                                              minute: '2-digit'
+                                            })}
                                           </div>
                                         )}
                                         <div className="flex items-center gap-1 flex-shrink-0 self-end">
