@@ -139,7 +139,7 @@ export default function BatchTasksPage() {
     return () => clearInterval(interval);
   }, [submissions]);
 
-  // Update submission window countdowns for all tasks (3-hour grace period)
+  // Update submission window countdowns for all tasks (2-hour grace period)
   useEffect(() => {
     const updateCountdowns = () => {
       const newCountdowns = new Map<string, number | null>();
@@ -442,7 +442,7 @@ export default function BatchTasksPage() {
 
               // Allow clicking if:
               // 1. Task is not announcement
-              // 2. Submission window is open (due date + 3 hours grace period) OR late submission is allowed OR within grace period (if submitted)
+              // 2. Submission window is open (due date + 2 hours grace period) OR late submission is allowed OR within grace period (if submitted)
               const dueDatePassed = task.dueDate && task.type !== "announcement" && new Date() > task.dueDate;
               const submissionWindowOpen = task.dueDate && task.type !== "announcement"
                 ? isSubmissionWindowOpen(task.dueDate)
@@ -558,7 +558,7 @@ export default function BatchTasksPage() {
                             Grace Period
                           </p>
                           <p className="text-xs text-yellow-700 mt-1">
-                            The due date has passed, but you're still within the 3-hour grace period.
+                            The due date has passed, but you're still within the 2-hour grace period.
                             {(() => {
                               const remaining = submissionWindowCountdowns.get(task.id);
                               if (remaining !== null && remaining !== undefined && remaining > 0) {

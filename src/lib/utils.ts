@@ -48,7 +48,7 @@ export function getGracePeriodRemainingMinutes(submission: Submission | null): n
 }
 
 /**
- * Check if the submission window is still open (due date + 3 hours grace period)
+ * Check if the submission window is still open (due date + 2 hours grace period)
  * @param dueDate - The task due date
  * @returns true if submission window is still open, false otherwise
  */
@@ -57,14 +57,14 @@ export function isSubmissionWindowOpen(dueDate: Date | null | undefined): boolea
   
   const now = new Date();
   const dueDateTime = new Date(dueDate);
-  const gracePeriodMs = 3 * 60 * 60 * 1000; // 3 hours in milliseconds
+  const gracePeriodMs = 2 * 60 * 60 * 1000; // 2 hours in milliseconds
   const submissionDeadline = new Date(dueDateTime.getTime() + gracePeriodMs);
   
   return now <= submissionDeadline;
 }
 
 /**
- * Get the submission deadline (due date + 3 hours grace period)
+ * Get the submission deadline (due date + 2 hours grace period)
  * @param dueDate - The task due date
  * @returns The submission deadline date, or null if no due date
  */
@@ -72,7 +72,7 @@ export function getSubmissionDeadline(dueDate: Date | null | undefined): Date | 
   if (!dueDate) return null;
   
   const dueDateTime = new Date(dueDate);
-  const gracePeriodMs = 3 * 60 * 60 * 1000; // 3 hours in milliseconds
+  const gracePeriodMs = 2 * 60 * 60 * 1000; // 2 hours in milliseconds
   return new Date(dueDateTime.getTime() + gracePeriodMs);
 }
 
