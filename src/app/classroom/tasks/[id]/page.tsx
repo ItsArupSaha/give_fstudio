@@ -22,7 +22,13 @@ import {
   subscribeSubmissionByTaskAndStudent
 } from "@/lib/services/firestore";
 import { uploadFile, uploadFiles } from "@/lib/services/storage";
-import { getGracePeriodRemainingMinutes, isWithinGracePeriod } from "@/lib/utils";
+import {
+  getGracePeriodRemainingMinutes,
+  getSubmissionDeadline,
+  getSubmissionWindowRemainingMinutes,
+  isSubmissionWindowOpen,
+  isWithinGracePeriod
+} from "@/lib/utils";
 import {
   getTaskTypeColor,
   getTaskTypeIcon,
@@ -62,6 +68,7 @@ export default function TaskSubmissionPage() {
   const [isUploading, setIsUploading] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [gracePeriodRemaining, setGracePeriodRemaining] = useState<number>(0);
+  const [submissionWindowRemaining, setSubmissionWindowRemaining] = useState<number | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const mediaStreamRef = useRef<MediaStream | null>(null);
@@ -151,7 +158,7 @@ export default function TaskSubmissionPage() {
     return () => unsubscribe();
   }, [taskId, user?.uid, router, toast]);
 
-  // Update grace period countdown
+  // Update grace period countdown (15 minutes for editing submissions)
   useEffect(() => {
     if (!submission || !isWithinGracePeriod(submission)) {
       setGracePeriodRemaining(0);
@@ -168,6 +175,24 @@ export default function TaskSubmissionPage() {
 
     return () => clearInterval(interval);
   }, [submission]);
+
+  // Update submission window grace period countdown (3 hours after due date)
+  useEffect(() => {
+    if (!task?.dueDate || task.type === "announcement") {
+      setSubmissionWindowRemaining(null);
+      return;
+    }
+
+    const updateCountdown = () => {
+      const remaining = getSubmissionWindowRemainingMinutes(task.dueDate);
+      setSubmissionWindowRemaining(remaining);
+    };
+
+    updateCountdown();
+    const interval = setInterval(updateCountdown, 1000); // Update every second
+
+    return () => clearInterval(interval);
+  }, [task?.dueDate, task?.type]);
 
   // Cleanup media recorder and object URLs on unmount
   useEffect(() => {
@@ -605,8 +630,16 @@ export default function TaskSubmissionPage() {
   const withinGracePeriod = isWithinGracePeriod(submission);
   const canEdit = withinGracePeriod && submission?.status === "submitted";
 
-  // Check if due date has passed
+  // Check if submission window is still open (due date + 3 hours grace period)
+  const submissionWindowOpen = task.dueDate && task.type !== "announcement"
+    ? isSubmissionWindowOpen(task.dueDate)
+    : true;
+
+  // Check if due date has passed (for display purposes, not for blocking submissions)
   const dueDatePassed = task.dueDate && task.type !== "announcement" && new Date() > task.dueDate;
+
+  // Check if submission window has closed (due date + grace period passed)
+  const submissionWindowClosed = task.dueDate && task.type !== "announcement" && !submissionWindowOpen;
 
   // Check if grace period has passed (for submissions)
   const gracePeriodPassed = submission?.submittedAt && !withinGracePeriod && submission.status === "submitted";
@@ -648,8 +681,8 @@ export default function TaskSubmissionPage() {
   const lateSubmissionAllowed = isLateSubmissionAllowed();
   const remainingLateDays = getRemainingLateSubmissionDays();
 
-  // Block access only if due date passed AND no submission exists AND late submission is not allowed
-  if (dueDatePassed && !submission && !lateSubmissionAllowed) {
+  // Block access only if submission window is closed AND no submission exists AND late submission is not allowed
+  if (submissionWindowClosed && !submission && !lateSubmissionAllowed) {
     return (
       <div className="container mx-auto px-4 py-8 max-w-4xl">
         <div className="mb-6">
@@ -663,13 +696,18 @@ export default function TaskSubmissionPage() {
             <div className="text-red-600 mb-4">
               <X className="h-12 w-12 mx-auto" />
             </div>
-            <h3 className="text-xl font-semibold mb-2">Due Date Passed</h3>
+            <h3 className="text-xl font-semibold mb-2">Submission Window Closed</h3>
             <p className="text-muted-foreground mb-4">
-              The due date for this task has passed. You can no longer submit to this task.
+              The submission window for this task has closed. You can no longer submit to this task.
               {task.dueDate && (
-                <span className="block mt-2 text-sm">
-                  Deadline was: <strong>{new Date(task.dueDate).toLocaleString()}</strong>
-                </span>
+                <>
+                  <span className="block mt-2 text-sm">
+                    Due date was: <strong>{new Date(task.dueDate).toLocaleString()}</strong>
+                  </span>
+                  <span className="block mt-1 text-sm">
+                    Submission window closed: <strong>{getSubmissionDeadline(task.dueDate)?.toLocaleString()}</strong> (3 hours grace period after due date)
+                  </span>
+                </>
               )}
               {task.allowLateSubmission && task.lateSubmissionDays > 0 && (
                 <span className="block mt-2 text-sm text-orange-600">
@@ -1152,6 +1190,37 @@ export default function TaskSubmissionPage() {
                   rows={6}
                   disabled={(alreadySubmitted && !canEdit) || isSubmitting}
                 />
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Grace Period Warning */}
+          {dueDatePassed && submissionWindowOpen && !submission && !lateSubmissionAllowed && (
+            <Card className="bg-yellow-50 border-yellow-200">
+              <CardContent className="pt-6">
+                <div className="flex items-start gap-3">
+                  <div className="text-yellow-600 mt-0.5">
+                    <Calendar className="h-5 w-5" />
+                  </div>
+                  <div className="flex-1">
+                    <p className="font-semibold text-yellow-900">Grace Period</p>
+                    <p className="text-sm text-yellow-700 mt-1">
+                      The due date has passed, but you're still within the 3-hour grace period.
+                    </p>
+                    {submissionWindowRemaining !== null && submissionWindowRemaining > 0 && (
+                      <p className="text-sm font-semibold text-yellow-900 mt-2">
+                        Time remaining: {(() => {
+                          const hours = Math.floor(submissionWindowRemaining / 60);
+                          const minutes = submissionWindowRemaining % 60;
+                          if (hours > 0) {
+                            return `${hours} hour${hours !== 1 ? 's' : ''} ${minutes} minute${minutes !== 1 ? 's' : ''}`;
+                          }
+                          return `${minutes} minute${minutes !== 1 ? 's' : ''}`;
+                        })()}
+                      </p>
+                    )}
+                  </div>
+                </div>
               </CardContent>
             </Card>
           )}

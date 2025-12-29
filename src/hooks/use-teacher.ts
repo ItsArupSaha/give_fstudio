@@ -6,8 +6,8 @@ import { useEffect, useState } from "react";
 
 /**
  * Hook to check if the current authenticated user is a teacher
- * This also ensures the user's role is set in the users collection
- * if they're in the teachers collection, which is needed for Firestore rules
+ * Teacher validation ONLY comes from the teachers collection (single source of truth)
+ * This also ensures the user's role is set in the users collection for Firestore rules consistency
  * @returns Object with isTeacher boolean and loading state
  */
 export function useTeacher() {
@@ -24,8 +24,8 @@ export function useTeacher() {
       }
 
       try {
-        // Use getUserRoleData which checks both users collection and teachers collection
-        // This also automatically sets the role in users collection if teacher is in teachers collection
+        // getUserRoleData checks ONLY the teachers collection for teacher status
+        // It also updates the users collection for consistency but doesn't rely on it
         const role = await getUserRoleData(user.uid, user.email || null);
         const isTeacherUser = role === "teacher";
         setIsTeacher(isTeacherUser);

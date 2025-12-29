@@ -27,7 +27,12 @@ import {
   subscribeTaskBookmarksByBatch,
   subscribeTasksByBatch
 } from "@/lib/services/firestore";
-import { getGracePeriodRemainingMinutes, isWithinGracePeriod } from "@/lib/utils";
+import {
+  getGracePeriodRemainingMinutes,
+  getSubmissionWindowRemainingMinutes,
+  isSubmissionWindowOpen,
+  isWithinGracePeriod
+} from "@/lib/utils";
 import {
   getTaskTypeColor,
   getTaskTypeIcon,
@@ -59,6 +64,7 @@ export default function BatchTasksPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [gracePeriodCountdowns, setGracePeriodCountdowns] = useState<Map<string, number>>(new Map());
+  const [submissionWindowCountdowns, setSubmissionWindowCountdowns] = useState<Map<string, number | null>>(new Map());
   const { toast } = useToast();
 
   useEffect(() => {
@@ -114,7 +120,7 @@ export default function BatchTasksPage() {
     };
   }, [batchId, user?.uid]);
 
-  // Update grace period countdowns for all submissions
+  // Update grace period countdowns for all submissions (15-minute grace period)
   useEffect(() => {
     const updateCountdowns = () => {
       const newCountdowns = new Map<string, number>();
@@ -132,6 +138,25 @@ export default function BatchTasksPage() {
 
     return () => clearInterval(interval);
   }, [submissions]);
+
+  // Update submission window countdowns for all tasks (3-hour grace period)
+  useEffect(() => {
+    const updateCountdowns = () => {
+      const newCountdowns = new Map<string, number | null>();
+      tasks.forEach((task) => {
+        if (task.dueDate && task.type !== "announcement") {
+          const remaining = getSubmissionWindowRemainingMinutes(task.dueDate);
+          newCountdowns.set(task.id, remaining);
+        }
+      });
+      setSubmissionWindowCountdowns(newCountdowns);
+    };
+
+    updateCountdowns();
+    const interval = setInterval(updateCountdowns, 1000); // Update every second
+
+    return () => clearInterval(interval);
+  }, [tasks]);
 
   const refreshData = async () => {
     if (!batchId || !user?.uid) return;
@@ -417,15 +442,19 @@ export default function BatchTasksPage() {
 
               // Allow clicking if:
               // 1. Task is not announcement
-              // 2. Due date hasn't passed (if no submission) OR late submission is allowed OR within grace period (if submitted)
+              // 2. Submission window is open (due date + 3 hours grace period) OR late submission is allowed OR within grace period (if submitted)
               const dueDatePassed = task.dueDate && task.type !== "announcement" && new Date() > task.dueDate;
+              const submissionWindowOpen = task.dueDate && task.type !== "announcement"
+                ? isSubmissionWindowOpen(task.dueDate)
+                : true;
+              const submissionWindowClosed = task.dueDate && task.type !== "announcement" && !submissionWindowOpen;
               const gracePeriodPassed = submission && !withinGracePeriod && submission.status === "submitted";
 
               // Can't click if:
-              // - Due date passed AND no submission exists AND late submission is not allowed
+              // - Submission window is closed AND no submission exists AND late submission is not allowed
               // - Grace period passed (submission exists but grace period expired)
               const isClickable = task.type !== "announcement" &&
-                !(dueDatePassed && !isSubmitted && !lateSubmissionAllowed) &&
+                !(submissionWindowClosed && !isSubmitted && !lateSubmissionAllowed) &&
                 !gracePeriodPassed &&
                 (!isSubmitted || withinGracePeriod);
 
@@ -520,6 +549,31 @@ export default function BatchTasksPage() {
                           </p>
                           <p className="text-xs text-orange-700 mt-1">
                             You can edit or delete your submission. {gracePeriodRemaining} minute{gracePeriodRemaining !== 1 ? 's' : ''} remaining.
+                          </p>
+                        </div>
+                      )}
+                      {dueDatePassed && submissionWindowOpen && !isSubmitted && !lateSubmissionAllowed && (
+                        <div className="mb-3 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+                          <p className="text-sm font-semibold text-yellow-900">
+                            Grace Period
+                          </p>
+                          <p className="text-xs text-yellow-700 mt-1">
+                            The due date has passed, but you're still within the 3-hour grace period.
+                            {(() => {
+                              const remaining = submissionWindowCountdowns.get(task.id);
+                              if (remaining !== null && remaining !== undefined && remaining > 0) {
+                                const hours = Math.floor(remaining / 60);
+                                const minutes = remaining % 60;
+                                return (
+                                  <span className="block mt-1 font-semibold">
+                                    Time remaining: {hours > 0
+                                      ? `${hours} hour${hours !== 1 ? 's' : ''} ${minutes} minute${minutes !== 1 ? 's' : ''}`
+                                      : `${minutes} minute${minutes !== 1 ? 's' : ''}`}
+                                  </span>
+                                );
+                              }
+                              return null;
+                            })()}
                           </p>
                         </div>
                       )}

@@ -11,11 +11,15 @@
 import { db } from "@/lib/firebase";
 import type { UserRole } from "@/lib/models/user";
 import {
+  collection,
   doc,
   getDoc,
+  getDocs,
+  query,
   setDoc,
   Timestamp,
   updateDoc,
+  where,
 } from "firebase/firestore";
 
 /**
@@ -124,29 +128,25 @@ export async function isTeacherEmail(email: string | null | undefined): Promise<
 
 /**
  * Get user role data (for a specific user by userId)
- * This checks both the users collection and teachers collection
+ * Teacher status is ONLY determined by the teachers collection (single source of truth)
+ * The users collection role field is only used for student role
  */
 export async function getUserRoleData(
   userId: string,
   email: string | null | undefined
 ): Promise<UserRole | null> {
-  // First check if user has a role in users collection
-  const role = await getUserRole(userId);
-  if (role === "teacher") {
-    return "teacher";
-  }
-
-  // If no role found, check if email is in teachers collection
+  // ONLY check teachers collection for teacher status (single source of truth)
   if (email) {
     const isTeacher = await isTeacherEmail(email);
     if (isTeacher) {
-      // Update users collection for consistency
+      // Update users collection for consistency (but don't rely on it for teacher validation)
       await setUserRole(userId, email, "teacher");
       return "teacher";
     }
   }
 
-  // If user has student role, return it
+  // If not a teacher, check users collection for student role
+  const role = await getUserRole(userId);
   if (role === "student") {
     return "student";
   }
@@ -164,9 +164,10 @@ export async function assignStudentRole(
   userId: string,
   email: string
 ): Promise<void> {
-  // Only assign student role if user is not already a teacher
-  const currentRole = await getUserRole(userId);
-  if (currentRole !== "teacher") {
+  // Only assign student role if user is not an active teacher
+  // Check teachers collection (single source of truth for teacher status)
+  const isTeacher = await isTeacherEmail(email);
+  if (!isTeacher) {
     await setUserRole(userId, email, "student");
   }
 }
@@ -195,12 +196,31 @@ export async function addTeacher(email: string): Promise<void> {
  */
 export async function removeTeacher(email: string): Promise<void> {
   try {
-    const teacherRef = doc(db, "teachers", email.toLowerCase().trim());
+    const normalizedEmail = email.toLowerCase().trim();
+    
+    // 1. Deactivate teacher in teachers collection
+    const teacherRef = doc(db, "teachers", normalizedEmail);
     await setDoc(teacherRef, {
-      email: email.toLowerCase().trim(),
+      email: normalizedEmail,
       isActive: false,
       deactivatedAt: new Date(),
     }, { merge: true });
+
+    // 2. Update all users with this email to have "student" role instead of "teacher"
+    const usersRef = collection(db, "users");
+    const usersQuery = query(usersRef, where("email", "==", normalizedEmail));
+    const usersSnapshot = await getDocs(usersQuery);
+    
+    const now = Timestamp.now();
+    for (const userDoc of usersSnapshot.docs) {
+      const userData = userDoc.data();
+      if (userData.role === "teacher") {
+        await updateDoc(userDoc.ref, {
+          role: "student",
+          updatedAt: now,
+        });
+      }
+    }
   } catch (error) {
     console.error("Error removing teacher:", error);
     throw error;
