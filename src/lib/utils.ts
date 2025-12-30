@@ -93,3 +93,49 @@ export function getSubmissionWindowRemainingMinutes(dueDate: Date | null | undef
   const remainingMs = deadline.getTime() - now.getTime();
   return Math.ceil(remainingMs / (60 * 1000)); // Convert to minutes
 }
+
+/**
+ * Convert a date string (YYYY-MM-DD) to a Date object in Bangladesh timezone (UTC+6)
+ * @param dateString - Date string in YYYY-MM-DD format
+ * @param hour - Hour (0-23), default 0
+ * @param minute - Minute (0-59), default 0
+ * @param second - Second (0-59), default 0
+ * @param millisecond - Millisecond (0-999), default 0
+ * @returns Date object representing the specified date/time in Bangladesh timezone
+ */
+export function dateToBangladeshTime(
+  dateString: string,
+  hour: number = 0,
+  minute: number = 0,
+  second: number = 0,
+  millisecond: number = 0
+): Date {
+  // Bangladesh timezone is UTC+6
+  // Create ISO string with Bangladesh timezone offset
+  const [year, month, day] = dateString.split('-').map(Number);
+  
+  // Format: YYYY-MM-DDTHH:mm:ss.sss+06:00
+  const isoString = `${year.toString().padStart(4, '0')}-${month.toString().padStart(2, '0')}-${day.toString().padStart(2, '0')}T${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}:${second.toString().padStart(2, '0')}.${millisecond.toString().padStart(3, '0')}+06:00`;
+  
+  return new Date(isoString);
+}
+
+/**
+ * Convert a Date object to a date string (YYYY-MM-DD) in Bangladesh timezone (UTC+6)
+ * @param date - Date object to convert
+ * @returns Date string in YYYY-MM-DD format representing the date in Bangladesh timezone
+ */
+export function dateFromBangladeshTime(date: Date): string {
+  // Bangladesh timezone is UTC+6
+  // Convert UTC time to Bangladesh time by adding 6 hours
+  const bangladeshOffset = 6 * 60 * 60 * 1000; // 6 hours in milliseconds
+  const bangladeshTime = new Date(date.getTime() + bangladeshOffset);
+  
+  // Get the date components in Bangladesh timezone
+  const year = bangladeshTime.getUTCFullYear();
+  const month = bangladeshTime.getUTCMonth() + 1; // getUTCMonth() returns 0-11
+  const day = bangladeshTime.getUTCDate();
+  
+  // Format as YYYY-MM-DD
+  return `${year.toString().padStart(4, '0')}-${month.toString().padStart(2, '0')}-${day.toString().padStart(2, '0')}`;
+}

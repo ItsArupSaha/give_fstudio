@@ -19,6 +19,7 @@ import { useToast } from "@/hooks/use-toast";
 import type { Batch } from "@/lib/models/batch";
 import type { TaskType } from "@/lib/models/task";
 import { createTask } from "@/lib/services/firestore";
+import { dateToBangladeshTime } from "@/lib/utils";
 import {
   BookOpen,
   FileQuestion,
@@ -76,13 +77,9 @@ export function TaskCreation({ batch, onTaskCreated }: TaskCreationProps) {
 
     setIsSubmitting(true);
     try {
-      // Set start date to 12:00 AM
+      // Set start date to 12:00 AM in Bangladesh timezone (UTC+6)
       const startDate = formData.startDate
-        ? (() => {
-          const date = new Date(formData.startDate);
-          date.setHours(0, 0, 0, 0);
-          return date;
-        })()
+        ? dateToBangladeshTime(formData.startDate, 0, 0, 0, 0)
         : undefined;
 
       await createTask({
@@ -97,12 +94,7 @@ export function TaskCreation({ batch, onTaskCreated }: TaskCreationProps) {
         startDate: startDate,
         dueDate:
           formData.type !== "announcement" && formData.dueDate
-            ? (() => {
-              // Set time to 11:59:59.999 PM of the selected date
-              const date = new Date(formData.dueDate);
-              date.setHours(23, 59, 59, 999);
-              return date;
-            })()
+            ? dateToBangladeshTime(formData.dueDate, 23, 59, 59, 999)
             : undefined,
         maxPoints:
           formData.type === "announcement" ? 0 : parseInt(formData.maxPoints) || 100,

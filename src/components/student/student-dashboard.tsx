@@ -96,28 +96,46 @@ export function StudentDashboard() {
     const unsubscribeEnrollments = subscribeEnrollmentsByStudent(user.uid, async (enrollmentsList) => {
       setEnrollments(enrollmentsList);
 
-      // Load batch details for each enrollment
-      const batchMap = new Map<string, Batch>();
-      const batchLoadPromises = enrollmentsList.map(async (enrollment) => {
-        if (!batchMap.has(enrollment.batchId)) {
-          try {
-            const batch = await getBatchById(enrollment.batchId);
-            if (batch) {
-              batchMap.set(enrollment.batchId, batch);
-            }
-            // If batch is null (deleted), we simply don't add it to the map
-            // This will be handled in the render section
-          } catch (error) {
-            console.error(`Error loading batch ${enrollment.batchId}:`, error);
-            // Continue loading other batches even if one fails
-          }
-        }
-      });
+      // Preserve existing batches and only load missing ones
+      setBatches((prevBatches) => {
+        const batchMap = new Map(prevBatches);
+        const isInitialLoad = batchMap.size === 0;
 
-      // Wait for all batch loads to complete (including failures)
-      await Promise.allSettled(batchLoadPromises);
-      setBatches(batchMap);
-      setLoading(false);
+        // Find batches that need to be loaded
+        const batchIdsToLoad = enrollmentsList
+          .map(e => e.batchId)
+          .filter(batchId => !batchMap.has(batchId));
+
+        // Load missing batches asynchronously without blocking
+        if (batchIdsToLoad.length > 0) {
+          Promise.allSettled(
+            batchIdsToLoad.map(async (batchId) => {
+              try {
+                const batch = await getBatchById(batchId);
+                if (batch) {
+                  setBatches((current) => {
+                    const updated = new Map(current);
+                    updated.set(batchId, batch);
+                    return updated;
+                  });
+                }
+              } catch (error) {
+                console.error(`Error loading batch ${batchId}:`, error);
+              }
+            })
+          ).then(() => {
+            // Only set loading to false after initial load completes
+            if (isInitialLoad) {
+              setLoading(false);
+            }
+          });
+        } else if (isInitialLoad) {
+          // No new batches to load, but still need to set loading to false on initial load
+          setLoading(false);
+        }
+
+        return batchMap;
+      });
     });
 
     // Subscribe to bookmarks
