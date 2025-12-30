@@ -827,7 +827,7 @@ export function StudentDashboard() {
               </div>
               <AlertDialogTitle>Request Sent Successfully!</AlertDialogTitle>
             </div>
-            <AlertDialogDescription className="pt-2">
+            <div className="text-sm text-muted-foreground pt-2">
               <p className="mb-4">
                 Your enrollment request for <strong>{successBatchName}</strong> has been sent successfully.
               </p>
@@ -845,7 +845,7 @@ export function StudentDashboard() {
                   </div>
                 </div>
               </div>
-            </AlertDialogDescription>
+            </div>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogAction onClick={() => setShowSuccessDialog(false)}>
