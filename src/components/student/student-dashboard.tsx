@@ -848,7 +848,11 @@ export function StudentDashboard() {
             </div>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogAction onClick={() => setShowSuccessDialog(false)}>
+            <AlertDialogAction onClick={() => {
+              setShowSuccessDialog(false);
+              // Reload the page to refresh enrollment data and prevent freezing
+              window.location.reload();
+            }}>
               Got it
             </AlertDialogAction>
           </AlertDialogFooter>
