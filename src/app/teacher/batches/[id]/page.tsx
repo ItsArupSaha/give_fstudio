@@ -1080,6 +1080,53 @@ function PendingEnrollmentCard({
   );
 }
 
+/**
+ * Calculate the display status for a task in the teacher dashboard
+ * - "scheduled": Task has startDate in the future (not yet visible to students)
+ * - "published": Task is currently visible to students (startDate has passed, but not closed)
+ * - "closed": Task is past its deadline (dueDate + grace period/late submission window)
+ */
+function getTaskDisplayStatus(task: Task): "scheduled" | "published" | "closed" {
+  const now = new Date();
+
+  // Check if task is scheduled (startDate is in the future)
+  if (task.startDate) {
+    const startDate = new Date(task.startDate);
+    if (now < startDate) {
+      return "scheduled";
+    }
+  }
+
+  // For announcements, they're either scheduled or published (never closed)
+  if (task.type === "announcement") {
+    return "published";
+  }
+
+  // Check if task is closed (past due date + grace period/late submission)
+  if (task.dueDate) {
+    const dueDate = new Date(task.dueDate);
+    let deadline: Date;
+
+    if (task.allowLateSubmission && task.lateSubmissionDays > 0) {
+      // Late submission allowed: deadline is dueDate + lateSubmissionDays (11:59:59 PM on last day)
+      deadline = new Date(dueDate);
+      deadline.setDate(deadline.getDate() + task.lateSubmissionDays);
+      deadline.setHours(23, 59, 59, 999);
+    } else {
+      // No late submission: deadline is dueDate + 2 hours grace period
+      const gracePeriodMs = 2 * 60 * 60 * 1000; // 2 hours
+      deadline = new Date(dueDate.getTime() + gracePeriodMs);
+    }
+
+    if (now > deadline) {
+      return "closed";
+    }
+  }
+
+  // Task is published (startDate has passed or no startDate, and not closed)
+  return "published";
+}
+
 function TaskCard({ task, submissionCount }: { task: Task; submissionCount: number }) {
   const { user } = useAuthUser();
   const { toast } = useToast();
@@ -1091,6 +1138,9 @@ function TaskCard({ task, submissionCount }: { task: Task; submissionCount: numb
 
   // Check if current user is the teacher who created the task
   const canEdit = user?.uid === task.teacherId;
+
+  // Calculate display status for teacher dashboard
+  const displayStatus = getTaskDisplayStatus(task);
 
   const handleDelete = async () => {
     if (!canEdit) return;
@@ -1128,7 +1178,17 @@ function TaskCard({ task, submissionCount }: { task: Task; submissionCount: numb
             <div className="flex-1 min-w-0 w-full">
               <div className="flex flex-wrap items-center gap-2 mb-1">
                 <p className="font-medium break-words">{task.title}</p>
-                <Badge variant="outline" className="flex-shrink-0">{task.status}</Badge>
+                <Badge
+                  variant="outline"
+                  className={`flex-shrink-0 ${displayStatus === "scheduled"
+                    ? "bg-gray-50 text-gray-700 border-gray-200"
+                    : displayStatus === "published"
+                      ? "bg-orange-50 text-orange-700 border-orange-200"
+                      : "bg-red-50 text-red-700 border-red-200"
+                    }`}
+                >
+                  {displayStatus.charAt(0).toUpperCase() + displayStatus.slice(1)}
+                </Badge>
               </div>
               <p className="text-sm text-muted-foreground mb-2 line-clamp-2">
                 <LinkifiedText text={task.description} />

@@ -94,6 +94,53 @@ interface TaskFiles {
   studentSubmissions: StudentSubmission[];
 }
 
+/**
+ * Calculate the display status for a task in the teacher dashboard
+ * - "scheduled": Task has startDate in the future (not yet visible to students)
+ * - "published": Task is currently visible to students (startDate has passed, but not closed)
+ * - "closed": Task is past its deadline (dueDate + grace period/late submission window)
+ */
+function getTaskDisplayStatus(task: Task): "scheduled" | "published" | "closed" {
+  const now = new Date();
+
+  // Check if task is scheduled (startDate is in the future)
+  if (task.startDate) {
+    const startDate = new Date(task.startDate);
+    if (now < startDate) {
+      return "scheduled";
+    }
+  }
+
+  // For announcements, they're either scheduled or published (never closed)
+  if (task.type === "announcement") {
+    return "published";
+  }
+
+  // Check if task is closed (past due date + grace period/late submission)
+  if (task.dueDate) {
+    const dueDate = new Date(task.dueDate);
+    let deadline: Date;
+
+    if (task.allowLateSubmission && task.lateSubmissionDays > 0) {
+      // Late submission allowed: deadline is dueDate + lateSubmissionDays (11:59:59 PM on last day)
+      deadline = new Date(dueDate);
+      deadline.setDate(deadline.getDate() + task.lateSubmissionDays);
+      deadline.setHours(23, 59, 59, 999);
+    } else {
+      // No late submission: deadline is dueDate + 2 hours grace period
+      const gracePeriodMs = 2 * 60 * 60 * 1000; // 2 hours
+      deadline = new Date(dueDate.getTime() + gracePeriodMs);
+    }
+
+    if (now > deadline) {
+      return "closed";
+    }
+  }
+
+  // Task is published (startDate has passed or no startDate, and not closed)
+  return "published";
+}
+
 export default function BatchSubmissionsPage() {
   const params = useParams();
   const router = useRouter();
@@ -972,6 +1019,7 @@ export default function BatchSubmissionsPage() {
             const totalTextSubmissions = studentSubmissions.reduce((sum, s) => sum + s.textSubmissions.length, 0);
             const totalSubmissions = studentSubmissions.length; // Count students who submitted, not total files
             const hasAnySubmissions = totalSubmissions > 0;
+            const displayStatus = getTaskDisplayStatus(task);
 
             return (
               <AccordionItem key={task.id} value={task.id} className="border rounded-lg px-4 mb-2">
@@ -995,7 +1043,17 @@ export default function BatchSubmissionsPage() {
                         {isDailyListening && totalTextSubmissions > 0 && (
                           <span> ({totalTextSubmissions} text{totalTextSubmissions !== 1 ? "s" : ""}, {totalFiles} file{totalFiles !== 1 ? "s" : ""})</span>
                         )}
-                        <Badge variant="outline" className="ml-2">{task.status}</Badge>
+                        <Badge
+                          variant="outline"
+                          className={`ml-2 ${displayStatus === "scheduled"
+                            ? "bg-gray-50 text-gray-700 border-gray-200"
+                            : displayStatus === "published"
+                              ? "bg-orange-50 text-orange-700 border-orange-200"
+                              : "bg-red-50 text-red-700 border-red-200"
+                            }`}
+                        >
+                          {displayStatus.charAt(0).toUpperCase() + displayStatus.slice(1)}
+                        </Badge>
                       </div>
                     </div>
                   </div>
