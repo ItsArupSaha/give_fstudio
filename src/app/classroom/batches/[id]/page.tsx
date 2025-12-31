@@ -209,14 +209,49 @@ export default function BatchTasksPage() {
     }
   };
 
-  const getTaskStatusBadge = (status: Task["status"]) => {
-    switch (status) {
-      case "draft":
-        return (
-          <Badge variant="outline" className="bg-gray-50 text-gray-700 border-gray-200">
-            Draft
-          </Badge>
-        );
+  /**
+   * Calculate the display status for a task on the student side
+   * - "published": Task is currently visible and open (not closed)
+   * - "closed": Task is past its deadline (dueDate + grace period/late submission window)
+   * Note: Students can't see "scheduled" tasks (they're filtered out), so we only need published/closed
+   */
+  const getTaskDisplayStatus = (task: Task): "published" | "closed" => {
+    const now = new Date();
+
+    // For announcements, they're always published (never closed)
+    if (task.type === "announcement") {
+      return "published";
+    }
+
+    // Check if task is closed (past due date + grace period/late submission)
+    if (task.dueDate) {
+      const dueDate = new Date(task.dueDate);
+      let deadline: Date;
+
+      if (task.allowLateSubmission && task.lateSubmissionDays > 0) {
+        // Late submission allowed: deadline is dueDate + lateSubmissionDays (11:59:59 PM on last day)
+        deadline = new Date(dueDate);
+        deadline.setDate(deadline.getDate() + task.lateSubmissionDays);
+        deadline.setHours(23, 59, 59, 999);
+      } else {
+        // No late submission: deadline is dueDate + 2 hours grace period
+        const gracePeriodMs = 2 * 60 * 60 * 1000; // 2 hours
+        deadline = new Date(dueDate.getTime() + gracePeriodMs);
+      }
+
+      if (now > deadline) {
+        return "closed";
+      }
+    }
+
+    // Task is published (visible to students and not closed)
+    return "published";
+  };
+
+  const getTaskStatusBadge = (task: Task) => {
+    const displayStatus = getTaskDisplayStatus(task);
+
+    switch (displayStatus) {
       case "published":
         return (
           <Badge variant="outline" className="bg-orange-50 text-orange-700 border-orange-200">
@@ -536,7 +571,7 @@ export default function BatchTasksPage() {
                         >
                           {submissionStatus.label}
                         </Badge>
-                        {getTaskStatusBadge(task.status)}
+                        {getTaskStatusBadge(task)}
                       </div>
                     </div>
                   </CardHeader>
