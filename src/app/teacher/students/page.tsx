@@ -69,33 +69,81 @@ export default function AllStudentsPage() {
         setLoading(true);
         try {
             const courseGroups = await getCourseGroups(user.uid);
-            const groupsData: GroupData[] = [];
 
-            for (const group of courseGroups) {
-                const batches = await getBatchesByCourseGroup(group.id);
-                const batchesData: BatchData[] = [];
+            // Load all batches for all groups in parallel
+            const batchesPromises = courseGroups.map(group =>
+                getBatchesByCourseGroup(group.id).then(batches => ({ group, batches }))
+            );
+            const groupsWithBatches = await Promise.all(batchesPromises);
 
+            // Load all enrollments for all batches in parallel
+            const enrollmentsPromises: Array<Promise<{
+                group: CourseGroup;
+                batch: Batch;
+                enrollments: Enrollment[];
+            }>> = [];
+
+            for (const { group, batches } of groupsWithBatches) {
                 for (const batch of batches) {
-                    const enrollments = await getEnrollmentsByBatch(batch.id);
-                    const activeEnrollments = enrollments.filter(
-                        (e) => e.status === "active"
+                    enrollmentsPromises.push(
+                        getEnrollmentsByBatch(batch.id).then(enrollments => ({
+                            group,
+                            batch,
+                            enrollments,
+                        }))
                     );
+                }
+            }
 
-                    const studentsData: StudentData[] = [];
-                    for (const enrollment of activeEnrollments) {
-                        const student = await getUserById(enrollment.studentId);
-                        if (student) {
-                            studentsData.push({ student, enrollment });
-                        }
-                    }
+            const batchesWithEnrollments = await Promise.all(enrollmentsPromises);
 
-                    if (studentsData.length > 0) {
-                        batchesData.push({ batch, students: studentsData });
+            // Extract all unique student IDs and load them in parallel
+            const studentIdSet = new Set<string>();
+            batchesWithEnrollments.forEach(({ enrollments }) => {
+                enrollments
+                    .filter((e) => e.status === "active")
+                    .forEach((e) => studentIdSet.add(e.studentId));
+            });
+
+            // Load all students in parallel
+            const studentPromises = Array.from(studentIdSet).map(studentId =>
+                getUserById(studentId).then(student => ({ studentId, student }))
+            );
+            const studentsResults = await Promise.all(studentPromises);
+
+            // Create a map for quick lookup
+            const studentsMap = new Map<string, User>();
+            studentsResults.forEach(({ studentId, student }) => {
+                if (student) {
+                    studentsMap.set(studentId, student);
+                }
+            });
+
+            // Build the groups data structure
+            const groupsData: GroupData[] = [];
+            const groupMap = new Map<string, GroupData>();
+
+            for (const { group, batch, enrollments } of batchesWithEnrollments) {
+                const activeEnrollments = enrollments.filter(
+                    (e) => e.status === "active"
+                );
+
+                const studentsData: StudentData[] = [];
+                for (const enrollment of activeEnrollments) {
+                    const student = studentsMap.get(enrollment.studentId);
+                    if (student) {
+                        studentsData.push({ student, enrollment });
                     }
                 }
 
-                if (batchesData.length > 0) {
-                    groupsData.push({ group, batches: batchesData });
+                if (studentsData.length > 0) {
+                    let groupData = groupMap.get(group.id);
+                    if (!groupData) {
+                        groupData = { group, batches: [] };
+                        groupMap.set(group.id, groupData);
+                        groupsData.push(groupData);
+                    }
+                    groupData.batches.push({ batch, students: studentsData });
                 }
             }
 
