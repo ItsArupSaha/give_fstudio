@@ -621,22 +621,35 @@ export default function TaskSubmissionPage() {
 
   const TaskIcon = getTaskTypeIcon(task.type);
   const taskColor = getTaskTypeColor(task.type);
-  const isOverdue = task.dueDate && new Date() > task.dueDate;
+
+  // Calculate local deadline for comparisons (11:59:59 PM on due date in user's local timezone)
+  const localDueDateDeadline = task.dueDate ? (() => {
+    const dueDate = new Date(task.dueDate);
+    const year = dueDate.getFullYear();
+    const month = dueDate.getMonth();
+    const day = dueDate.getDate();
+    return new Date(year, month, day, 23, 59, 59, 999);
+  })() : null;
+
+  const now = new Date();
+  const isOverdue = localDueDateDeadline && now > localDueDateDeadline;
   const isDueSoon =
-    task.dueDate &&
+    localDueDateDeadline &&
     !isOverdue &&
-    Math.ceil((task.dueDate.getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)) <= 3;
+    Math.ceil((localDueDateDeadline.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)) <= 3;
   const alreadySubmitted = submission?.status === "submitted" || submission?.status === "graded";
   const withinGracePeriod = isWithinGracePeriod(submission);
   const canEdit = withinGracePeriod && submission?.status === "submitted";
 
   // Check if submission window is still open (grace period disabled - closes exactly at due date)
+  // Uses per-user timezone: deadline is 11:59:59 PM on due date in user's local timezone
   const submissionWindowOpen = task.dueDate && task.type !== "announcement"
     ? isSubmissionWindowOpen(task.dueDate)
     : true;
 
   // Check if due date has passed (for display purposes, not for blocking submissions)
-  const dueDatePassed = task.dueDate && task.type !== "announcement" && new Date() > task.dueDate;
+  // Uses per-user timezone: compares against 11:59:59 PM on due date in user's local timezone
+  const dueDatePassed = localDueDateDeadline && task.type !== "announcement" && now > localDueDateDeadline;
 
   // Check if submission window has closed (due date + grace period passed)
   const submissionWindowClosed = task.dueDate && task.type !== "announcement" && !submissionWindowOpen;
@@ -645,32 +658,39 @@ export default function TaskSubmissionPage() {
   const gracePeriodPassed = submission?.submittedAt && !withinGracePeriod && submission.status === "submitted";
 
   // Helper function to check if late submission is currently allowed
+  // Uses per-user timezone: deadline is 11:59:59 PM on due date in user's local timezone
   const isLateSubmissionAllowed = (): boolean => {
     if (!task.allowLateSubmission || !task.dueDate || task.type === "announcement") {
       return false;
     }
     const now = new Date();
     const dueDate = new Date(task.dueDate);
-    const lateSubmissionDeadline = new Date(dueDate);
-    lateSubmissionDeadline.setDate(lateSubmissionDeadline.getDate() + task.lateSubmissionDays);
-    // Set deadline to 11:59:59 PM on the last day
-    lateSubmissionDeadline.setHours(23, 59, 59, 999);
-    return now > dueDate && now <= lateSubmissionDeadline;
+    // Calculate deadline in user's local timezone: 11:59:59 PM on (dueDate + lateSubmissionDays)
+    const year = dueDate.getFullYear();
+    const month = dueDate.getMonth();
+    const day = dueDate.getDate();
+    const lateSubmissionDeadline = new Date(year, month, day + task.lateSubmissionDays, 23, 59, 59, 999);
+    // Calculate due date deadline in user's local timezone: 11:59:59 PM on due date
+    const dueDateDeadline = new Date(year, month, day, 23, 59, 59, 999);
+    return now > dueDateDeadline && now <= lateSubmissionDeadline;
   };
 
   // Helper function to get remaining late submission days
+  // Uses per-user timezone: deadlines calculated in user's local timezone
   const getRemainingLateSubmissionDays = (): number | null => {
     if (!task.allowLateSubmission || !task.dueDate || task.type === "announcement") {
       return null;
     }
     const now = new Date();
     const dueDate = new Date(task.dueDate);
-    const lateSubmissionDeadline = new Date(dueDate);
-    lateSubmissionDeadline.setDate(lateSubmissionDeadline.getDate() + task.lateSubmissionDays);
-    // Set deadline to 11:59:59 PM on the last day
-    lateSubmissionDeadline.setHours(23, 59, 59, 999);
+    // Calculate deadlines in user's local timezone
+    const year = dueDate.getFullYear();
+    const month = dueDate.getMonth();
+    const day = dueDate.getDate();
+    const dueDateDeadline = new Date(year, month, day, 23, 59, 59, 999);
+    const lateSubmissionDeadline = new Date(year, month, day + task.lateSubmissionDays, 23, 59, 59, 999);
 
-    if (now > dueDate && now <= lateSubmissionDeadline) {
+    if (now > dueDateDeadline && now <= lateSubmissionDeadline) {
       const remainingMs = lateSubmissionDeadline.getTime() - now.getTime();
       const remainingDays = Math.ceil(remainingMs / (1000 * 60 * 60 * 24));
       return Math.max(0, remainingDays);

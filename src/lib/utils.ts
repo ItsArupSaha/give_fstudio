@@ -48,49 +48,67 @@ export function getGracePeriodRemainingMinutes(submission: Submission | null): n
 }
 
 /**
+ * Calculate the deadline in user's local timezone (11:59:59 PM on due date)
+ * @param dueDate - The task due date
+ * @returns Deadline as 11:59:59 PM on the due date in user's local timezone
+ */
+function getLocalDeadline(dueDate: Date): Date {
+  // Extract date components from the due date (year, month, day)
+  // This ensures we use the date part regardless of timezone
+  const year = dueDate.getFullYear();
+  const month = dueDate.getMonth();
+  const day = dueDate.getDate();
+  
+  // Create deadline at 11:59:59 PM on that date in user's local timezone
+  const deadline = new Date(year, month, day, 23, 59, 59, 999);
+  return deadline;
+}
+
+/**
  * Check if the submission window is still open
  * @param dueDate - The task due date
  * @returns true if submission window is still open, false otherwise
  * 
  * NOTE: Grace period is currently disabled. Submissions close exactly at due date.
+ * Uses per-user timezone: deadline is 11:59:59 PM on due date in user's local timezone.
  * To re-enable 2-hour grace period, uncomment the grace period code below.
  */
 export function isSubmissionWindowOpen(dueDate: Date | null | undefined): boolean {
   if (!dueDate) return true; // No due date means always open
   
   const now = new Date();
-  const dueDateTime = new Date(dueDate);
+  const localDeadline = getLocalDeadline(new Date(dueDate));
   
-  // Grace period disabled - submissions close exactly at due date
+  // Grace period disabled - submissions close exactly at due date (11:59:59 PM local time)
   // To re-enable 2-hour grace period, uncomment the following lines:
   // const gracePeriodMs = 2 * 60 * 60 * 1000; // 2 hours in milliseconds
-  // const submissionDeadline = new Date(dueDateTime.getTime() + gracePeriodMs);
+  // const submissionDeadline = new Date(localDeadline.getTime() + gracePeriodMs);
   // return now <= submissionDeadline;
   
-  // Current behavior: no grace period - close exactly at due date
-  return now <= dueDateTime;
+  // Current behavior: no grace period - close at 11:59:59 PM on due date in user's local timezone
+  return now <= localDeadline;
 }
 
 /**
  * Get the submission deadline
  * @param dueDate - The task due date
- * @returns The submission deadline date, or null if no due date
+ * @returns The submission deadline date (11:59:59 PM on due date in user's local timezone), or null if no due date
  * 
- * NOTE: Grace period is currently disabled. Returns due date exactly.
+ * NOTE: Grace period is currently disabled. Returns 11:59:59 PM on due date in user's local timezone.
  * To re-enable 2-hour grace period, uncomment the grace period code below.
  */
 export function getSubmissionDeadline(dueDate: Date | null | undefined): Date | null {
   if (!dueDate) return null;
   
-  const dueDateTime = new Date(dueDate);
+  const localDeadline = getLocalDeadline(new Date(dueDate));
   
-  // Grace period disabled - deadline is exactly the due date
+  // Grace period disabled - deadline is 11:59:59 PM on due date in user's local timezone
   // To re-enable 2-hour grace period, uncomment the following lines:
   // const gracePeriodMs = 2 * 60 * 60 * 1000; // 2 hours in milliseconds
-  // return new Date(dueDateTime.getTime() + gracePeriodMs);
+  // return new Date(localDeadline.getTime() + gracePeriodMs);
   
-  // Current behavior: no grace period - deadline is due date
-  return dueDateTime;
+  // Current behavior: no grace period - deadline is 11:59:59 PM on due date in user's local timezone
+  return localDeadline;
 }
 
 /**

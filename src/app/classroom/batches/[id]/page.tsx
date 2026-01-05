@@ -224,21 +224,27 @@ export default function BatchTasksPage() {
     }
 
     // Check if task is closed (past due date/late submission)
+    // Uses per-user timezone: deadline is 11:59:59 PM on due date in user's local timezone
     if (task.dueDate) {
       const dueDate = new Date(task.dueDate);
       let deadline: Date;
 
       if (task.allowLateSubmission && task.lateSubmissionDays > 0) {
-        // Late submission allowed: deadline is dueDate + lateSubmissionDays (11:59:59 PM on last day)
-        deadline = new Date(dueDate);
-        deadline.setDate(deadline.getDate() + task.lateSubmissionDays);
-        deadline.setHours(23, 59, 59, 999);
+        // Late submission allowed: deadline is dueDate + lateSubmissionDays (11:59:59 PM on last day in user's local timezone)
+        const year = dueDate.getFullYear();
+        const month = dueDate.getMonth();
+        const day = dueDate.getDate();
+        deadline = new Date(year, month, day + task.lateSubmissionDays, 23, 59, 59, 999);
       } else {
-        // No late submission: deadline is exactly the due date (grace period disabled)
+        // No late submission: deadline is 11:59:59 PM on due date in user's local timezone (grace period disabled)
         // To re-enable 2-hour grace period, uncomment the following lines:
         // const gracePeriodMs = 2 * 60 * 60 * 1000; // 2 hours
-        // deadline = new Date(dueDate.getTime() + gracePeriodMs);
-        deadline = dueDate;
+        // const localDeadline = new Date(year, month, day, 23, 59, 59, 999);
+        // deadline = new Date(localDeadline.getTime() + gracePeriodMs);
+        const year = dueDate.getFullYear();
+        const month = dueDate.getMonth();
+        const day = dueDate.getDate();
+        deadline = new Date(year, month, day, 23, 59, 59, 999);
       }
 
       if (now > deadline) {
@@ -283,17 +289,20 @@ export default function BatchTasksPage() {
   };
 
   // Helper function to check if late submission is currently allowed
+  // Uses per-user timezone: deadline is 11:59:59 PM on due date in user's local timezone
   const isLateSubmissionAllowed = (task: Task): boolean => {
     if (!task.allowLateSubmission || !task.dueDate || task.type === "announcement") {
       return false;
     }
     const now = new Date();
     const dueDate = new Date(task.dueDate);
-    const lateSubmissionDeadline = new Date(dueDate);
-    lateSubmissionDeadline.setDate(lateSubmissionDeadline.getDate() + task.lateSubmissionDays);
-    // Set deadline to 11:59:59 PM on the last day
-    lateSubmissionDeadline.setHours(23, 59, 59, 999);
-    return now > dueDate && now <= lateSubmissionDeadline;
+    // Calculate deadlines in user's local timezone
+    const year = dueDate.getFullYear();
+    const month = dueDate.getMonth();
+    const day = dueDate.getDate();
+    const dueDateDeadline = new Date(year, month, day, 23, 59, 59, 999);
+    const lateSubmissionDeadline = new Date(year, month, day + task.lateSubmissionDays, 23, 59, 59, 999);
+    return now > dueDateDeadline && now <= lateSubmissionDeadline;
   };
 
   const isTaskBookmarked = (taskId: string) => {
@@ -457,18 +466,21 @@ export default function BatchTasksPage() {
               const lateSubmissionAllowed = isLateSubmissionAllowed(task);
 
               // Calculate remaining late submission days
+              // Uses per-user timezone: deadlines calculated in user's local timezone
               const getRemainingLateSubmissionDays = (): number | null => {
                 if (!task.allowLateSubmission || !task.dueDate || task.type === "announcement") {
                   return null;
                 }
                 const now = new Date();
                 const dueDate = new Date(task.dueDate);
-                const lateSubmissionDeadline = new Date(dueDate);
-                lateSubmissionDeadline.setDate(lateSubmissionDeadline.getDate() + task.lateSubmissionDays);
-                // Set deadline to 11:59:59 PM on the last day
-                lateSubmissionDeadline.setHours(23, 59, 59, 999);
+                // Calculate deadlines in user's local timezone
+                const year = dueDate.getFullYear();
+                const month = dueDate.getMonth();
+                const day = dueDate.getDate();
+                const dueDateDeadline = new Date(year, month, day, 23, 59, 59, 999);
+                const lateSubmissionDeadline = new Date(year, month, day + task.lateSubmissionDays, 23, 59, 59, 999);
 
-                if (now > dueDate && now <= lateSubmissionDeadline) {
+                if (now > dueDateDeadline && now <= lateSubmissionDeadline) {
                   const remainingMs = lateSubmissionDeadline.getTime() - now.getTime();
                   const remainingDays = Math.ceil(remainingMs / (1000 * 60 * 60 * 24));
                   return Math.max(0, remainingDays);
@@ -480,7 +492,15 @@ export default function BatchTasksPage() {
               // Allow clicking if:
               // 1. Task is not announcement
               // 2. Submission window is open (grace period disabled - closes at due date) OR late submission is allowed OR within grace period (if submitted)
-              const dueDatePassed = task.dueDate && task.type !== "announcement" && new Date() > task.dueDate;
+              // Uses per-user timezone: compares against 11:59:59 PM on due date in user's local timezone
+              const localDueDateDeadline = task.dueDate ? (() => {
+                const dueDate = new Date(task.dueDate);
+                const year = dueDate.getFullYear();
+                const month = dueDate.getMonth();
+                const day = dueDate.getDate();
+                return new Date(year, month, day, 23, 59, 59, 999);
+              })() : null;
+              const dueDatePassed = localDueDateDeadline && task.type !== "announcement" && new Date() > localDueDateDeadline;
               const submissionWindowOpen = task.dueDate && task.type !== "announcement"
                 ? isSubmissionWindowOpen(task.dueDate)
                 : true;
