@@ -630,7 +630,7 @@ export default function TaskSubmissionPage() {
   const withinGracePeriod = isWithinGracePeriod(submission);
   const canEdit = withinGracePeriod && submission?.status === "submitted";
 
-  // Check if submission window is still open (due date + 2 hours grace period)
+  // Check if submission window is still open (grace period disabled - closes exactly at due date)
   const submissionWindowOpen = task.dueDate && task.type !== "announcement"
     ? isSubmissionWindowOpen(task.dueDate)
     : true;
@@ -705,7 +705,7 @@ export default function TaskSubmissionPage() {
                     Due date was: <strong>{new Date(task.dueDate).toLocaleString()}</strong>
                   </span>
                   <span className="block mt-1 text-sm">
-                    Submission window closed: <strong>{getSubmissionDeadline(task.dueDate)?.toLocaleString()}</strong> (2 hours grace period after due date)
+                    Submission window closed: <strong>{getSubmissionDeadline(task.dueDate)?.toLocaleString()}</strong>
                   </span>
                 </>
               )}
@@ -1205,7 +1205,7 @@ export default function TaskSubmissionPage() {
                   <div className="flex-1">
                     <p className="font-semibold text-yellow-900">Grace Period</p>
                     <p className="text-sm text-yellow-700 mt-1">
-                      The due date has passed, but you're still within the 2-hour grace period.
+                      The submission window has closed.
                     </p>
                     {submissionWindowRemaining !== null && submissionWindowRemaining > 0 && (
                       <p className="text-sm font-semibold text-yellow-900 mt-2">

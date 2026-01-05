@@ -48,32 +48,49 @@ export function getGracePeriodRemainingMinutes(submission: Submission | null): n
 }
 
 /**
- * Check if the submission window is still open (due date + 2 hours grace period)
+ * Check if the submission window is still open
  * @param dueDate - The task due date
  * @returns true if submission window is still open, false otherwise
+ * 
+ * NOTE: Grace period is currently disabled. Submissions close exactly at due date.
+ * To re-enable 2-hour grace period, uncomment the grace period code below.
  */
 export function isSubmissionWindowOpen(dueDate: Date | null | undefined): boolean {
   if (!dueDate) return true; // No due date means always open
   
   const now = new Date();
   const dueDateTime = new Date(dueDate);
-  const gracePeriodMs = 2 * 60 * 60 * 1000; // 2 hours in milliseconds
-  const submissionDeadline = new Date(dueDateTime.getTime() + gracePeriodMs);
   
-  return now <= submissionDeadline;
+  // Grace period disabled - submissions close exactly at due date
+  // To re-enable 2-hour grace period, uncomment the following lines:
+  // const gracePeriodMs = 2 * 60 * 60 * 1000; // 2 hours in milliseconds
+  // const submissionDeadline = new Date(dueDateTime.getTime() + gracePeriodMs);
+  // return now <= submissionDeadline;
+  
+  // Current behavior: no grace period - close exactly at due date
+  return now <= dueDateTime;
 }
 
 /**
- * Get the submission deadline (due date + 2 hours grace period)
+ * Get the submission deadline
  * @param dueDate - The task due date
  * @returns The submission deadline date, or null if no due date
+ * 
+ * NOTE: Grace period is currently disabled. Returns due date exactly.
+ * To re-enable 2-hour grace period, uncomment the grace period code below.
  */
 export function getSubmissionDeadline(dueDate: Date | null | undefined): Date | null {
   if (!dueDate) return null;
   
   const dueDateTime = new Date(dueDate);
-  const gracePeriodMs = 2 * 60 * 60 * 1000; // 2 hours in milliseconds
-  return new Date(dueDateTime.getTime() + gracePeriodMs);
+  
+  // Grace period disabled - deadline is exactly the due date
+  // To re-enable 2-hour grace period, uncomment the following lines:
+  // const gracePeriodMs = 2 * 60 * 60 * 1000; // 2 hours in milliseconds
+  // return new Date(dueDateTime.getTime() + gracePeriodMs);
+  
+  // Current behavior: no grace period - deadline is due date
+  return dueDateTime;
 }
 
 /**

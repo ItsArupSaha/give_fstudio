@@ -116,7 +116,7 @@ function getTaskDisplayStatus(task: Task): "scheduled" | "published" | "closed" 
     return "published";
   }
 
-  // Check if task is closed (past due date + grace period/late submission)
+  // Check if task is closed (past due date/late submission)
   if (task.dueDate) {
     const dueDate = new Date(task.dueDate);
     let deadline: Date;
@@ -127,9 +127,11 @@ function getTaskDisplayStatus(task: Task): "scheduled" | "published" | "closed" 
       deadline.setDate(deadline.getDate() + task.lateSubmissionDays);
       deadline.setHours(23, 59, 59, 999);
     } else {
-      // No late submission: deadline is dueDate + 2 hours grace period
-      const gracePeriodMs = 2 * 60 * 60 * 1000; // 2 hours
-      deadline = new Date(dueDate.getTime() + gracePeriodMs);
+      // No late submission: deadline is exactly the due date (grace period disabled)
+      // To re-enable 2-hour grace period, uncomment the following lines:
+      // const gracePeriodMs = 2 * 60 * 60 * 1000; // 2 hours
+      // deadline = new Date(dueDate.getTime() + gracePeriodMs);
+      deadline = dueDate;
     }
 
     if (now > deadline) {
