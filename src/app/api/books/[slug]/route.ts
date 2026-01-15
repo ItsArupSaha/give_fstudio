@@ -5,6 +5,8 @@ import { NextRequest, NextResponse } from "next/server";
 // Map of book slugs to Firebase Storage paths
 const BOOKS_MAP: Record<string, string> = {
   "bengali-bs-shb": "books/GIVE_Bengali_BS_SHB.pdf",
+  "idc-students-handbook-english": "books/IDC Students Handbook (English).pdf",
+  "idc-students-handbook-bengali": "books/IDC Students Handbook (Bengali).pdf",
   // Add more books here as needed
   // "another-book": "books/Another_Book.pdf",
 };

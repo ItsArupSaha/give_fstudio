@@ -58,8 +58,26 @@ export default function Header() {
 
   // Use clean API route instead of direct Firebase Storage URL
   // This hides the Firebase Storage URL from users
-  const bengaliBookUrl = "/api/books/bengali-bs-shb";
-  const bengaliBookDownloadUrl = "/api/books/bengali-bs-shb?download=true";
+  const books = [
+    {
+      key: "bengali-bs-shb",
+      name: "Bhakti-Sastri Student Handbook (Bengali)",
+      viewUrl: "/api/books/bengali-bs-shb",
+      downloadUrl: "/api/books/bengali-bs-shb?download=true",
+    },
+    {
+      key: "idc-students-handbook-english",
+      name: "IDC Students Handbook (English)",
+      viewUrl: "/api/books/idc-students-handbook-english",
+      downloadUrl: "/api/books/idc-students-handbook-english?download=true",
+    },
+    {
+      key: "idc-students-handbook-bengali",
+      name: "IDC Students Handbook (Bengali)",
+      viewUrl: "/api/books/idc-students-handbook-bengali",
+      downloadUrl: "/api/books/idc-students-handbook-bengali?download=true",
+    },
+  ] as const;
 
   const coursesHref = isHomePage ? "#courses" : "/courses";
   const testimonialsHref = isHomePage ? "#testimonials" : "/testimonials";
@@ -207,26 +225,28 @@ export default function Header() {
               <DropdownMenuSub>
                 <DropdownMenuSubTrigger>Books</DropdownMenuSubTrigger>
                 <DropdownMenuSubContent>
-                  <div className="flex items-center gap-2 px-2 py-1.5">
-                    <DropdownMenuItem asChild className="flex-1">
-                      <Link href={bengaliBookUrl} target="_blank" rel="noopener noreferrer">
-                        GIVE_Bengali_BS_SHB
-                      </Link>
-                    </DropdownMenuItem>
-                    {isMobile && (
-                      <DropdownMenuItem asChild>
-                        <Link
-                          href={bengaliBookDownloadUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          download
-                          className="p-1 border-2 border-orange-500 rounded"
-                        >
-                          <Download className="h-4 w-4 text-orange-500" />
+                  {books.map((book) => (
+                    <div key={book.key} className="flex items-center gap-2 px-2 py-1.5">
+                      <DropdownMenuItem asChild className="flex-1">
+                        <Link href={book.viewUrl} target="_blank" rel="noopener noreferrer">
+                          {book.name}
                         </Link>
                       </DropdownMenuItem>
-                    )}
-                  </div>
+                      {isMobile && (
+                        <DropdownMenuItem asChild>
+                          <Link
+                            href={book.downloadUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            download
+                            className="p-1 border-2 border-orange-500 rounded"
+                          >
+                            <Download className="h-4 w-4 text-orange-500" />
+                          </Link>
+                        </DropdownMenuItem>
+                      )}
+                    </div>
+                  ))}
                 </DropdownMenuSubContent>
               </DropdownMenuSub>
             </DropdownMenuContent>
@@ -386,27 +406,29 @@ export default function Header() {
                               </AccordionTrigger>
                               <AccordionContent className="pl-4">
                                 <div className="flex flex-col gap-2 mt-2">
-                                  <div className="flex items-center justify-between">
-                                    <Link
-                                      href={bengaliBookUrl}
-                                      target="_blank"
-                                      rel="noopener noreferrer"
-                                      className="text-sm font-medium text-foreground/90 transition-colors hover:text-foreground"
-                                      onClick={() => setIsMobileMenuOpen(false)}
-                                    >
-                                      Bengali_BS_SHB
-                                    </Link>
-                                    <Link
-                                      href={bengaliBookDownloadUrl}
-                                      target="_blank"
-                                      rel="noopener noreferrer"
-                                      className="ml-2 p-1 border-2 border-orange-500 rounded"
-                                      onClick={() => setIsMobileMenuOpen(false)}
-                                      download
-                                    >
-                                      <Download className="h-4 w-4 text-orange-500" />
-                                    </Link>
-                                  </div>
+                                  {books.map((book) => (
+                                    <div key={book.key} className="flex items-center justify-between">
+                                      <Link
+                                        href={book.viewUrl}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="text-sm font-medium text-foreground/90 transition-colors hover:text-foreground"
+                                        onClick={() => setIsMobileMenuOpen(false)}
+                                      >
+                                        {book.name}
+                                      </Link>
+                                      <Link
+                                        href={book.downloadUrl}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="ml-2 p-1 border-2 border-orange-500 rounded"
+                                        onClick={() => setIsMobileMenuOpen(false)}
+                                        download
+                                      >
+                                        <Download className="h-4 w-4 text-orange-500" />
+                                      </Link>
+                                    </div>
+                                  ))}
                                 </div>
                               </AccordionContent>
                             </AccordionItem>
